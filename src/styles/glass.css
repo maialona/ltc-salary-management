@@ -1,0 +1,83 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
+
+:root {
+  /* Apple-Style Depth Tokens (Phase 7 Settings) */
+  --glass-bg: rgba(30, 41, 59, 0.4); /* Darker, more solid feel */
+  --glass-border: rgba(255, 255, 255, 0.08); /* Precise thin border */
+  
+  --glass-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); /* Deep floating shadow */
+  --glass-blur: blur(24px) saturate(140%);
+  
+  /* Radial Abyss Background */
+  --bg-radial: radial-gradient(circle at top left, #0f172a, #020617);
+
+  --text-main: #f8fafc; /* slate-50 */
+  --text-scent: #94a3b8; /* slate-400 */
+  
+  --accent-cyan: #22d3ee; 
+  --accent-glow: 0 0 20px rgba(34, 211, 238, 0.3);
+  
+  --radius-key: 24px; /* 3xl roundedness */
+}
+
+body {
+  background: var(--bg-radial);
+  background-attachment: fixed;
+  background-size: cover;
+  min-height: 100vh;
+  color: var(--text-main);
+  font-family: 'Inter', system-ui, sans-serif;
+  letter-spacing: -0.011em; /* Apple-system feel */
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The Main Glass Panel - System Settings Vibe */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: var(--radius-key);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-panel:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 35px 60px -15px rgba(0, 0, 0, 0.6);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Circuit Board Active State */
+.circuit-active {
+  background: rgba(6, 182, 212, 0.15); /* Cyan-500/15 */
+  color: #22d3ee; /* Cyan-400 */
+  box-shadow: 0 0 15px rgba(34, 211, 238, 0.15), inset 0 0 0 1px rgba(34, 211, 238, 0.2);
+}
+
+/* Micro Typography Tags */
+.micro-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em; /* tracking-widest */
+  font-weight: 600;
+  color: var(--text-scent);
+}
+
+/* Mono Numbers */
+.mono-num {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-feature-settings: "tnum";
+}
+
+/* Custom Scrollbar - Minimal */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
