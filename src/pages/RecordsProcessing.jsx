@@ -70,7 +70,7 @@ const RecordsProcessing = () => {
     <div className="space-y-20">
        
       {/* Upload Zone - Hero Plate */}
-      <div className={`relative rounded-[2.5rem] transition-all duration-700 group overflow-hidden ${isProcessing ? 'h-96' : 'h-80 hover:h-96 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.7)]'} bg-[#0f172a]/40 backdrop-blur-xl border border-white/5`}>
+      <div className={`relative rounded-[2.5rem] transition-all duration-700 group overflow-hidden ${isProcessing ? 'h-96' : 'h-80 hover:h-96 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.7)]'} border glass-panel`} style={{ borderColor: 'var(--glass-border)' }}>
         
         {/* Animated Gradient Border */}
         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 bg-gradient-to-r from-transparent via-cyan-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] pointer-events-none transform skew-x-12" style={{ transition: 'transform 2s ease-in-out, opacity 0.5s' }}></div>
@@ -92,17 +92,17 @@ const RecordsProcessing = () => {
                       <div className="absolute inset-0 rounded-full border-r-2 border-cyan-400 animate-spin" style={{ animationDuration: '1.5s', animationDirection: 'reverse' }}></div>
                   </div>
                   <div>
-                      <h3 className="text-2xl font-black text-white tracking-widest animate-pulse">分析中...</h3>
+                      <h3 className="text-2xl font-black text-white tracking-widest animate-pulse" style={{ color: 'var(--text-primary)' }}>分析中...</h3>
                       <p className="text-xs font-mono text-cyan-500 mt-2">解析資料結構...</p>
                   </div>
                </div>
              ) : (
                 <div className="group-hover:-translate-y-2 transition-transform duration-500">
-                     <div className="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center mx-auto mb-8 border border-white/5 shadow-2xl group-hover:bg-cyan-500/20 group-hover:text-cyan-300 transition-colors">
+                     <div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-white/5 shadow-2xl group-hover:bg-cyan-500/20 group-hover:text-cyan-300 transition-colors" style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>
                         <CloudUpload size={40} />
                      </div>
-                     <h3 className="text-3xl font-black text-white tracking-tight mb-3">服務清冊上傳</h3>
-                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">DRAG & DROP TO PROCESS</p>
+                     <h3 className="text-3xl font-black tracking-tight mb-3" style={{ color: 'var(--text-primary)' }}>服務清冊上傳</h3>
+                     <p className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: 'var(--text-secondary)' }}>DRAG & DROP TO PROCESS</p>
                 </div>
              )}
         </div>
@@ -157,9 +157,9 @@ const RecordsProcessing = () => {
       <div className="space-y-6">
         {results.length > 0 && !isProcessing && (
             <div className="flex justify-end px-4 gap-4 items-center mb-4">
-                <span className="h-px flex-1 bg-white/5"></span>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    COMPLETED: <span className="text-white">{results.length} PROFILES</span>
+                <span className="h-px flex-1" style={{ background: 'var(--glass-border)' }}></span>
+                <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
+                    COMPLETED: <span style={{ color: 'var(--text-primary)' }}>{results.length} PROFILES</span>
                 </span>
             </div>
         )}
@@ -172,24 +172,29 @@ const RecordsProcessing = () => {
                 <div 
                     onClick={() => toggleExpand(res.employee.id)}
                     className={`
-                        relative z-10 p-8 rounded-[2rem] border transition-all duration-500 cursor-pointer overflow-hidden
-                        ${isExpanded 
-                            ? 'bg-[#0f172a] border-cyan-500/30 shadow-[0_0_50px_-20px_rgba(34,211,238,0.2)]' 
-                            : 'bg-[#0f172a]/40 border-white/5 hover:bg-[#1e293b]/60 hover:border-white/10'
-                        }
+                        relative z-10 p-8 rounded-[2rem] border transition-all duration-500 cursor-pointer overflow-hidden glass-panel
                     `}
+                    style={{
+                        borderColor: isExpanded ? 'rgba(var(--accent-rgb), 0.3)' : 'var(--glass-border)',
+                        boxShadow: isExpanded ? '0 0 50px -20px rgba(var(--accent-rgb), 0.2)' : undefined,
+                        background: isExpanded ? 'var(--glass-bg)' : 'var(--glass-bg)'
+                    }}
                 >
                     <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8">
                         {/* Left: Identity */}
                         <div className="flex items-center gap-6">
                              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-lg border transition-all duration-300 ${
-                                 isExpanded ? 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400' : 'bg-white/5 border-white/5 text-slate-500 group-hover:text-white'
-                             }`}>
+                                 isExpanded ? '' : 'group-hover:text-white'
+                             }`} style={{ 
+                                 background: isExpanded ? 'rgba(var(--accent-rgb), 0.1)' : 'rgba(255,255,255,0.05)',
+                                 borderColor: isExpanded ? 'rgba(var(--accent-rgb), 0.2)' : 'var(--glass-border)',
+                                 color: isExpanded ? 'var(--text-accent)' : 'var(--text-secondary)'
+                             }}>
                                 {res.employee.empId}
                              </div>
                              <div>
                                 <div className="flex items-center gap-4 mb-2">
-                                    <h3 className={`text-2xl font-bold tracking-tight transition-colors ${isExpanded ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
+                                    <h3 className={`text-2xl font-bold tracking-tight transition-colors`} style={{ color: 'var(--text-primary)' }}>
                                         {res.employee.name}
                                     </h3>
                                     <div className="flex gap-2">
@@ -216,18 +221,18 @@ const RecordsProcessing = () => {
                         </div>
 
                         {/* Right: Total */}
-                        <div className="flex items-center gap-8 pl-4 xl:pl-0 border-l border-white/5 xl:border-l-0">
+                        <div className="flex items-center gap-8 pl-4 xl:pl-0 border-l xl:border-l-0" style={{ borderColor: 'var(--glass-border)' }}>
                             <div className="text-right">
                                  {(() => {
                                      const totalRaw = ['B', 'G', 'S', 'Missed'].reduce((acc, type) => acc + res.breakdown[type].rawSum, 0);
                                      return (
-                                         <p className="text-[10px] font-bold text-slate-500 mb-1">
-                                             總額: <span className="text-slate-300">${totalRaw.toLocaleString()}</span>
+                                         <p className="text-[10px] font-bold mb-1" style={{ color: 'var(--text-secondary)' }}>
+                                             總額: <span style={{ color: 'var(--text-primary)' }}>${totalRaw.toLocaleString()}</span>
                                          </p>
                                      );
                                   })()}
-                                 <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">拆帳總額</p>
-                                 <p className={`text-4xl font-mono font-bold tracking-tighter transition-colors ${isExpanded ? 'text-cyan-400 text-glow-cyan' : 'text-slate-200'}`}>
+                                 <p className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--text-secondary)' }}>拆帳總額</p>
+                                 <p className={`text-4xl font-mono font-bold tracking-tighter transition-colors ${isExpanded ? 'text-glow-cyan' : ''}`} style={{ color: isExpanded ? 'var(--text-accent)' : 'var(--text-primary)' }}>
                                      ${res.splitTotal.toLocaleString()}
                                  </p>
                                  {(() => {
@@ -239,14 +244,14 @@ const RecordsProcessing = () => {
                                                     <AlertTriangle size={10} /> 
                                                     CHECK SPLIT SETTINGS
                                                 </span>
-                                                <span className="text-[9px] font-mono text-slate-500 mt-1">RAW VALUE: ${totalRaw.toLocaleString()}</span>
+                                                <span className="text-[9px] font-mono mt-1" style={{ color: 'var(--text-secondary)' }}>RAW VALUE: ${totalRaw.toLocaleString()}</span>
                                             </div>
                                          );
                                      }
                                      return null;
                                  })()}
                             </div>
-                            <div className={`p-3 rounded-full border border-white/5 transition-all duration-300 ${isExpanded ? 'bg-cyan-500/10 text-cyan-400 rotate-180' : 'text-slate-600 group-hover:text-white'}`}>
+                            <div className={`p-3 rounded-full border transition-all duration-300 ${isExpanded ? 'bg-cyan-500/10 text-cyan-400 rotate-180' : 'group-hover:text-white'}`} style={{ borderColor: 'var(--glass-border)', color: isExpanded ? undefined : 'var(--text-secondary)' }}>
                                 <ChevronDown size={20}/>
                             </div>
                         </div>
@@ -254,7 +259,7 @@ const RecordsProcessing = () => {
 
                     {/* Expanded Detail Panel */}
                     {isExpanded && (
-                        <div className="mt-10 pt-10 border-t border-white/5 animate-in slide-in-from-top-4 duration-500">
+                        <div className="mt-10 pt-10 border-t animate-in slide-in-from-top-4 duration-500" style={{ borderColor: 'var(--glass-border)' }}>
                             
                             {/* Stats Grid */}
                             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
@@ -285,7 +290,7 @@ const RecordsProcessing = () => {
 
                             {/* Service List */}
                             <div className="space-y-6">
-                                <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-2 flex items-center gap-2">
+                                <h4 className="text-[10px] font-bold uppercase tracking-widest pl-2 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
                                     <FileText size={12}/> 服務細項
                                 </h4>
                                 <div className="space-y-2 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
@@ -325,9 +330,9 @@ const RecordsProcessing = () => {
                                         return Object.values(groupedByClient).map((group, idx) => (
                                             <div key={idx} className="p-5 rounded-2xl bg-white/[0.02] hover:bg-white/[0.05] transition-colors border border-transparent hover:border-white/5">
                                                 <div className="flex items-start justify-between mb-4">
-                                                    <div className="text-sm font-bold text-slate-200">{group.client}</div>
+                                                    <div className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{group.client}</div>
                                                     <div className="text-right">
-                                                        <span className="text-[9px] font-bold text-slate-600 block mb-0.5">拆帳總額</span>
+                                                        <span className="text-[9px] font-bold block mb-0.5" style={{ color: 'var(--text-secondary)' }}>拆帳總額</span>
                                                         <span className="text-base font-bold text-cyan-500">${group.totalSplit.toFixed(1)}</span>
                                                     </div>
                                                 </div>
@@ -335,7 +340,7 @@ const RecordsProcessing = () => {
                                                 {/* Service Items for this Client */}
                                                 <div className="space-y-2">
                                                     {group.items.map((item, i) => (
-                                                        <div key={i} className="flex justify-between items-center text-[10px] font-mono text-slate-500 pl-4 border-l-2 border-white/5">
+                                                        <div key={i} className="flex justify-between items-center text-[10px] font-mono pl-4 border-l-2" style={{ color: 'var(--text-secondary)', borderColor: 'var(--glass-border)' }}>
                                                             <span>{item.code} {item.count > 1 && `x${item.count}`}</span>
                                                         </div>
                                                     ))}
@@ -347,7 +352,7 @@ const RecordsProcessing = () => {
                             </div>
 
                             {/* Verification Footer */}
-                            <div className="mt-8 pt-8 border-t border-white/5 flex justify-between items-center opacity-40 hover:opacity-100 transition-opacity">
+                            <div className="mt-8 pt-8 border-t flex justify-between items-center opacity-40 hover:opacity-100 transition-opacity" style={{ borderColor: 'var(--glass-border)' }}>
                                 <div className="flex items-center gap-3">
                                     <CheckCircle size={14} className="text-emerald-500" />
                                     <span className="text-[10px] font-bold tracking-widest text-slate-400">MATH VERIFIED: ROUND(SUM)</span>

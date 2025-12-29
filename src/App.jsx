@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Layout from './components/Layout';
+import { ThemeProvider } from './context/ThemeContext';
 // Import pages (placeholders for now)
 import EmployeeManagement from './pages/EmployeeManagement';
 import DeductionManagement from './pages/DeductionManagement';
@@ -16,27 +17,29 @@ function App() {
   const [activeTab, setActiveTab] = useState('employees');
 
   return (
-    <Layout activeTab={activeTab} onTabChange={setActiveTab}>
-      {activeTab === 'employees' && (
-        // We will replace this with actual component once created
-        <EmployeeManagement />
-      )}
-      {activeTab === 'deductions' && (
-        <DeductionManagement />
-      )}
-      {activeTab === 'bonuses' && (
-        <BonusManagement />
-      )}
-      {activeTab === 'records' && (
-        <RecordsProcessing />
-      )}
-      {activeTab === 'summary' && (
-        <SalarySummary />
-      )}
-      {activeTab === 'download' && (
-        <SalarySlipDownload />
-      )}
-    </Layout>
+    <ThemeProvider>
+      <Layout activeTab={activeTab} onTabChange={setActiveTab}>
+        {activeTab === 'employees' && (
+          // We will replace this with actual component once created
+          <EmployeeManagement />
+        )}
+        {activeTab === 'deductions' && (
+          <DeductionManagement />
+        )}
+        {activeTab === 'bonuses' && (
+          <BonusManagement />
+        )}
+        {activeTab === 'records' && (
+          <RecordsProcessing />
+        )}
+        {activeTab === 'summary' && (
+          <SalarySummary />
+        )}
+        {activeTab === 'download' && (
+          <SalarySlipDownload />
+        )}
+      </Layout>
+    </ThemeProvider>
   );
 }
 

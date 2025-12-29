@@ -287,14 +287,15 @@ const SalarySlipDownload = () => {
         {/* Helper Header - Hidden on Print */}
         <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-8 print:hidden">
             <div>
-              <h2 className="text-4xl font-black text-white tracking-tighter mb-2">薪資表下載</h2>
-              <p className="text-slate-500 font-bold text-sm tracking-wide">檢視並列印員工詳細薪資單</p>
+              <h2 className="text-4xl font-black tracking-tighter mb-2" style={{ color: 'var(--text-primary)' }}>薪資表下載</h2>
+              <p className="font-bold text-sm tracking-wide" style={{ color: 'var(--text-secondary)' }}>檢視並列印員工詳細薪資單</p>
             </div>
             
             <div className="flex gap-4">
                 <button 
                   onClick={() => setIsBulkMode(!isBulkMode)}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all border ${isBulkMode ? 'bg-amber-500 border-amber-500 text-black' : 'bg-transparent border-white/20 text-white hover:bg-white/10'}`}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all border cursor-pointer ${isBulkMode ? 'bg-amber-500 border-amber-500 text-black' : 'hover:bg-white/10 glass-panel'}`}
+                  style={isBulkMode ? {} : { borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
                 >
                     <FileText size={16} />
                     <span>{isBulkMode ? '切換回單人檢視' : '一鍵下載全部'}</span>
@@ -304,11 +305,12 @@ const SalarySlipDownload = () => {
                     <select 
                         value={selectedEmpId || ''}
                         onChange={e => setSelectedEmpId(e.target.value)}
-                        className="bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500/50"
+                        className="border rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-cyan-500/50 appearance-none cursor-pointer glass-panel"
+                        style={{ background: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
                     >
-                        <option value="">選擇員工...</option>
+                        <option value="" style={{ color: '#000' }}>選擇員工...</option>
                         {employees.map(e => (
-                            <option key={e.id} value={e.empId}>{e.empId} - {e.name}</option>
+                            <option key={e.id} value={e.empId} style={{ color: '#000' }}>{e.empId} - {e.name}</option>
                         ))}
                     </select>
                 )}
@@ -316,7 +318,8 @@ const SalarySlipDownload = () => {
                 {(singleData || (isBulkMode && allData?.length > 0)) && (
                     <button 
                         onClick={handlePrint}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-black rounded-xl font-bold shadow-lg shadow-cyan-500/20 transition-all active:scale-95"
+                        className="flex items-center gap-2 px-5 py-2.5 text-white rounded-xl font-bold shadow-lg transition-all active:scale-95 cursor-pointer"
+                        style={{ background: 'var(--text-accent)', boxShadow: '0 10px 20px -10px var(--text-accent)' }}
                     >
                         <Printer size={16} />
                         <span>{isBulkMode ? `列印全體薪資單 (${allData.length})` : '列印 / 下載 PDF'}</span>
@@ -383,7 +386,7 @@ const SalarySlipDownload = () => {
                 singleData ? (
                     <SalarySlipTemplate data={singleData} isBulk={false} />
                 ) : (
-                    <div className="flex flex-col items-center justify-center py-32 border border-white/5 bg-[#0f172a]/40 rounded-[2rem] text-slate-500">
+                    <div className="flex flex-col items-center justify-center py-32 border rounded-[2rem] glass-panel" style={{ color: 'var(--text-secondary)', borderColor: 'var(--glass-border)' }}>
                         <FileText size={48} className="mb-4 opacity-50" />
                         <p className="font-bold">請選擇一位員工以預覽薪資單</p>
                         <p className="text-xs opacity-60 mt-2">或點擊「一鍵下載全部」</p>

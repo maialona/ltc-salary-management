@@ -2,10 +2,6 @@
 
 :root {
   /* Apple-Style Depth Tokens (Phase 7 Settings) */
-  --glass-bg: rgba(30, 41, 59, 0.4); /* Darker, more solid feel */
-  --glass-border: rgba(255, 255, 255, 0.08); /* Precise thin border */
-  
-  --glass-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); /* Deep floating shadow */
   --glass-blur: blur(24px) saturate(140%);
   
   /* Radial Abyss Background */
@@ -16,8 +12,6 @@
   
   --accent-cyan: #22d3ee; 
   --accent-glow: 0 0 20px rgba(34, 211, 238, 0.3);
-  
-  --radius-key: 24px; /* 3xl roundedness */
 }
 
 body {
@@ -34,12 +28,12 @@ body {
 /* The Main Glass Panel - System Settings Vibe */
 .glass-panel {
   background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
   border-radius: var(--radius-key);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-panel:hover {
