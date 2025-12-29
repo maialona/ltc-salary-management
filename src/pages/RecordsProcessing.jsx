@@ -11,6 +11,32 @@ const RecordsProcessing = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
 
+  // Restore state on mount
+  React.useEffect(() => {
+    try {
+        const savedState = localStorage.getItem('bgs_calc_state');
+        if (savedState) {
+            const parsed = JSON.parse(savedState);
+            if (parsed.results && parsed.results.length > 0) {
+                setResults(parsed.results);
+                if (parsed.warnings) setWarnings(parsed.warnings);
+            }
+        }
+    } catch (e) {
+        console.error("Failed to restore BGS state", e);
+    }
+  }, []);
+
+  // Save state when results update
+  React.useEffect(() => {
+    if (results.length > 0) {
+        localStorage.setItem('bgs_calc_state', JSON.stringify({
+            results,
+            warnings
+        }));
+    }
+  }, [results, warnings]);
+
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -137,12 +163,18 @@ const RecordsProcessing = () => {
                         'S': 'from-purple-500/20 to-purple-500/5 text-purple-400 border-purple-500/20',
                         'Missed': 'from-orange-500/20 to-orange-500/5 text-orange-400 border-orange-500/20'
                 };
+                const labelColors = {
+                    'B': '#4fa1ff',
+                    'G': '#00d491',
+                    'S': '#c27aff',
+                    'Missed': '#ff8904'
+                };
                 
                 return (
                     <div key={type} className={`relative p-6 rounded-[2rem] bg-gradient-to-br border ${colors[type].split(' ').pop()} overflow-hidden`}>
                         <div className={`absolute inset-0 bg-gradient-to-br ${colors[type].split(' ').slice(0, 2).join(' ')} opacity-50`}></div>
                         <div className="relative z-10">
-                            <div className="text-[10px] font-bold text-white/50 mb-2 tracking-widest">{labels[type]}</div>
+                            <div className="text-sm font-bold mb-2 tracking-widest" style={{ color: labelColors[type] }}>{labels[type]}</div>
                             <div className={`text-2xl font-mono font-bold ${colors[type].split(' ')[2]}`}>
                                 ${totalAmount.toLocaleString()}
                             </div>
@@ -272,11 +304,17 @@ const RecordsProcessing = () => {
                                          'S': 'from-purple-500/20 to-purple-500/5 text-purple-400',
                                          'Missed': 'from-orange-500/20 to-orange-500/5 text-orange-400'
                                     };
+                                    const labelColors = {
+                                        'B': '#4fa1ff',
+                                        'G': '#00d491',
+                                        'S': '#c27aff',
+                                        'Missed': '#ff8904'
+                                    };
                                     
                                     return (
                                         <div key={type} className={`relative p-6 rounded-[1.5rem] bg-gradient-to-br border border-white/5 overflow-hidden ${colors[type].split(' ')[0]}`}>
                                             <div className="relative z-10">
-                                                <div className="text-[10px] font-bold text-white/50 mb-4 tracking-widest">{labels[type]}</div>
+                                                <div className="text-sm font-bold mb-4 tracking-widest" style={{ color: labelColors[type] }}>{labels[type]}</div>
                                                 <div className={`text-3xl font-mono font-bold ${colors[type].split(' ')[2]}`}>${data.splitSum.toLocaleString()}</div>
                                                 <div className="mt-2 flex justify-between text-[10px] font-mono opacity-60">
                                                     <span>{data.count} ROWS</span>

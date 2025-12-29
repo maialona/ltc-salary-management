@@ -40,22 +40,22 @@ const SalarySlipTemplate = ({ data, isBulk = false }) => {
                 </div>
 
                 {/* 1. Service Details */}
-                <div>
-                    <h3 className="text-sm font-black uppercase tracking-widest border-l-4 border-black pl-3 mb-4">服務項目明細</h3>
+                <div className="flex-1 min-h-0 overflow-visible">
+                    <h3 className="text-xs font-black uppercase tracking-widest border-l-4 border-black pl-3 mb-2">服務項目明細</h3>
                     
                     {Object.keys(data.groupedServices).length === 0 ? (
-                        <p className="text-gray-400 text-xs italic py-4 text-center">無服務紀錄</p>
+                        <p className="text-gray-400 text-[10px] italic py-2 text-center">無服務紀錄</p>
                     ) : (
-                        <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                        <div className="grid grid-cols-3 gap-2 align-top">
                             {Object.values(data.groupedServices).map((group, idx) => (
-                                <div key={idx} className="border border-gray-200 rounded-lg p-2 text-xs break-inside-avoid">
-                                    <div className="font-bold mb-1 pb-1 border-b border-gray-100 flex justify-between">
-                                        <span>{group.client}</span>
+                                <div key={idx} className="border border-gray-200 rounded-md p-1.5 text-[10px] leading-tight break-inside-avoid shadow-sm bg-white">
+                                    <div className="font-bold mb-1 pb-0.5 border-b border-gray-100 flex justify-between text-slate-700">
+                                        <span className="truncate">{group.client}</span>
                                     </div>
-                                    <div className="space-y-1">
+                                    <div className="space-y-0.5">
                                         {group.items.map((item, i) => (
-                                            <div key={i} className="flex justify-between text-gray-600 font-mono">
-                                                <span>{item.code} {item.count > 1 && `x${item.count}`}</span>
+                                            <div key={i} className="flex justify-between text-gray-500 font-mono">
+                                                <span>{item.code} x{item.count}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -66,18 +66,21 @@ const SalarySlipTemplate = ({ data, isBulk = false }) => {
                 </div>
 
                 {/* 2. Split Calculation Summary */}
-                <div>
-                    <h3 className="text-sm font-black uppercase tracking-widest border-l-4 border-black pl-3 mb-4">拆帳金額計算</h3>
-                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                       <div className="grid grid-cols-4 gap-4 text-center divide-x divide-gray-200">
-                           {['B', 'G', 'S', 'Missed'].map(type => {
+                <div className="break-inside-avoid">
+                    <h3 className="text-xs font-black uppercase tracking-widest border-l-4 border-black pl-3 mb-2">拆帳金額計算</h3>
+                    <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                       <div className="grid grid-cols-5 gap-2 text-center divide-x divide-gray-200">
+                           {['A', 'B', 'G', 'S', 'Missed'].map(type => {
                                const info = data.breakdown[type] || { rawSum: 0, splitSum: 0 };
-                               const labels = { 'B': 'B碼', 'G': 'G碼', 'S': 'S碼', 'Missed': '未遇' };
+                               const labels = { 'A': 'A碼', 'B': 'B碼', 'G': 'G碼', 'S': 'S碼', 'Missed': '未遇' };
                                return (
-                                   <div key={type} className="px-2">
-                                       <div className="text-xs font-bold text-gray-500 mb-1">{labels[type]}總額</div>
-                                       <div className="font-mono text-gray-400 text-xs mb-1">${info.rawSum.toLocaleString()}</div>
-                                       <div className="font-bold text-lg">${info.splitSum.toLocaleString()}</div>
+                                   <div key={type} className="px-1">
+                                       <div className="text-[10px] font-bold text-gray-500 mb-1">{labels[type]}</div>
+                                       {/* A-Code often has no "rawSum" in same sense, or we default 0, hide if 0 */}
+                                       <div className="font-mono text-gray-400 text-[10px] mb-1">
+                                            {info.rawSum > 0 ? `$${info.rawSum.toLocaleString()}` : '-'}
+                                       </div>
+                                       <div className="font-bold text-sm">${info.splitSum.toLocaleString()}</div>
                                    </div>
                                )
                            })}
@@ -204,9 +207,40 @@ const SalarySlipDownload = () => {
     const deduction = deductions.find(d => d.empId === empId) || {};
     const record = records.find(r => r.empId === empId) || { breakdown: null };
 
-    // Bonus Breakdown
+    // --- A-Code Integration ---
+    // Try to load A-Code results from local storage
+    let aCodeData = { splitSum: 0, items: [] };
+    try {
+        const savedACodeState = localStorage.getItem('acode_calc_state');
+        if (savedACodeState) {
+            const parsed = JSON.parse(savedACodeState);
+            // Fix: Use finalSummary which is the one used in the dashboard view and contains the aggregated data
+            if (parsed.results && parsed.results.finalSummary) {
+                // Find this employee's A-Code result
+                // Match by ID first (more precise), then Name
+                const empResult = parsed.results.finalSummary.find(res => res.id === empId || res.name === emp.name);
+                
+                if (empResult) {
+                    aCodeData.splitSum = empResult.totalCommission;
+                    aCodeData.items = empResult.details.map(d => ({
+                        code: d.code,
+                        count: parseFloat(d.qty),
+                        amount: d.amount, // Commission amount
+                        client: d.client
+                    }));
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Failed to load A-Code data", e);
+    }
+
+    // Bonus Breakdown - Remove A-Code from here if it was manually entered, 
+    // BUT user might have old data. Let's keep it if A-Code system data is missing, otherwise prefer system data?
+    // User request implies A-Code is now main part. 
+    // Let's hide 'A碼拆帳' from bonus if we have system A-Code data to avoid double counting?
+    // Or just assume user won't double enter. Let's filter it out if we use system data.
     const bonusDetails = [
-      { label: 'A碼拆帳', value: bonus.bonusA || 0 }, 
       { label: '丙證獎金', value: bonus.bonusC || 0 },
       { label: '開案獎金', value: bonus.bonusOpen || 0 },
       { label: '開發獎金', value: bonus.bonusDev || 0 },
@@ -215,6 +249,8 @@ const SalarySlipDownload = () => {
       { label: '帶新人津貼', value: bonus.mentoring || 0 },
       { label: '油資補助', value: bonus.fuel || 0 },
       { label: '其他', value: bonus.other || 0 },
+      // Fallback: If no system data found, allow manual bonus A entry to show (optional, logic below)
+      ...(aCodeData.splitSum === 0 ? [{ label: 'A碼拆帳 (手動)', value: bonus.bonusA || 0 }] : [])
     ].filter(item => item.value > 0);
 
     const totalBonus = bonusDetails.reduce((acc, item) => acc + item.value, 0);
@@ -237,8 +273,12 @@ const SalarySlipDownload = () => {
        'Missed': { rawSum: 0, splitSum: record.missed || 0, items: [] }
     };
     
+    // Inject A-Code into breakdown for easier rendering
+    breakdown['A'] = { rawSum: 0, splitSum: aCodeData.splitSum, items: aCodeData.items };
+
     // Group Items by Client
     const allItems = [
+      ...(breakdown['A']?.items || []), // Add A items first
       ...(breakdown['B']?.items || []),
       ...(breakdown['G']?.items || []),
       ...(breakdown['S']?.items || []),
@@ -250,6 +290,9 @@ const SalarySlipDownload = () => {
         if (!acc[key]) {
             acc[key] = { client: key, items: [] };
         }
+        // A-Code items might have same code as B code? Unlikely, but let's separate or merge.
+        // A-codes are distinct usually (AA01 vs BA01).
+        // Since we want details, we list them.
         const existing = acc[key].items.find(i => i.code === item.code);
         if (existing) {
             existing.count += item.count;
@@ -260,7 +303,7 @@ const SalarySlipDownload = () => {
         return acc;
     }, {});
 
-    const splitTotal = (breakdown['B']?.splitSum || 0) + (breakdown['G']?.splitSum || 0) + (breakdown['S']?.splitSum || 0) + (breakdown['Missed']?.splitSum || 0);
+    const splitTotal = (breakdown['A']?.splitSum || 0) + (breakdown['B']?.splitSum || 0) + (breakdown['G']?.splitSum || 0) + (breakdown['S']?.splitSum || 0) + (breakdown['Missed']?.splitSum || 0);
 
     const netSalary = splitTotal + totalBonus - totalDeduction;
 

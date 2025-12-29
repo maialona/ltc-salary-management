@@ -8,6 +8,7 @@ import BonusManagement from './pages/BonusManagement';
 import RecordsProcessing from './pages/RecordsProcessing';
 import SalarySummary from './pages/SalarySummary';
 import SalarySlipDownload from './pages/SalarySlipDownload';
+import ACodeCalculation from './pages/ACodeCalculation';
 
 // Placeholder components if files don't exist yet (to avoid build errors)
 const PlaceholderEmployee = () => <div className="p-8 glass-card"><h2>Employee Management (Coming Soon)</h2></div>;
@@ -31,6 +32,9 @@ function App() {
         )}
         {activeTab === 'records' && (
           <RecordsProcessing />
+        )}
+        {activeTab === 'acode' && (
+          <ACodeCalculation />
         )}
         {activeTab === 'summary' && (
           <SalarySummary />

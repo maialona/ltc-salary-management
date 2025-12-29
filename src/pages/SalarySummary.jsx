@@ -20,6 +20,20 @@ const SalarySummary = () => {
     const deductions = getDeductions();
     const records = getRecords();
 
+    // Pre-load A-Code Data
+    let aCodeResults = [];
+    try {
+        const savedACodeState = localStorage.getItem('acode_calc_state');
+        if (savedACodeState) {
+            const parsed = JSON.parse(savedACodeState);
+            if (parsed.results && parsed.results.finalSummary) {
+                aCodeResults = parsed.results.finalSummary;
+            }
+        }
+    } catch (e) {
+        console.error("Failed to load A-Code data", e);
+    }
+
     const merged = employees.map(emp => {
       const bonus = bonuses.find(b => b.empId === emp.empId) || {};
       const deduction = deductions.find(d => d.empId === emp.empId) || {};
@@ -41,8 +55,19 @@ const SalarySummary = () => {
                              (deduction.healthFee || 0) + 
                              (deduction.pensionFee || 0);
 
-      // A Code Amount (derived from BonusStore based on user request/edit)
-      const splitA = bonus.bonusA || 0;
+      // A-Code Amount (derived from System Calculation or Manual Bonus)
+      let splitA = 0;
+      
+      // 1. Try System Data first
+      const empResult = aCodeResults.find(res => res.id === emp.empId || res.name === emp.name);
+      if (empResult) {
+          splitA = empResult.totalCommission;
+      }
+
+      // 2. If no system data, check manual entry (optional, depends on policy)
+      if (splitA === 0) {
+          splitA = bonus.bonusA || 0;
+      }
 
       // Splits from RecordsProcessing
       const splitB = record.b || 0;

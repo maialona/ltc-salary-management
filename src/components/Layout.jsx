@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, FileSpreadsheet, Coins, Banknote, Download, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { Users, FileSpreadsheet, Coins, Banknote, Download, ChevronLeft, ChevronRight, Calendar, Calculator } from 'lucide-react';
 import { getPeriod, offsetPeriod, subscribePeriod } from '../data/periodStore';
 import ThemeToggle from './ThemeToggle';
 
@@ -17,6 +17,7 @@ const Layout = ({ activeTab, onTabChange, children }) => {
   const tabs = [
     { id: 'employees', icon: Users, label: '員工管理' },
     { id: 'records', icon: FileSpreadsheet, label: 'B、G、S碼計算' },
+    { id: 'acode', icon: Calculator, label: 'A碼計算' },
     { id: 'bonuses', icon: Coins, label: '額外獎金' },
     { id: 'deductions', icon: FileSpreadsheet, label: '應扣費用' },
     { id: 'summary', icon: Banknote, label: '薪資總表' },
