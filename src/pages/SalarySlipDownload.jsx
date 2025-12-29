@@ -308,9 +308,9 @@ const SalarySlipDownload = () => {
                         className="border rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-cyan-500/50 appearance-none cursor-pointer glass-panel"
                         style={{ background: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
                     >
-                        <option value="" style={{ color: '#000' }}>選擇員工...</option>
+                        <option value="" style={{ background: 'var(--glass-bg)', color: 'var(--text-primary)' }}>選擇員工...</option>
                         {employees.map(e => (
-                            <option key={e.id} value={e.empId} style={{ color: '#000' }}>{e.empId} - {e.name}</option>
+                            <option key={e.id} value={e.empId} style={{ background: 'var(--glass-bg)', color: 'var(--text-primary)' }}>{e.empId} - {e.name}</option>
                         ))}
                     </select>
                 )}

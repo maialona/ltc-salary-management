@@ -369,8 +369,8 @@ const EmployeeManagement = () => {
                         value={formData.position}
                         onChange={(e) => handleChange('position', e.target.value)}
                     >
-                        <option className="bg-slate-900" value="Full-time">全職</option>
-                        <option className="bg-slate-900" value="Part-time">兼職</option>
+                        <option style={{ background: 'var(--input-bg)', color: 'var(--text-primary)' }} value="Full-time">全職</option>
+                        <option style={{ background: 'var(--input-bg)', color: 'var(--text-primary)' }} value="Part-time">兼職</option>
                     </select>
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50" style={{ color: 'var(--text-primary)' }}>
                         <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 1L5 5L9 1"/></svg>
