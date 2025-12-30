@@ -74,11 +74,19 @@ const ACodeCalculation = () => {
     // Save state when results change
     useEffect(() => {
         if (results && step === 3) {
-            localStorage.setItem('acode_calc_state', JSON.stringify({
-                results,
-                step,
-                selectedWorker
-            }));
+            try {
+                localStorage.setItem('acode_calc_state', JSON.stringify({
+                    results,
+                    step,
+                    selectedWorker
+                }));
+            } catch (e) {
+                console.error("Auto-save failed:", e);
+                // If quota exceeded, warn the user
+                if (e.name === 'QuotaExceededError' || e.message.includes('quota')) {
+                    showAlert("注意：資料量過大，瀏覽器無法自動除存。關閉視窗後資料將會遺失。", "warning");
+                }
+            }
         }
     }, [results, step, selectedWorker]);
 
@@ -107,6 +115,20 @@ const ACodeCalculation = () => {
         }
     };
 
+    const handleReset = () => {
+        // Clear state
+        setResults(null);
+        setStep(1);
+        setSelectedWorker(null);
+        
+        // Clear persisted state
+        try {
+            localStorage.removeItem('acode_calc_state');
+        } catch (e) {
+            console.error("Failed to clear state", e);
+        }
+    };
+
     return (
         <div className="min-h-screen transition-colors p-8">
             <Modal 
@@ -123,9 +145,7 @@ const ACodeCalculation = () => {
                         <h1 className="text-3xl font-black tracking-tighter mb-2" style={{ color: 'var(--text-primary)' }}>
                            A碼拆帳系統
                         </h1>
-                        <p className="text-sm font-bold tracking-widest uppercase" style={{ color: 'var(--text-secondary)' }}>
-                            長照2.0 系統輔助工具
-                        </p>
+                        
                     </div>
                 </header>
 
@@ -153,6 +173,7 @@ const ACodeCalculation = () => {
                         calculationResult={results.results}
                         selectedWorker={selectedWorker}
                         setSelectedWorker={setSelectedWorker}
+                        onReset={handleReset}
                     />
                 )}
             </div>

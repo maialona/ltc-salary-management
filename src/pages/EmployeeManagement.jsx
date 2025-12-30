@@ -211,7 +211,13 @@ const EmployeeManagement = () => {
                     >
                         <div className="flex items-center gap-6">
                             {/* Avatar/ID Circle */}
-                            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-xs font-bold font-mono transition-colors bg-blue-600 text-white dark:bg-cyan-500/20 dark:text-cyan-400">
+                            <div 
+                                className="w-12 h-12 rounded-xl flex items-center justify-center text-xs font-bold font-mono transition-colors"
+                                style={{
+                                    background: 'var(--emp-icon-bg)',
+                                    color: 'var(--emp-icon-text)'
+                                }}
+                            >
                                 {emp.empId}
                             </div>
                             

@@ -24,7 +24,7 @@ const WorkerDetail = ({ staff }) => {
                 </div>
                 <div className="text-right">
                     <p className="text-sm mb-1 font-bold" style={{ color: 'var(--text-secondary)' }}>本月總拆帳金額</p>
-                    <p className="text-4xl font-black text-emerald-500 font-mono tracking-tight">${staff.totalCommission.toLocaleString()}</p>
+                    <p className="text-4xl font-black text-emerald-500 font-mono tracking-tight">${staff.totalCommission.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</p>
                 </div>
             </div>
 
@@ -57,7 +57,7 @@ const WorkerDetail = ({ staff }) => {
                                 </td>
                                 <td className="px-6 py-4 text-right font-mono" style={{ color: 'var(--text-primary)' }}>{Number(detail.qty).toFixed(2)}</td>
                                 <td className="px-6 py-4 text-right font-mono opacity-60" style={{ color: 'var(--text-secondary)' }}>${Math.round(detail.subtotal).toLocaleString()}</td>
-                                <td className="px-6 py-4 text-right font-bold text-emerald-500 font-mono text-base">${Math.round(detail.amount).toLocaleString()}</td>
+                                <td className="px-6 py-4 text-right font-bold text-emerald-500 font-mono text-base">${detail.amount.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</td>
                             </tr>
                         ))}
                     </tbody>

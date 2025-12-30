@@ -31,7 +31,7 @@ const DebugPanel = ({ debugInfo }) => {
             <div className="flex items-center gap-4">
                  <div className="flex items-center px-3 py-1 rounded-full" style={{ background: 'rgba(34, 211, 238, 0.1)' }}>
                     <span className="text-xs uppercase tracking-wider font-bold mr-2 text-cyan-500">拆帳薪資總額</span>
-                    <span className="font-mono font-bold text-cyan-500 text-lg leading-none">${debugInfo.totalCommissionPaid.toLocaleString()}</span>
+                    <span className="font-mono font-bold text-cyan-500 text-lg leading-none">${Math.round(debugInfo.totalCommissionPaid).toLocaleString()}</span>
                 </div>
                 {Math.abs(debugInfo.totalAllocated - debugInfo.totalInput) > 100 && (
                     <div className="text-xs text-red-500 flex items-center animate-pulse font-bold bg-red-500/10 px-2 py-1 rounded">

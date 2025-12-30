@@ -30,11 +30,10 @@ const Sidebar = ({ summaryResult, selectedWorker, setSelectedWorker }) => {
                         </div>
                         <div className="truncate">
                             <div className="font-bold text-sm truncate" style={{ color: 'var(--text-primary)' }}>{staff.name}</div>
-                            <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{staff.id}</div>
                         </div>
                     </div>
                     <div className="text-xs font-bold ml-2" style={{ color: 'var(--text-accent)' }}>
-                        ${staff.totalCommission.toLocaleString()}
+                        ${staff.totalCommission.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                     </div>
                 </div>
             ))}

@@ -11,7 +11,8 @@ const ResultsDashboard = ({
     summaryResult, 
     calculationResult, 
     selectedWorker, 
-    setSelectedWorker 
+    setSelectedWorker,
+    onReset
 }) => {
     
     const handleDownload = () => {
@@ -25,8 +26,8 @@ const ResultsDashboard = ({
                     <CheckCircle className="text-emerald-500 mr-2" /> 計算完成
                 </h2>
                 <div className="space-x-4">
-                    <button onClick={() => window.location.reload()} className="hover:underline text-sm opacity-60 hover:opacity-100" style={{ color: 'var(--text-secondary)' }}>重新開始</button>
-                    <button onClick={handleDownload} className="inline-flex items-center px-4 py-2 text-white rounded-lg transition shadow font-bold"
+                    <button onClick={onReset} className="hover:underline text-sm opacity-60 hover:opacity-100 cursor-pointer" style={{ color: 'var(--text-secondary)' }}>重新開始</button>
+                    <button onClick={handleDownload} className="inline-flex items-center px-4 py-2 text-white rounded-lg transition shadow font-bold cursor-pointer"
                             style={{ background: 'var(--btn-primary-bg)', boxShadow: 'var(--btn-primary-shadow)' }}>
                         <Download className="mr-2 h-5 w-5" /> 下載結果報表
                     </button>

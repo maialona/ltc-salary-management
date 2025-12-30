@@ -26,123 +26,131 @@ const SalarySlipTemplate = ({ data, isBulk = false }) => {
                     }
                 `}</style>
 
-            <div className="space-y-6">
-                
-                {/* Header */}
-                <div className="text-center border-b-2 border-black pb-6">
-                    <h1 className="text-3xl font-black tracking-tight mb-2">薪資明細表</h1>
-                    <div className="flex justify-center gap-8 text-sm font-bold mt-4">
-                        <span>薪資月份: {getPeriod()}</span>
-                        <span>員編: {data.emp.empId}</span>
-                        <span>姓名: {data.emp.name}</span>
-                        <span>列印日期: {new Date().toLocaleDateString()}</span>
-                    </div>
-                </div>
+            <table className="w-full">
+                <thead className="table-header-group">
+                    <tr>
+                        <td>
+                            {/* Header */}
+                            <div className="text-center border-b-2 border-black pb-6 mb-8">
+                                <h1 className="text-3xl font-black tracking-tight mb-2">薪資明細表</h1>
+                                <div className="flex justify-center gap-8 text-sm font-bold mt-4">
+                                    <span>薪資月份: {getPeriod()}</span>
+                                    <span>員編: {data.emp.empId}</span>
+                                    <span>姓名: {data.emp.name}</span>
+                                    <span>列印日期: {new Date().toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <div className="space-y-6">
+                                {/* 1. Service Details */}
+                                <div className="flex-1 min-h-0 overflow-visible">
+                                    <h3 className="text-xs font-black uppercase tracking-widest border-l-4 border-black pl-3 mb-2">服務項目明細</h3>
+                                    
+                                    {Object.keys(data.groupedServices).length === 0 ? (
+                                        <p className="text-gray-400 text-[10px] italic py-2 text-center">無服務紀錄</p>
+                                    ) : (
+                                        <div className="grid grid-cols-5 gap-2 align-top">
+                                            {Object.values(data.groupedServices).map((group, idx) => (
+                                                <div key={idx} className="border border-gray-200 rounded-md p-1.5 text-[10px] leading-tight break-inside-avoid shadow-sm bg-white">
+                                                    <div className="font-bold mb-1 pb-0.5 border-b border-gray-100 flex justify-between text-slate-700">
+                                                        <span className="truncate">{group.client}</span>
+                                                    </div>
+                                                    <div className="space-y-0.5">
+                                                        {group.items.map((item, i) => (
+                                                            <div key={i} className="flex justify-between text-gray-500 font-mono">
+                                                                <span>{item.code} x{item.count}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
 
-                {/* 1. Service Details */}
-                <div className="flex-1 min-h-0 overflow-visible">
-                    <h3 className="text-xs font-black uppercase tracking-widest border-l-4 border-black pl-3 mb-2">服務項目明細</h3>
-                    
-                    {Object.keys(data.groupedServices).length === 0 ? (
-                        <p className="text-gray-400 text-[10px] italic py-2 text-center">無服務紀錄</p>
-                    ) : (
-                        <div className="grid grid-cols-3 gap-2 align-top">
-                            {Object.values(data.groupedServices).map((group, idx) => (
-                                <div key={idx} className="border border-gray-200 rounded-md p-1.5 text-[10px] leading-tight break-inside-avoid shadow-sm bg-white">
-                                    <div className="font-bold mb-1 pb-0.5 border-b border-gray-100 flex justify-between text-slate-700">
-                                        <span className="truncate">{group.client}</span>
+                                {/* 2. Split Calculation Summary */}
+                                <div className="break-inside-avoid">
+                                    <h3 className="text-xs font-black uppercase tracking-widest border-l-4 border-black pl-3 mb-2">拆帳金額計算</h3>
+                                    <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                                    <div className="grid grid-cols-5 gap-2 text-center divide-x divide-gray-200">
+                                        {['A', 'B', 'G', 'S', 'Missed'].map(type => {
+                                            const info = data.breakdown[type] || { rawSum: 0, splitSum: 0 };
+                                            const labels = { 'A': 'A碼', 'B': 'B碼', 'G': 'G碼', 'S': 'S碼', 'Missed': '未遇' };
+                                            return (
+                                                <div key={type} className="px-1">
+                                                    <div className="text-[10px] font-bold text-gray-500 mb-1">{labels[type]}</div>
+                                                    {/* A-Code often has no "rawSum" in same sense, or we default 0, hide if 0 */}
+                                                        <div className="font-bold text-sm">${info.splitSum.toLocaleString()}</div>
+                                                </div>
+                                            )
+                                        })}
                                     </div>
-                                    <div className="space-y-0.5">
-                                        {group.items.map((item, i) => (
-                                            <div key={i} className="flex justify-between text-gray-500 font-mono">
-                                                <span>{item.code} x{item.count}</span>
-                                            </div>
-                                        ))}
+                                    <div className="border-t border-gray-200 mt-4 pt-3 flex justify-end items-center gap-4">
+                                        <span className="text-xs font-bold text-gray-500 uppercase">拆帳小計</span>
+                                        <span className="text-xl font-black font-mono">${data.splitTotal.toLocaleString()}</span>
+                                    </div>
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
 
-                {/* 2. Split Calculation Summary */}
-                <div className="break-inside-avoid">
-                    <h3 className="text-xs font-black uppercase tracking-widest border-l-4 border-black pl-3 mb-2">拆帳金額計算</h3>
-                    <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
-                       <div className="grid grid-cols-5 gap-2 text-center divide-x divide-gray-200">
-                           {['A', 'B', 'G', 'S', 'Missed'].map(type => {
-                               const info = data.breakdown[type] || { rawSum: 0, splitSum: 0 };
-                               const labels = { 'A': 'A碼', 'B': 'B碼', 'G': 'G碼', 'S': 'S碼', 'Missed': '未遇' };
-                               return (
-                                   <div key={type} className="px-1">
-                                       <div className="text-[10px] font-bold text-gray-500 mb-1">{labels[type]}</div>
-                                       {/* A-Code often has no "rawSum" in same sense, or we default 0, hide if 0 */}
-                                       <div className="font-mono text-gray-400 text-[10px] mb-1">
-                                            {info.rawSum > 0 ? `$${info.rawSum.toLocaleString()}` : '-'}
-                                       </div>
-                                       <div className="font-bold text-sm">${info.splitSum.toLocaleString()}</div>
-                                   </div>
-                               )
-                           })}
-                       </div>
-                       <div className="border-t border-gray-200 mt-4 pt-3 flex justify-end items-center gap-4">
-                           <span className="text-xs font-bold text-gray-500 uppercase">拆帳小計</span>
-                           <span className="text-xl font-black font-mono">${data.splitTotal.toLocaleString()}</span>
-                       </div>
-                    </div>
-                </div>
+                                <div className="grid grid-cols-2 gap-8">
+                                    {/* 3. Bonus & Deductions */}
+                                    <div>
+                                        <h3 className="text-sm font-black uppercase tracking-widest border-l-4 border-black pl-3 mb-4">額外獎金明細</h3>
+                                        <table className="w-full text-sm">
+                                            <tbody>
+                                                {data.bonusDetails.map((item, idx) => (
+                                                    <tr key={idx} className="border-b border-gray-100">
+                                                        <td className="py-2 text-gray-600">{item.label}</td>
+                                                        <td className="py-2 text-right font-mono font-bold">${item.value.toLocaleString()}</td>
+                                                    </tr>
+                                                ))}
+                                                <tr className="border-t-2 border-gray-200">
+                                                    <td className="py-3 font-bold">獎金小計</td>
+                                                    <td className="py-3 text-right font-black font-mono text-lg">${data.totalBonus.toLocaleString()}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
 
-                <div className="grid grid-cols-2 gap-8">
-                    {/* 3. Bonus & Deductions */}
-                    <div>
-                         <h3 className="text-sm font-black uppercase tracking-widest border-l-4 border-black pl-3 mb-4">額外獎金明細</h3>
-                         <table className="w-full text-sm">
-                             <tbody>
-                                 {data.bonusDetails.map((item, idx) => (
-                                     <tr key={idx} className="border-b border-gray-100">
-                                         <td className="py-2 text-gray-600">{item.label}</td>
-                                         <td className="py-2 text-right font-mono font-bold">${item.value.toLocaleString()}</td>
-                                     </tr>
-                                 ))}
-                                 <tr className="border-t-2 border-gray-200">
-                                     <td className="py-3 font-bold">獎金小計</td>
-                                     <td className="py-3 text-right font-black font-mono text-lg">${data.totalBonus.toLocaleString()}</td>
-                                 </tr>
-                             </tbody>
-                         </table>
-                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-black uppercase tracking-widest border-l-4 border-black pl-3 mb-4">應扣費用明細</h3>
+                                        <table className="w-full text-sm">
+                                            <tbody>
+                                                {data.deductionDetails.map((item, idx) => (
+                                                    <tr key={idx} className="border-b border-gray-100">
+                                                        <td className="py-2 text-gray-600">{item.label}</td>
+                                                        <td className="py-2 text-right font-mono font-bold text-red-500">-${item.value.toLocaleString()}</td>
+                                                    </tr>
+                                                ))}
+                                                <tr className="border-t-2 border-gray-200">
+                                                    <td className="py-3 font-bold">應扣小計</td>
+                                                    <td className="py-3 text-right font-black font-mono text-lg text-red-600">-${data.totalDeduction.toLocaleString()}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
 
-                    <div>
-                         <h3 className="text-sm font-black uppercase tracking-widest border-l-4 border-black pl-3 mb-4">應扣費用明細</h3>
-                         <table className="w-full text-sm">
-                             <tbody>
-                                 {data.deductionDetails.map((item, idx) => (
-                                     <tr key={idx} className="border-b border-gray-100">
-                                         <td className="py-2 text-gray-600">{item.label}</td>
-                                         <td className="py-2 text-right font-mono font-bold text-red-500">-${item.value.toLocaleString()}</td>
-                                     </tr>
-                                 ))}
-                                 <tr className="border-t-2 border-gray-200">
-                                     <td className="py-3 font-bold">應扣小計</td>
-                                     <td className="py-3 text-right font-black font-mono text-lg text-red-600">-${data.totalDeduction.toLocaleString()}</td>
-                                 </tr>
-                             </tbody>
-                         </table>
-                    </div>
-                </div>
-
-                {/* 4. Final Net */}
-                <div className="border-t-4 border-black pt-6 mt-8 flex justify-between items-center bg-gray-50 p-6 rounded-xl">
-                    <div className="text-sm text-gray-500 font-bold">
-                        實領金額 = 拆帳小計 + 獎金小計 - 應扣小計
-                    </div>
-                    <div className="text-right">
-                        <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">本月實領金額</div>
-                        <div className="text-4xl font-black font-mono text-black">${data.netSalary.toLocaleString()}</div>
-                    </div>
-                </div>
-
-            </div>
+                                {/* 4. Final Net */}
+                                <div className="border-t-4 border-black pt-6 mt-8 flex justify-between items-center bg-gray-50 p-6 rounded-xl">
+                                    <div className="text-sm text-gray-500 font-bold">
+                                        實領金額 = 拆帳小計 + 獎金小計 - 應扣小計
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">本月實領金額</div>
+                                        <div className="text-4xl font-black font-mono text-black">${Math.round(data.netSalary).toLocaleString()}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     );
 };
@@ -257,11 +265,22 @@ const SalarySlipDownload = () => {
 
     // Deduction Breakdown
     const deductionDetails = [
-      { label: '扣繳稅額', value: deduction.withholdingTax || 0 },
-      { label: '勞保費', value: deduction.laborFee || 0 },
-      { label: '健保費', value: deduction.healthFee || 0 },
-      { label: '勞退自提', value: deduction.pensionFee || 0 },
-    ].filter(item => item.value > 0);
+      { label: '扣繳稅額', value: deduction.withholdingTax || 0, alwaysShow: true },
+      { 
+          label: `勞保費${deduction.laborLevel ? ` (級距 $${deduction.laborLevel.toLocaleString()})` : ''}`, 
+          value: deduction.laborFee || 0,
+          alwaysShow: true
+      },
+      { 
+          label: `健保費${deduction.healthLevel ? ` (級距 $${deduction.healthLevel.toLocaleString()})` : ''}`, 
+          value: deduction.healthFee || 0,
+          alwaysShow: true
+      },
+      { 
+          label: `勞退自提${deduction.pensionRate ? ` (${deduction.pensionRate}%)` : ''}`, 
+          value: deduction.pensionFee || 0 
+      },
+    ].filter(item => item.value > 0 || item.alwaysShow);
 
     const totalDeduction = deductionDetails.reduce((acc, item) => acc + item.value, 0);
 
@@ -321,7 +340,21 @@ const SalarySlipDownload = () => {
   };
 
   const handlePrint = () => {
+    const originalTitle = document.title;
+    
+    if (!isBulkMode && singleData) {
+        // Format: 員編_姓名 (e.g., 112001_王小明)
+        document.title = `${singleData.emp.empId}_${singleData.emp.name}`;
+    } else if (isBulkMode) {
+        document.title = `薪資單彙整_${getPeriod()}`;
+    }
+
     window.print();
+
+    // Restore title after print dialog closes
+    setTimeout(() => {
+        document.title = originalTitle;
+    }, 500);
   };
 
   return (

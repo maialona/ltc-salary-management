@@ -30,10 +30,19 @@ const RecordsProcessing = () => {
   // Save state when results update
   React.useEffect(() => {
     if (results.length > 0) {
-        localStorage.setItem('bgs_calc_state', JSON.stringify({
-            results,
-            warnings
-        }));
+        try {
+            localStorage.setItem('bgs_calc_state', JSON.stringify({
+                results,
+                warnings
+            }));
+        } catch (e) {
+            console.error("BGS Auto-save failed:", e);
+            if (e.name === 'QuotaExceededError' || e.message.includes('quota')) {
+                 // Use basic alert or just log, since we don't have a modal helper here easily accessible unless we add one
+                 // But we have 'warnings' state we can use!
+                 setWarnings(prev => [...prev, "系統警告：資料量過大超出瀏覽器限制 (5MB)，本次計算結果將無法於關閉後自動還原。"]);
+            }
+        }
     }
   }, [results, warnings]);
 
@@ -254,36 +263,43 @@ const RecordsProcessing = () => {
 
                         {/* Right: Total */}
                         <div className="flex items-center gap-8 pl-4 xl:pl-0 border-l xl:border-l-0" style={{ borderColor: 'var(--glass-border)' }}>
-                            <div className="text-right">
+                            <div className="flex items-end gap-6 text-right">
                                  {(() => {
                                      const totalRaw = ['B', 'G', 'S', 'Missed'].reduce((acc, type) => acc + res.breakdown[type].rawSum, 0);
                                      return (
-                                         <p className="text-[10px] font-bold mb-1" style={{ color: 'var(--text-secondary)' }}>
-                                             總額: <span style={{ color: 'var(--text-primary)' }}>${totalRaw.toLocaleString()}</span>
-                                         </p>
+                                         <>
+                                            <div className="hidden sm:block opacity-60 hover:opacity-100 transition-opacity">
+                                                <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--text-secondary)' }}>總額</p>
+                                                <p className="text-xl font-mono font-bold" style={{ color: 'var(--text-secondary)' }}>${totalRaw.toLocaleString()}</p>
+                                            </div>
+                                            
+                                            <div>
+                                                <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--text-accent)' }}>拆帳總額</p>
+                                                <p className={`text-4xl font-mono font-bold tracking-tighter transition-colors ${isExpanded ? 'text-glow-cyan' : ''}`} style={{ color: isExpanded ? 'var(--text-accent)' : 'var(--text-primary)' }}>
+                                                    ${res.splitTotal.toLocaleString()}
+                                                </p>
+                                            </div>
+
+                                            {totalRaw > 0 && res.splitTotal === 0 && (
+                                                <div className="absolute top-full right-0 mt-2 flex flex-col items-end animate-pulse z-20">
+                                                    <span className="text-[10px] font-bold text-orange-400 flex items-center gap-1.5 bg-orange-400/10 px-2 py-1 rounded-md border border-orange-400/20">
+                                                        <AlertTriangle size={10} /> 
+                                                        CHECK SPLIT SETTINGS
+                                                    </span>
+                                                </div>
+                                            )}
+                                         </>
                                      );
                                   })()}
-                                 <p className="text-[9px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--text-secondary)' }}>拆帳總額</p>
-                                 <p className={`text-4xl font-mono font-bold tracking-tighter transition-colors ${isExpanded ? 'text-glow-cyan' : ''}`} style={{ color: isExpanded ? 'var(--text-accent)' : 'var(--text-primary)' }}>
-                                     ${res.splitTotal.toLocaleString()}
-                                 </p>
-                                 {(() => {
-                                     const totalRaw = ['B', 'G', 'S', 'Missed'].reduce((acc, type) => acc + res.breakdown[type].rawSum, 0);
-                                     if (totalRaw > 0 && res.splitTotal === 0) {
-                                         return (
-                                            <div className="mt-2 flex flex-col items-end animate-pulse">
-                                                <span className="text-[10px] font-bold text-orange-400 flex items-center gap-1.5 bg-orange-400/10 px-2 py-1 rounded-md border border-orange-400/20">
-                                                    <AlertTriangle size={10} /> 
-                                                    CHECK SPLIT SETTINGS
-                                                </span>
-                                                <span className="text-[9px] font-mono mt-1" style={{ color: 'var(--text-secondary)' }}>RAW VALUE: ${totalRaw.toLocaleString()}</span>
-                                            </div>
-                                         );
-                                     }
-                                     return null;
-                                 })()}
                             </div>
-                            <div className={`p-3 rounded-full border transition-all duration-300 ${isExpanded ? 'bg-cyan-500/10 text-cyan-400 rotate-180' : 'group-hover:text-white'}`} style={{ borderColor: 'var(--glass-border)', color: isExpanded ? undefined : 'var(--text-secondary)' }}>
+                            <div 
+                                className={`p-3 rounded-full border transition-all duration-300 ${isExpanded ? 'rotate-180' : 'group-hover:text-white'}`} 
+                                style={{ 
+                                    borderColor: 'var(--glass-border)', 
+                                    background: isExpanded ? 'var(--expand-btn-bg)' : undefined,
+                                    color: isExpanded ? 'var(--expand-btn-text)' : 'var(--text-secondary)'
+                                }}
+                            >
                                 <ChevronDown size={20}/>
                             </div>
                         </div>
@@ -389,14 +405,7 @@ const RecordsProcessing = () => {
                                 </div>
                             </div>
 
-                            {/* Verification Footer */}
-                            <div className="mt-8 pt-8 border-t flex justify-between items-center opacity-40 hover:opacity-100 transition-opacity" style={{ borderColor: 'var(--glass-border)' }}>
-                                <div className="flex items-center gap-3">
-                                    <CheckCircle size={14} className="text-emerald-500" />
-                                    <span className="text-[10px] font-bold tracking-widest text-slate-400">MATH VERIFIED: ROUND(SUM)</span>
-                                </div>
-                                <span className="text-[10px] font-mono text-slate-600">ID: {res.employee.empId}</span>
-                            </div>
+
 
                         </div>
                     )}

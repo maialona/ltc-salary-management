@@ -254,18 +254,43 @@ export const processData = async (files, updateProgress) => {
                     code: r.code,
                     qty: 0,
                     subtotal: 0, 
-                    amount: 0,
+                    amount: 0, // Will be calculated from rawSum
+                    rawSum: 0, // New field for precise accumulation
                     supervisor: r.supervisor
                 };
             }
             groupMap[key].qty += r.qty;
             groupMap[key].subtotal += r.revenueAllocated;
-            groupMap[key].amount += r.amount;
+            
+            // Accumulate precise raw commission
+            groupMap[key].rawSum += r.rawCommission;
+        });
+
+        // Finalize groups: Round the sum of raw commissions for each group
+        Object.values(groupMap).forEach(group => {
+            // User Request: "算到小數點後1位，不要進位" => Floor to 1 decimal
+            group.amount = Math.floor(group.rawSum * 10) / 10;
         });
 
         const sortedDetails = Object.values(groupMap).sort((a, b) => a.client.localeCompare(b.client));
         
-        totalCommission = sortedDetails.reduce((sum, item) => sum + item.amount, 0);
+        // Grand Total: Sum of all raw commissions, then round
+        // Note: You could sum the rounded group amounts, but "Sum then Round" usually implies summing the rawest signals.
+        // However, if the details list shows rounded numbers, the total should match the sum of displayed details to avoid " 1+1=3 " confusion.
+        // B/G/S logic: "Sum all split amounts... Round the sum".
+        // B/G/S does: Sum(All Item Shifts) -> Round.
+        // If we want checking consistency:
+        // Option A: Total = Math.round(Sum(All Raw))
+        // Option B: Total = Sum(Math.round(Group Raw))
+        
+        // B/G/S logic (calculator.js):
+        // It sums all items in a category (B/G/S) then rounds. 
+        // A-Code doesn't have categories like B/G/S, it just has one big list.
+        // Let's stick to: Total = Math.round(Sum(All Raw Commissions))
+        
+        const totalRawCommission = sortedDetails.reduce((sum, item) => sum + item.rawSum, 0);
+        // User Request: "算到小數點後1位，不要進位" => Floor to 1 decimal
+        totalCommission = Math.floor(totalRawCommission * 10) / 10;
 
         return {
             name: worker,
