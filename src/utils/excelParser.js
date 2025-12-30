@@ -79,14 +79,30 @@ export const parseServiceRecordExcel = async (file) => {
         const code = row[findKey(['服務代碼', 'code'])] || '';
         const serviceName = row[findKey(['服務項目', 'service'])] || '';
         
+        // Helper for safe number parsing
+        const safeParseFloat = (val) => {
+            if (typeof val === 'number') return val;
+            if (!val) return 0;
+            // Remove commas and other non-numeric chars (except dot and sign)
+            const cleanVal = String(val).replace(/[^\d.-]/g, '');
+            const num = parseFloat(cleanVal);
+            return isNaN(num) ? 0 : num;
+        };
+
         // 4. Quantity
-        const count = parseFloat(row[findKey(['使用服務數量', '數量', 'count'])] || 0);
+        const count = safeParseFloat(row[findKey(['使用服務數量', '數量', 'count'])]);
 
         // 5. Price & Amount Calculation
         // Logic: Check payment type. If "自費", use SelfPay Price, else Govt Price.
-        const paymentType = row[findKey(['自費 / 補助', 'payment type', 'type'])] || '';
-        const priceGovt = parseFloat(row[findKey(['政府單價', 'govt price'])] || 0);
-        const priceSelf = parseFloat(row[findKey(['自費單價', 'self pay price'])] || 0);
+        // Handle "自費 / 補助" with varying spaces
+        const paymentTypeKey = Object.keys(row).find(k => 
+            ['自費/補助', '自費 / 補助', 'payment type', 'type'].includes(k.trim().replace(/\s*[\/\\]\s*/g, '/').toLowerCase()) || 
+            ['自費 / 補助'].includes(k.trim()) 
+        );
+        const paymentType = row[paymentTypeKey] || '';
+        
+        const priceGovt = safeParseFloat(row[findKey(['政府單價', 'govt price'])]);
+        const priceSelf = safeParseFloat(row[findKey(['自費單價', 'self pay price'])]);
 
         const isSelfPay = paymentType.includes('自費');
         const unitPrice = isSelfPay ? priceSelf : priceGovt;

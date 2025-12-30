@@ -120,6 +120,11 @@ export const processSalaryCalculation = (records, employees) => {
     const ratio = employee.splits[type.toLowerCase()] || 0;
     const splitAmount = finalAmount * (ratio / 100);
 
+    // Check for Self-Pay flag
+    const paymentTypeKey = findKey(['自費 / 補助', 'payment type', 'type', '自費/補助']);
+    const paymentType = row[paymentTypeKey] || '';
+    const isSelfPay = paymentType.includes('自費');
+
     results[employee.id].rawTotal += finalAmount;
     
     // Add to breakdown
@@ -128,7 +133,8 @@ export const processSalaryCalculation = (records, employees) => {
       code: code,
       count: count,
       amount: finalAmount,
-      split: splitAmount // Keep precise
+      split: splitAmount, // Keep precise
+      isSelfPay: isSelfPay
     });
   });
 
@@ -146,6 +152,13 @@ export const processSalaryCalculation = (records, employees) => {
       res.breakdown[type].count = items.length;
       res.breakdown[type].rawSum = items.reduce((acc, item) => acc + item.amount, 0); // Display purpose
       res.breakdown[type].splitSum = roundedSplit; // Final rounded value
+      res.breakdown[type].selfPaySum = items.reduce((acc, item) => {
+          // Check if item is self pay. 'excelParser' returns '自費/補助' in row, but 'items' pushes raw fields.
+          // Let's check 'excelParser' again. It returns '自費/補助' which calculator row uses?
+          // Wait, 'items.push' in calculator uses: client, code, count, amount, split.
+          // I need to add 'isSelfPay' to the item in calculator.js line 126 first.
+          return acc + (item.isSelfPay ? item.amount : 0);
+      }, 0);
       
       totalSplit += roundedSplit;
     });

@@ -139,7 +139,7 @@ const ACodeCalculation = () => {
                 onConfirm={() => setModal(prev => ({ ...prev, isOpen: false }))} 
             />
 
-            <div className="max-w-6xl mx-auto">
+            <div className="max-w-7xl mx-auto">
                 <header className="mb-8 flex justify-between items-center">
                     <div>
                         <h1 className="text-3xl font-black tracking-tighter mb-2" style={{ color: 'var(--text-primary)' }}>

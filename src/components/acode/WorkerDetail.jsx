@@ -30,7 +30,7 @@ const WorkerDetail = ({ staff }) => {
 
             <div className="overflow-hidden rounded-xl border-0 shadow-sm" style={{ background: 'var(--glass-bg)' }}>
                 <table className="min-w-full text-sm text-left">
-                    <thead className="text-xs uppercase font-bold" style={{ background: 'var(--accordion-bg)', color: 'var(--text-secondary)' }}>
+                    <thead className="text-xs uppercase font-bold" style={{ background: 'var(--table-header-bg)', color: 'var(--table-header-text)' }}>
                         <tr>
                             <th className="px-6 py-4">服務個案</th>
                             <th className="px-6 py-4">督導</th>

@@ -162,21 +162,30 @@ const RecordsProcessing = () => {
 
       {/* Global Summary Stats */}
       {results.length > 0 && !isProcessing && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in zoom-in duration-500">
-            {['B', 'G', 'S', 'Missed'].map(type => {
-                const totalAmount = results.reduce((acc, res) => acc + res.breakdown[type].rawSum, 0);
-                const labels = { 'B': 'B碼總額', 'G': 'G碼總額', 'S': 'S碼總額', 'Missed': '未遇總額' };
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 animate-in fade-in zoom-in duration-500">
+            {['B', 'G', 'S', 'Missed', 'SelfPay'].map(type => {
+                const totalAmount = type === 'SelfPay' 
+                    ? results.reduce((acc, res) => acc + (
+                        res.breakdown['B'].selfPaySum + 
+                        res.breakdown['G'].selfPaySum + 
+                        res.breakdown['S'].selfPaySum
+                      ), 0)
+                    : results.reduce((acc, res) => acc + res.breakdown[type].rawSum, 0);
+
+                const labels = { 'B': 'B碼總額', 'G': 'G碼總額', 'S': 'S碼總額', 'Missed': '未遇總額', 'SelfPay': '自費總額' };
                 const colors = {
                         'B': 'from-blue-500/20 to-blue-500/5 text-blue-400 border-blue-500/20',
                         'G': 'from-emerald-500/20 to-emerald-500/5 text-emerald-400 border-emerald-500/20',
                         'S': 'from-purple-500/20 to-purple-500/5 text-purple-400 border-purple-500/20',
-                        'Missed': 'from-orange-500/20 to-orange-500/5 text-orange-400 border-orange-500/20'
+                        'Missed': 'from-orange-500/20 to-orange-500/5 text-orange-400 border-orange-500/20',
+                        'SelfPay': 'from-pink-500/20 to-pink-500/5 text-pink-400 border-pink-500/20'
                 };
                 const labelColors = {
                     'B': '#4fa1ff',
                     'G': '#00d491',
                     'S': '#c27aff',
-                    'Missed': '#ff8904'
+                    'Missed': '#ff8904',
+                    'SelfPay': '#f472b6'
                 };
                 
                 return (
@@ -395,7 +404,10 @@ const RecordsProcessing = () => {
                                                 <div className="space-y-2">
                                                     {group.items.map((item, i) => (
                                                         <div key={i} className="flex justify-between items-center text-[10px] font-mono pl-4 border-l-2" style={{ color: 'var(--text-secondary)', borderColor: 'var(--glass-border)' }}>
-                                                            <span>{item.code} {item.count > 1 && `x${item.count}`}</span>
+                                                            <span>
+                                                                {item.code} {item.count > 1 && `x${item.count}`}
+                                                                {item.isSelfPay && <span className="ml-2 text-[9px] px-1 rounded bg-pink-500/20 text-pink-400">自費</span>}
+                                                            </span>
                                                         </div>
                                                     ))}
                                                 </div>

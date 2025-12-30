@@ -4,41 +4,56 @@ import { AlertCircle } from 'lucide-react';
 const DebugPanel = ({ debugInfo }) => {
     if (!debugInfo) return null;
 
+    const summaryItems = [
+        {
+            label: 'A碼清冊總額',
+            value: debugInfo.totalInput,
+            colorClass: 'from-blue-500/20 to-blue-500/5 text-blue-400 border-blue-500/20',
+            labelColor: '#4fa1ff',
+            textColor: 'text-blue-400'
+        },
+        {
+            label: '媒合金額',
+            value: debugInfo.totalAllocated,
+            colorClass: 'from-emerald-500/20 to-emerald-500/5 text-emerald-400 border-emerald-500/20',
+            labelColor: '#00d491',
+            textColor: 'text-emerald-400'
+        },
+        {
+            label: '拆帳薪資總額',
+            value: debugInfo.totalCommissionPaid,
+            colorClass: 'from-purple-500/20 to-purple-500/5 text-purple-400 border-purple-500/20',
+            labelColor: '#c27aff',
+            textColor: 'text-purple-400'
+        },
+        {
+            label: '差異',
+            value: debugInfo.totalAllocated - debugInfo.totalInput,
+            colorClass: 'from-orange-500/20 to-orange-500/5 text-orange-400 border-orange-500/20',
+            labelColor: '#ff8904',
+            textColor: 'text-orange-400',
+            isDiff: true
+        }
+    ];
+
     return (
-        <div className="mb-4 rounded-lg p-3 shrink-0 flex flex-wrap gap-4 items-center justify-between border shadow-inner" 
-             style={{ 
-                 background: 'rgba(34, 211, 238, 0.05)', 
-                 borderColor: 'rgba(34, 211, 238, 0.2)'
-             }}>
-            <div className="flex gap-6 items-center flex-wrap text-sm">
-                <div className="flex items-center">
-                    <span className="text-xs uppercase tracking-wider font-bold opacity-70 mr-2" style={{ color: 'var(--text-secondary)' }}>A碼清冊總額</span>
-                    <span className="font-mono font-bold" style={{ color: 'var(--text-primary)' }}>${debugInfo.totalInput.toLocaleString()}</span>
-                </div>
-                <div className="flex items-center">
-                    <span className="text-xs uppercase tracking-wider font-bold opacity-70 mr-2" style={{ color: 'var(--text-secondary)' }}>媒合金額</span>
-                    <span className="font-mono font-bold text-emerald-500">${debugInfo.totalAllocated.toLocaleString()}</span>
-                </div>
-                <div className="flex items-center">
-                    <span className="text-xs uppercase tracking-wider font-bold opacity-70 mr-2" style={{ color: 'var(--text-secondary)' }}>差異</span>
-                    <span className={`font-mono font-bold ${Math.abs(debugInfo.totalAllocated - debugInfo.totalInput) > 5 ? 'text-red-500' : 'opacity-40'}`}
-                          style={{ color: Math.abs(debugInfo.totalAllocated - debugInfo.totalInput) <= 5 ? 'var(--text-secondary)' : undefined }}>
-                        ${Math.round(debugInfo.totalAllocated - debugInfo.totalInput).toLocaleString()}
-                    </span>
-                </div>
-            </div>
-            
-            <div className="flex items-center gap-4">
-                 <div className="flex items-center px-3 py-1 rounded-full" style={{ background: 'rgba(34, 211, 238, 0.1)' }}>
-                    <span className="text-xs uppercase tracking-wider font-bold mr-2 text-cyan-500">拆帳薪資總額</span>
-                    <span className="font-mono font-bold text-cyan-500 text-lg leading-none">${Math.round(debugInfo.totalCommissionPaid).toLocaleString()}</span>
-                </div>
-                {Math.abs(debugInfo.totalAllocated - debugInfo.totalInput) > 100 && (
-                    <div className="text-xs text-red-500 flex items-center animate-pulse font-bold bg-red-500/10 px-2 py-1 rounded">
-                        <AlertCircle className="w-3 h-3 mr-1" /> 營收媒合差異過大
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            {summaryItems.map((item, idx) => (
+                <div key={idx} className={`relative p-6 rounded-[2rem] bg-gradient-to-br border ${item.colorClass.split(' ').pop()} overflow-hidden`}>
+                    <div className={`absolute inset-0 bg-gradient-to-br ${item.colorClass.split(' ').slice(0, 2).join(' ')} opacity-50`}></div>
+                    <div className="relative z-10">
+                        <div className="text-sm font-bold mb-2 tracking-widest" style={{ color: item.labelColor }}>{item.label}</div>
+                        <div className={`text-2xl font-mono font-bold ${item.textColor}`}>
+                            ${Math.round(item.value).toLocaleString()}
+                        </div>
+                        {item.isDiff && Math.abs(item.value) > 5 && (
+                             <div className="absolute top-4 right-4 animate-pulse text-red-500">
+                                <AlertCircle size={20} />
+                            </div>
+                        )}
                     </div>
-                )}
-            </div>
+                </div>
+            ))}
         </div>
     );
 };
