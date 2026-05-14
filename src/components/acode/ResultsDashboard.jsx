@@ -26,18 +26,20 @@ const ResultsDashboard = ({
             {/* Header / Actions */}
             <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-8">
                 <div>
-                     <div className="flex items-center gap-3 mb-2">
-                        <CheckCircle className="text-emerald-500 w-8 h-8" /> 
-                        <h2 className="text-3xl font-black tracking-tighter" style={{ color: 'var(--text-primary)' }}>計算完成</h2>
+                     <div className="flex items-center gap-2 mb-1">
+                        <CheckCircle className="text-emerald-500 w-5 h-5" />
+                        <h2 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>計算完成</h2>
                      </div>
-                     <p className="font-bold opacity-60 ml-1" style={{ color: 'var(--text-secondary)' }}>A-CODE CALCULATION COMPLETED</p>
+                     <p className="text-sm ml-7" style={{ color: 'var(--text-secondary)' }}>A-Code 計算已完成</p>
                 </div>
                 <div className="flex gap-4">
-                    <button onClick={onReset} className="px-6 py-3 rounded-xl border font-bold hover:bg-white/5 transition-colors cursor-pointer" style={{ borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>
+                    <button onClick={onReset} className="px-4 py-2 rounded-md border text-sm font-medium hover:bg-white/5 transition-colors cursor-pointer" style={{ borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>
                         重新開始
                     </button>
-                    <button onClick={handleDownload} className="px-6 py-3 rounded-xl text-white font-bold shadow-lg transition-all transform hover:-translate-y-0.5 flex items-center gap-2 cursor-pointer"
-                            style={{ background: 'var(--btn-primary-bg)', boxShadow: 'var(--btn-primary-shadow)' }}>
+                    <button onClick={handleDownload} className="px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 cursor-pointer"
+                            style={{ background: 'var(--btn-primary-bg)', color: 'var(--glass-bg)' }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--btn-primary-hover)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-primary-bg)'}>
                         <Download className="w-5 h-5" />
                         <span>下載結果報表</span>
                     </button>
@@ -49,7 +51,7 @@ const ResultsDashboard = ({
 
             {/* Errors */}
             {errors.length > 0 && (
-                <div className="p-6 rounded-[1.5rem] bg-red-500/5 border border-red-500/10 flex gap-4 items-start animate-in slide-in-from-top-4">
+                <div className="p-4 rounded-md bg-red-500/5 border border-red-500/20 flex gap-3 items-start animate-in slide-in-from-top-4">
                     <div className="p-2 bg-red-500/10 rounded-lg text-red-500">
                         <AlertCircle size={20} />
                     </div>
@@ -74,67 +76,57 @@ const ResultsDashboard = ({
                     
                     return (
                         <div key={idx} className="relative group perspective-1000">
-                             <div 
+                             <div
                                 onClick={() => toggleExpand(staff.name)}
-                                className={`
-                                    relative z-10 p-8 rounded-[2rem] border transition-all duration-500 cursor-pointer overflow-hidden glass-panel
-                                `}
+                                className="relative rounded-md border transition-all duration-200 cursor-pointer glass-panel"
                                 style={{
-                                    borderColor: isExpanded ? 'rgba(var(--accent-rgb), 0.3)' : 'var(--glass-border)',
-                                    boxShadow: isExpanded ? '0 0 50px -20px rgba(var(--accent-rgb), 0.2)' : undefined,
+                                    borderColor: isExpanded ? 'var(--text-accent)' : 'var(--glass-border)',
                                     background: 'var(--glass-bg)'
                                 }}
                             >
-                                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8">
+                                <div className="px-5 py-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
                                     {/* Left: Identity */}
-                                    <div className="flex items-center gap-6">
-                                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-lg border transition-all duration-300 ${
-                                            isExpanded ? '' : 'group-hover:text-white'
-                                        }`} style={{ 
-                                            background: isExpanded ? 'rgba(var(--accent-rgb), 0.1)' : 'var(--emp-icon-bg)', // Use theme var
-                                            borderColor: isExpanded ? 'rgba(var(--accent-rgb), 0.2)' : 'var(--glass-border)',
-                                            color: isExpanded ? 'var(--text-accent)' : 'var(--emp-icon-text)' // Use theme var
-                                        }}>
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-md flex items-center justify-center font-medium text-sm border"
+                                            style={{
+                                                background: 'var(--emp-icon-bg)',
+                                                borderColor: 'var(--glass-border)',
+                                                color: 'var(--emp-icon-text)'
+                                            }}>
                                             {staff.id || staff.name[0]}
                                         </div>
                                         <div>
-                                            <div className="flex items-center gap-4 mb-2">
-                                                <h3 className="text-2xl font-bold tracking-tight transition-colors" style={{ color: 'var(--text-primary)' }}>
-                                                    {staff.name}
-                                                </h3>
-                                            </div>
+                                            <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                                                {staff.name}
+                                            </h3>
                                         </div>
                                     </div>
 
                                     {/* Right: Total */}
-                                    <div className="flex items-center gap-8 pl-4 xl:pl-0 border-l xl:border-l-0" style={{ borderColor: 'var(--glass-border)' }}>
+                                    <div className="flex items-center gap-5 pl-4 xl:pl-0 border-l xl:border-l-0" style={{ borderColor: 'var(--glass-border)' }}>
                                         <div className="text-right">
-                                            <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--text-accent)' }}>本月拆帳總額</p>
-                                            <p className={`text-4xl font-mono font-bold tracking-tighter transition-colors ${isExpanded ? 'text-glow-cyan' : ''}`} style={{ color: isExpanded ? 'var(--text-accent)' : 'var(--text-primary)' }}>
+                                            <p className="text-xs mb-0.5" style={{ color: 'var(--text-secondary)', fontSize: 'var(--label-text-size)' }}>本月拆帳總額</p>
+                                            <p className="text-xl font-mono font-semibold" style={{ color: 'var(--text-primary)' }}>
                                                 ${staff.totalCommission.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                                             </p>
                                         </div>
-                                        <div 
-                                            className={`p-3 rounded-full border transition-all duration-300 ${isExpanded ? 'rotate-180' : 'group-hover:text-white'}`} 
-                                            style={{ 
-                                                borderColor: 'var(--glass-border)', 
-                                                background: isExpanded ? 'var(--expand-btn-bg)' : undefined,
-                                                color: isExpanded ? 'var(--expand-btn-text)' : 'var(--text-secondary)'
-                                            }}
+                                        <div
+                                            className={`w-6 h-6 rounded flex items-center justify-center transition-all duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                                            style={{ color: 'var(--text-secondary)' }}
                                         >
-                                            <ChevronDown size={20}/>
+                                            <ChevronDown size={16}/>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Expanded Content (Formerly WorkerDetail) */}
                                 {isExpanded && (
-                                    <div className="mt-10 pt-10 border-t animate-in slide-in-from-top-4 duration-500" style={{ borderColor: 'var(--glass-border)' }}>
-                                         <h4 className="text-[10px] font-bold uppercase tracking-widest pl-2 flex items-center gap-2 mb-6" style={{ color: 'var(--text-secondary)' }}>
-                                            <FileText size={12}/> 服務細項明細
+                                    <div className="px-5 pb-5 pt-4 border-t animate-in fade-in duration-200" style={{ borderColor: 'var(--glass-border)' }}>
+                                         <h4 className="text-xs font-medium flex items-center gap-1.5 mb-4" style={{ color: 'var(--text-secondary)', fontSize: 'var(--label-text-size)' }}>
+                                            <FileText size={11}/> 服務細項明細
                                         </h4>
 
-                                        <div className="overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
+                                        <div className="overflow-hidden rounded-md border" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
                                             <table className="min-w-full text-sm text-left">
                                                 <thead className="text-xs uppercase font-bold" style={{ background: 'var(--table-header-bg)', color: 'var(--table-header-text)' }}>
                                                     <tr>

@@ -168,8 +168,8 @@ const BonusManagement = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-12">
           <div>
-            <h2 className="text-4xl font-black tracking-tighter mb-2" style={{ color: 'var(--text-primary)' }}>額外獎金管理</h2>
-            <p className="font-bold text-sm tracking-wide" style={{ color: 'var(--text-secondary)' }}>名單連動員工管理，請於該處新增/刪除人員</p>
+            <h2 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>額外獎金管理</h2>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>名單連動員工管理，請於該處新增/刪除人員</p>
           </div>
 
           <div className="flex gap-4">
@@ -181,37 +181,37 @@ const BonusManagement = () => {
                         onChange={handleFileUpload}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     />
-                    <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl border transition-all active:scale-95 glass-panel cursor-pointer"
+                    <button className="flex items-center gap-2 px-4 py-2 rounded-md border transition-all glass-panel cursor-pointer text-sm font-medium"
                             style={{ color: 'var(--text-secondary)', borderColor: 'var(--glass-border)' }}>
-                        <Upload size={16} />
-                        <span className="font-bold text-xs tracking-wide">匯入 EXCEL</span>
+                        <Upload size={14} />
+                        <span>匯入 Excel</span>
                     </button>
                </div>
 
                {/* Clear All Button */}
-               <button 
+               <button
                   onClick={handleClearAll}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 rounded-xl border border-red-500/20 transition-all active:scale-95 cursor-pointer"
+                  className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-md border border-red-500/20 transition-all cursor-pointer text-sm font-medium"
                >
-                  <Trash size={16} />
-                  <span className="font-bold text-xs tracking-wide">歸零</span>
+                  <Trash size={14} />
+                  <span>歸零</span>
                </button>
           </div>
       </div>
 
       {/* Table View */}
-      <div className="overflow-hidden rounded-[2rem] border glass-panel" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
+      <div className="overflow-hidden rounded-md border glass-panel" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
         <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse whitespace-nowrap">
                 <thead>
                     <tr className="border-b" style={{ borderColor: 'var(--glass-border)', background: 'var(--table-header-bg)' }}>
-                        <th className="p-3 text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--table-header-text)' }}>員編</th>
-                        <th className="p-3 text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--table-header-text)' }}>姓名</th>
+                        <th className="px-4 py-3 text-xs font-medium" style={{ color: 'var(--table-header-text)' }}>員編</th>
+                        <th className="px-4 py-3 text-xs font-medium" style={{ color: 'var(--table-header-text)' }}>姓名</th>
                         {fields.map(f => (
-                             <th key={f.key} className="p-3 text-sm font-bold uppercase tracking-widest text-right" style={{ color: 'var(--table-header-text)' }}>{f.label}</th>
+                             <th key={f.key} className="px-4 py-3 text-xs font-medium text-right" style={{ color: 'var(--table-header-text)' }}>{f.label}</th>
                         ))}
-                        <th className="p-3 text-sm font-bold uppercase tracking-widest text-right" style={{ color: 'var(--table-header-text)' }}>總額</th>
-                        <th className="p-3 text-sm font-bold uppercase tracking-widest text-right" style={{ color: 'var(--table-header-text)' }}>操作</th>
+                        <th className="px-4 py-3 text-xs font-medium text-right" style={{ color: 'var(--table-header-text)' }}>總額</th>
+                        <th className="px-4 py-3 text-xs font-medium text-right" style={{ color: 'var(--table-header-text)' }}>操作</th>
                     </tr>
                 </thead>
                 <tbody className="" style={{ borderColor: 'var(--glass-border)' }}>
@@ -238,9 +238,9 @@ const BonusManagement = () => {
                                 </td>
                                 <td className="p-3 text-right">
                                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button 
+                                        <button
                                             onClick={() => handleOpenModal(item)}
-                                            className="p-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                                            className="p-1.5 rounded-md hover:bg-white/10 transition-colors cursor-pointer"
                                             style={{ color: 'var(--text-secondary)' }}
                                         >
                                             <Edit2 size={14} />
@@ -260,7 +260,7 @@ const BonusManagement = () => {
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}></div>
-            <div className="relative w-full max-w-4xl border rounded-3xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]"
+            <div className="relative w-full max-w-4xl border overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]"
                  style={{ 
                      background: 'var(--modal-bg)', 
                      borderRadius: 'var(--modal-radius)', 
@@ -270,10 +270,10 @@ const BonusManagement = () => {
                 
                 {/* Modal Header */}
                 <div className="p-6 border-b flex justify-between items-center" style={{ borderColor: 'var(--glass-border)', background: 'var(--modal-header-bg)' }}>
-                    <h3 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                    <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                         編輯資料
                     </h3>
-                    <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer">
+                    <button onClick={() => setIsModalOpen(false)} className="p-1.5 hover:bg-white/10 rounded-md transition-colors cursor-pointer">
                         <X size={20} style={{ color: 'var(--text-secondary)' }} />
                     </button>
                 </div>
@@ -361,24 +361,19 @@ const BonusManagement = () => {
 
                 {/* Footer */}
                 <div className="p-6 border-t flex justify-end gap-3 sticky bottom-0 z-50 glass-panel" style={{ borderColor: 'var(--glass-border)', background: 'var(--modal-header-bg)' }}>
-                    <button 
+                    <button
                         onClick={() => setIsModalOpen(false)}
-                        className="px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-white/5 transition-colors cursor-pointer"
-                        style={{ color: 'var(--text-secondary)' }}
+                        className="px-4 py-2 rounded-md text-sm font-medium border transition-colors cursor-pointer"
+                        style={{ color: 'var(--text-secondary)', borderColor: 'var(--glass-border)', background: 'transparent' }}
                     >
                         取消
                     </button>
-                    <button 
+                    <button
                         onClick={handleSubmit}
-                        className="px-6 py-2.5 font-bold tracking-wide transition-all active:scale-95 cursor-pointer"
-                        style={{ 
-                            background: 'var(--btn-primary-bg)', 
-                            color: '#fff',
-                            borderRadius: 'var(--modal-radius)',
-                            boxShadow: 'var(--btn-primary-shadow)'
-                        }}
-                        onMouseEnter={(e) => e.target.style.background = 'var(--btn-primary-hover)'}
-                        onMouseLeave={(e) => e.target.style.background = 'var(--btn-primary-bg)'}
+                        className="px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer"
+                        style={{ background: 'var(--btn-primary-bg)', color: 'var(--glass-bg)' }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--btn-primary-hover)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-primary-bg)'}
                     >
                         儲存資料
                     </button>

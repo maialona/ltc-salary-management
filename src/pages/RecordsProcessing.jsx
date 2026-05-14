@@ -102,42 +102,37 @@ const RecordsProcessing = () => {
   };
 
   return (
-    <div className="space-y-20">
-       
-      {/* Upload Zone - Hero Plate */}
-      <div className={`relative rounded-[2.5rem] transition-all duration-700 group overflow-hidden ${isProcessing ? 'h-96' : 'h-80 hover:h-96 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.7)]'} border glass-panel`} style={{ borderColor: 'var(--glass-border)' }}>
-        
-        {/* Animated Gradient Border */}
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 bg-gradient-to-r from-transparent via-cyan-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] pointer-events-none transform skew-x-12" style={{ transition: 'transform 2s ease-in-out, opacity 0.5s' }}></div>
+    <div className="space-y-8">
 
-        <input 
-            type="file" 
+      {/* Upload Zone */}
+      <div className={`relative rounded-md border transition-all duration-300 glass-panel ${isProcessing ? 'h-52' : 'h-40 hover:h-52'}`} style={{ borderColor: 'var(--glass-border)', borderStyle: 'dashed' }}>
+        <input
+            type="file"
             accept=".xlsx, .xls, .csv"
-            onChange={handleFileUpload} 
+            onChange={handleFileUpload}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-50"
             disabled={isProcessing}
         />
 
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
              {isProcessing ? (
-               <div className="flex flex-col items-center gap-6">
-                  <div className="relative w-20 h-20">
-                      <div className="absolute inset-0 rounded-full border-2 border-slate-700"></div>
-                      <div className="absolute inset-0 rounded-full border-t-2 border-cyan-400 animate-spin"></div>
-                      <div className="absolute inset-0 rounded-full border-r-2 border-cyan-400 animate-spin" style={{ animationDuration: '1.5s', animationDirection: 'reverse' }}></div>
+               <div className="flex flex-col items-center gap-4">
+                  <div className="relative w-10 h-10">
+                      <div className="absolute inset-0 rounded-full border-2" style={{ borderColor: 'var(--glass-border)' }}></div>
+                      <div className="absolute inset-0 rounded-full border-t-2 border-zinc-400 animate-spin"></div>
                   </div>
                   <div>
-                      <h3 className="text-2xl font-black text-white tracking-widest animate-pulse" style={{ color: 'var(--text-primary)' }}>分析中...</h3>
-                      <p className="text-xs font-mono text-cyan-500 mt-2">解析資料結構...</p>
+                      <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>分析中...</h3>
+                      <p className="text-xs mt-1 font-mono" style={{ color: 'var(--text-secondary)' }}>解析資料結構</p>
                   </div>
                </div>
              ) : (
-                <div className="group-hover:-translate-y-2 transition-transform duration-500">
-                     <div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-white/5 shadow-2xl group-hover:bg-cyan-500/20 group-hover:text-cyan-300 transition-colors" style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>
-                        <CloudUpload size={40} />
+                <div>
+                     <div className="w-10 h-10 rounded-md flex items-center justify-center mx-auto mb-3 border" style={{ background: 'var(--accordion-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>
+                        <CloudUpload size={18} />
                      </div>
-                     <h3 className="text-3xl font-black tracking-tight mb-3" style={{ color: 'var(--text-primary)' }}>服務清冊上傳</h3>
-                     <p className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: 'var(--text-secondary)' }}>DRAG & DROP TO PROCESS</p>
+                     <h3 className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>服務清冊上傳</h3>
+                     <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>拖曳或點擊選擇 Excel 檔案</p>
                 </div>
              )}
         </div>
@@ -145,13 +140,13 @@ const RecordsProcessing = () => {
 
       {/* Warnings */}
       {warnings.length > 0 && (
-        <div className="p-8 rounded-[1.5rem] bg-red-500/5 border border-red-500/10 flex gap-6 items-start animate-in slide-in-from-top-4">
-            <div className="p-3 bg-red-500/10 rounded-xl text-red-500">
-                <AlertTriangle size={24} />
+        <div className="p-4 rounded-md bg-red-500/5 border border-red-500/20 flex gap-3 items-start animate-in slide-in-from-top-4">
+            <div className="p-1.5 bg-red-500/10 rounded-md text-red-500 shrink-0">
+                <AlertTriangle size={16} />
             </div>
-            <div className="space-y-3">
-                <h4 className="font-bold text-red-400 tracking-wide text-lg">錯誤提醒</h4>
-                <ul className="list-disc list-inside text-sm text-red-400/60 font-mono space-y-1">
+            <div>
+                <h4 className="font-medium text-red-400 text-sm mb-1">錯誤提醒</h4>
+                <ul className="list-disc list-inside text-xs text-red-400/70 font-mono space-y-0.5">
                     {warnings.map((w, idx) => (
                     <li key={idx}>{w}</li>
                     ))}
@@ -162,40 +157,27 @@ const RecordsProcessing = () => {
 
       {/* Global Summary Stats */}
       {results.length > 0 && !isProcessing && (
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 animate-in fade-in zoom-in duration-500">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 animate-in fade-in duration-300">
             {['B', 'G', 'S', 'Missed', 'SelfPay'].map(type => {
-                const totalAmount = type === 'SelfPay' 
+                const totalAmount = type === 'SelfPay'
                     ? results.reduce((acc, res) => acc + (
-                        res.breakdown['B'].selfPaySum + 
-                        res.breakdown['G'].selfPaySum + 
+                        res.breakdown['B'].selfPaySum +
+                        res.breakdown['G'].selfPaySum +
                         res.breakdown['S'].selfPaySum
                       ), 0)
                     : results.reduce((acc, res) => acc + res.breakdown[type].rawSum, 0);
 
                 const labels = { 'B': 'B碼總額', 'G': 'G碼總額', 'S': 'S碼總額', 'Missed': '未遇總額', 'SelfPay': '自費總額' };
-                const colors = {
-                        'B': 'from-blue-500/20 to-blue-500/5 text-blue-400 border-blue-500/20',
-                        'G': 'from-emerald-500/20 to-emerald-500/5 text-emerald-400 border-emerald-500/20',
-                        'S': 'from-purple-500/20 to-purple-500/5 text-purple-400 border-purple-500/20',
-                        'Missed': 'from-orange-500/20 to-orange-500/5 text-orange-400 border-orange-500/20',
-                        'SelfPay': 'from-pink-500/20 to-pink-500/5 text-pink-400 border-pink-500/20'
+                const textColors = {
+                    'B': 'text-blue-500', 'G': 'text-emerald-500', 'S': 'text-purple-500',
+                    'Missed': 'text-orange-500', 'SelfPay': 'text-pink-500'
                 };
-                const labelColors = {
-                    'B': '#4fa1ff',
-                    'G': '#00d491',
-                    'S': '#c27aff',
-                    'Missed': '#ff8904',
-                    'SelfPay': '#f472b6'
-                };
-                
+
                 return (
-                    <div key={type} className={`relative p-6 rounded-[2rem] bg-gradient-to-br border ${colors[type].split(' ').pop()} overflow-hidden`}>
-                        <div className={`absolute inset-0 bg-gradient-to-br ${colors[type].split(' ').slice(0, 2).join(' ')} opacity-50`}></div>
-                        <div className="relative z-10">
-                            <div className="text-sm font-bold mb-2 tracking-widest" style={{ color: labelColors[type] }}>{labels[type]}</div>
-                            <div className={`text-2xl font-mono font-bold ${colors[type].split(' ')[2]}`}>
-                                ${totalAmount.toLocaleString()}
-                            </div>
+                    <div key={type} className="p-4 rounded-md border glass-panel" style={{ borderColor: 'var(--glass-border)' }}>
+                        <div className="text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{labels[type]}</div>
+                        <div className={`text-lg font-mono font-semibold ${textColors[type]}`}>
+                            ${totalAmount.toLocaleString()}
                         </div>
                     </div>
                 )
@@ -203,64 +185,59 @@ const RecordsProcessing = () => {
         </div>
       )}
 
-      {/* Results List - Flow */}
-      <div className="space-y-6">
+      {/* Results List */}
+      <div className="space-y-2">
         {results.length > 0 && !isProcessing && (
-            <div className="flex justify-end px-4 gap-4 items-center mb-4">
+            <div className="flex items-center gap-3 mb-2">
                 <span className="h-px flex-1" style={{ background: 'var(--glass-border)' }}></span>
-                <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
-                    COMPLETED: <span style={{ color: 'var(--text-primary)' }}>{results.length} PROFILES</span>
+                <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    共 {results.length} 筆
                 </span>
             </div>
         )}
 
         {results.map((res) => {
             const isExpanded = expandedId === res.employee.id;
-            
+
             return (
-            <div key={res.employee.id} className="relative group perspective-1000">
-                <div 
+            <div key={res.employee.id} className="relative">
+                <div
                     onClick={() => toggleExpand(res.employee.id)}
-                    className={`
-                        relative z-10 p-8 rounded-[2rem] border transition-all duration-500 cursor-pointer overflow-hidden glass-panel
-                    `}
+                    className="relative rounded-md border transition-all duration-200 cursor-pointer glass-panel"
                     style={{
-                        borderColor: isExpanded ? 'rgba(var(--accent-rgb), 0.3)' : 'var(--glass-border)',
-                        boxShadow: isExpanded ? '0 0 50px -20px rgba(var(--accent-rgb), 0.2)' : undefined,
-                        background: isExpanded ? 'var(--glass-bg)' : 'var(--glass-bg)'
+                        borderColor: isExpanded ? 'var(--text-accent)' : 'var(--glass-border)',
                     }}
                 >
-                    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8">
+                    <div className="px-5 py-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
                         {/* Left: Identity */}
-                        <div className="flex items-center gap-6">
-                             <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-lg border transition-all duration-300 ${
-                                 isExpanded ? '' : 'group-hover:text-white'
-                             }`} style={{ 
-                                 background: isExpanded ? 'rgba(var(--accent-rgb), 0.1)' : 'rgba(255,255,255,0.05)',
-                                 borderColor: isExpanded ? 'rgba(var(--accent-rgb), 0.2)' : 'var(--glass-border)',
-                                 color: isExpanded ? 'var(--text-accent)' : 'var(--text-secondary)'
-                             }}>
+                        <div className="flex items-center gap-4">
+                             <div className="w-10 h-10 rounded-md flex items-center justify-center font-medium text-sm border"
+                                style={{
+                                    background: 'var(--emp-icon-bg)',
+                                    borderColor: 'var(--glass-border)',
+                                    color: 'var(--emp-icon-text)'
+                                }}>
                                 {res.employee.empId}
                              </div>
                              <div>
-                                <div className="flex items-center gap-4 mb-2">
-                                    <h3 className={`text-2xl font-bold tracking-tight transition-colors`} style={{ color: 'var(--text-primary)' }}>
+                                <div className="flex items-center gap-3">
+                                    <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                                         {res.employee.name}
                                     </h3>
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-1.5">
                                     {['B', 'G', 'S', 'Missed'].map(type => {
                                         const val = res.breakdown[type].splitSum;
                                         if(val === 0) return null;
-                                        
+
                                         const colors = {
-                                            'B': 'text-blue-400  border-blue-500/20',
-                                            'G': 'text-emerald-400  border-emerald-500/20',
-                                            'S': 'text-purple-400  border-purple-500/20',
-                                            'Missed': 'text-orange-400 border-orange-500/20'
+                                            'B': 'text-blue-500 border-blue-500/20',
+                                            'G': 'text-emerald-500 border-emerald-500/20',
+                                            'S': 'text-purple-500 border-purple-500/20',
+                                            'Missed': 'text-orange-500 border-orange-500/20'
                                         };
-                                        
+
                                         return (
-                                            <span key={type} className={`px-2.5 py-0.5 rounded-lg border bg-opacity-5 bg-white text-[10px] font-mono font-bold ${colors[type]}`}>
+                                            <span key={type} className={`px-1.5 py-0.5 rounded border text-xs font-mono ${colors[type]}`}>
                                                 {type.charAt(0)} ${val}
                                             </span>
                                         )
@@ -271,80 +248,63 @@ const RecordsProcessing = () => {
                         </div>
 
                         {/* Right: Total */}
-                        <div className="flex items-center gap-8 pl-4 xl:pl-0 border-l xl:border-l-0" style={{ borderColor: 'var(--glass-border)' }}>
-                            <div className="flex items-end gap-6 text-right">
+                        <div className="flex items-center gap-6 pl-4 xl:pl-0 border-l xl:border-l-0" style={{ borderColor: 'var(--glass-border)' }}>
+                            <div className="flex items-end gap-5 text-right">
                                  {(() => {
                                      const totalRaw = ['B', 'G', 'S', 'Missed'].reduce((acc, type) => acc + res.breakdown[type].rawSum, 0);
                                      return (
                                          <>
-                                            <div className="hidden sm:block opacity-60 hover:opacity-100 transition-opacity">
-                                                <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--text-secondary)' }}>總額</p>
-                                                <p className="text-xl font-mono font-bold" style={{ color: 'var(--text-secondary)' }}>${totalRaw.toLocaleString()}</p>
+                                            <div className="hidden sm:block">
+                                                <p className="text-xs mb-0.5" style={{ color: 'var(--text-secondary)', fontSize: 'var(--label-text-size)' }}>總額</p>
+                                                <p className="text-sm font-mono" style={{ color: 'var(--text-secondary)' }}>${totalRaw.toLocaleString()}</p>
                                             </div>
-                                            
+
                                             <div>
-                                                <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--text-accent)' }}>拆帳總額</p>
-                                                <p className={`text-4xl font-mono font-bold tracking-tighter transition-colors ${isExpanded ? 'text-glow-cyan' : ''}`} style={{ color: isExpanded ? 'var(--text-accent)' : 'var(--text-primary)' }}>
+                                                <p className="text-xs mb-0.5" style={{ color: 'var(--text-secondary)', fontSize: 'var(--label-text-size)' }}>拆帳總額</p>
+                                                <p className="text-xl font-mono font-semibold" style={{ color: 'var(--text-primary)' }}>
                                                     ${res.splitTotal.toLocaleString()}
                                                 </p>
                                             </div>
 
                                             {totalRaw > 0 && res.splitTotal === 0 && (
-                                                <div className="absolute top-full right-0 mt-2 flex flex-col items-end animate-pulse z-20">
-                                                    <span className="text-[10px] font-bold text-orange-400 flex items-center gap-1.5 bg-orange-400/10 px-2 py-1 rounded-md border border-orange-400/20">
-                                                        <AlertTriangle size={10} /> 
-                                                        CHECK SPLIT SETTINGS
-                                                    </span>
-                                                </div>
+                                                <span className="text-xs text-orange-500 flex items-center gap-1 border border-orange-500/20 px-2 py-1 rounded-md">
+                                                    <AlertTriangle size={10} /> 檢查拆帳設定
+                                                </span>
                                             )}
                                          </>
                                      );
                                   })()}
                             </div>
-                            <div 
-                                className={`p-3 rounded-full border transition-all duration-300 ${isExpanded ? 'rotate-180' : 'group-hover:text-white'}`} 
-                                style={{ 
-                                    borderColor: 'var(--glass-border)', 
-                                    background: isExpanded ? 'var(--expand-btn-bg)' : undefined,
-                                    color: isExpanded ? 'var(--expand-btn-text)' : 'var(--text-secondary)'
-                                }}
+                            <div
+                                className={`w-6 h-6 rounded flex items-center justify-center transition-all duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                                style={{ color: 'var(--text-secondary)' }}
                             >
-                                <ChevronDown size={20}/>
+                                <ChevronDown size={16}/>
                             </div>
                         </div>
                     </div>
 
                     {/* Expanded Detail Panel */}
                     {isExpanded && (
-                        <div className="mt-10 pt-10 border-t animate-in slide-in-from-top-4 duration-500" style={{ borderColor: 'var(--glass-border)' }}>
-                            
+                        <div className="px-5 pb-5 pt-4 border-t animate-in fade-in duration-200" style={{ borderColor: 'var(--glass-border)' }}>
+
                             {/* Stats Grid */}
-                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
                                 {['B', 'G', 'S', 'Missed'].map(type => {
                                     const data = res.breakdown[type];
                                     const labels = { 'B': 'B碼', 'G': 'G碼', 'S': 'S碼', 'Missed': '未遇' };
-                                    const colors = {
-                                         'B': 'from-blue-500/20 to-blue-500/5 text-blue-400',
-                                         'G': 'from-emerald-500/20 to-emerald-500/5 text-emerald-400',
-                                         'S': 'from-purple-500/20 to-purple-500/5 text-purple-400',
-                                         'Missed': 'from-orange-500/20 to-orange-500/5 text-orange-400'
+                                    const textColors = {
+                                        'B': 'text-blue-500', 'G': 'text-emerald-500',
+                                        'S': 'text-purple-500', 'Missed': 'text-orange-500'
                                     };
-                                    const labelColors = {
-                                        'B': '#4fa1ff',
-                                        'G': '#00d491',
-                                        'S': '#c27aff',
-                                        'Missed': '#ff8904'
-                                    };
-                                    
+
                                     return (
-                                        <div key={type} className={`relative p-6 rounded-[1.5rem] bg-gradient-to-br border border-white/5 overflow-hidden ${colors[type].split(' ')[0]}`}>
-                                            <div className="relative z-10">
-                                                <div className="text-sm font-bold mb-4 tracking-widest" style={{ color: labelColors[type] }}>{labels[type]}</div>
-                                                <div className={`text-3xl font-mono font-bold ${colors[type].split(' ')[2]}`}>${data.splitSum.toLocaleString()}</div>
-                                                <div className="mt-2 flex justify-between text-[10px] font-mono opacity-60">
-                                                    <span>{data.count} ROWS</span>
-                                                    <span>{(res.employee.splits[type.toLowerCase()] || 0)}% RATE</span>
-                                                </div>
+                                        <div key={type} className="p-4 rounded-md border" style={{ borderColor: 'var(--glass-border)', background: 'var(--accordion-bg)' }}>
+                                            <div className="text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)', fontSize: 'var(--label-text-size)' }}>{labels[type]}</div>
+                                            <div className={`text-xl font-mono font-semibold ${textColors[type]}`}>${data.splitSum.toLocaleString()}</div>
+                                            <div className="mt-1.5 flex justify-between text-xs font-mono" style={{ color: 'var(--text-secondary)', fontSize: 'var(--label-text-size)' }}>
+                                                <span>{data.count} 筆</span>
+                                                <span>{(res.employee.splits[type.toLowerCase()] || 0)}%</span>
                                             </div>
                                         </div>
                                     )
@@ -352,11 +312,11 @@ const RecordsProcessing = () => {
                             </div>
 
                             {/* Service List */}
-                            <div className="space-y-6">
-                                <h4 className="text-[10px] font-bold uppercase tracking-widest pl-2 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
-                                    <FileText size={12}/> 服務細項
+                            <div>
+                                <h4 className="text-xs font-medium mb-3 flex items-center gap-1.5" style={{ color: 'var(--text-secondary)', fontSize: 'var(--label-text-size)' }}>
+                                    <FileText size={11}/> 服務細項
                                 </h4>
-                                <div className="space-y-2 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
+                                <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
                                     {(() => {
                                         const allItems = [
                                             ...res.breakdown['B'].items,
@@ -365,24 +325,15 @@ const RecordsProcessing = () => {
                                             ...res.breakdown['Missed'].items,
                                         ];
 
-                                        // Group by Client and Aggregate Items
                                         const groupedByClient = allItems.reduce((acc, item) => {
                                             const key = item.client || 'Unknown';
-                                            if (!acc[key]) {
-                                                acc[key] = {
-                                                    client: key,
-                                                    items: [],
-                                                    totalSplit: 0
-                                                };
-                                            }
-                                            
-                                            // Check if service code already exists for this client
+                                            if (!acc[key]) acc[key] = { client: key, items: [], totalSplit: 0 };
+
                                             const existingItem = acc[key].items.find(i => i.code === item.code);
                                             if (existingItem) {
                                                 existingItem.count += item.count;
                                                 existingItem.split += item.split;
                                             } else {
-                                                // Add new item (clone to be safe)
                                                 acc[key].items.push({ ...item });
                                             }
 
@@ -391,22 +342,20 @@ const RecordsProcessing = () => {
                                         }, {});
 
                                         return Object.values(groupedByClient).map((group, idx) => (
-                                            <div key={idx} className="p-5 rounded-2xl bg-white/[0.02] hover:bg-white/[0.05] transition-colors border border-transparent hover:border-white/5">
-                                                <div className="flex items-start justify-between mb-4">
-                                                    <div className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{group.client}</div>
+                                            <div key={idx} className="p-3 rounded-md border" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
+                                                <div className="flex items-start justify-between mb-2">
+                                                    <div className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{group.client}</div>
                                                     <div className="text-right">
-                                                        <span className="text-[9px] font-bold block mb-0.5" style={{ color: 'var(--text-secondary)' }}>拆帳總額</span>
-                                                        <span className="text-base font-bold text-cyan-500">${group.totalSplit.toFixed(1)}</span>
+                                                        <span className="text-xs font-mono font-medium" style={{ color: 'var(--text-primary)' }}>${group.totalSplit.toFixed(1)}</span>
                                                     </div>
                                                 </div>
-                                                
-                                                {/* Service Items for this Client */}
-                                                <div className="space-y-2">
+
+                                                <div className="space-y-1">
                                                     {group.items.map((item, i) => (
-                                                        <div key={i} className="flex justify-between items-center text-[10px] font-mono pl-4 border-l-2" style={{ color: 'var(--text-secondary)', borderColor: 'var(--glass-border)' }}>
+                                                        <div key={i} className="flex justify-between items-center text-xs font-mono pl-3 border-l" style={{ color: 'var(--text-secondary)', borderColor: 'var(--glass-border)' }}>
                                                             <span>
-                                                                {item.code} {item.count > 1 && `x${item.count}`}
-                                                                {item.isSelfPay && <span className="ml-2 text-[9px] px-1 rounded bg-pink-500/20 text-pink-400">自費</span>}
+                                                                {item.code} {item.count > 1 && `×${item.count}`}
+                                                                {item.isSelfPay && <span className="ml-2 text-xs px-1 rounded border border-pink-500/20 bg-pink-500/10 text-pink-500">自費</span>}
                                                             </span>
                                                         </div>
                                                     ))}
@@ -416,8 +365,6 @@ const RecordsProcessing = () => {
                                     })()}
                                 </div>
                             </div>
-
-
 
                         </div>
                     )}

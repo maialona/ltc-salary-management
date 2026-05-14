@@ -146,7 +146,7 @@ const DeductionManagement = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-12">
           <div>
-            <h2 className="text-4xl font-black tracking-tighter mb-2" style={{ color: 'var(--text-primary)' }}>應扣費用管理</h2>
+            <h2 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>應扣費用管理</h2>
 
           </div>
 
@@ -159,41 +159,41 @@ const DeductionManagement = () => {
                         onChange={handleFileUpload}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     />
-                    <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl border transition-all active:scale-95 glass-panel cursor-pointer"
+                    <button className="flex items-center gap-2 px-4 py-2 rounded-md border glass-panel cursor-pointer text-sm font-medium"
                             style={{ color: 'var(--text-secondary)', borderColor: 'var(--glass-border)' }}>
-                        <Upload size={16} />
-                        <span className="font-bold text-xs tracking-wide">匯入 EXCEL</span>
+                        <Upload size={14} />
+                        <span>匯入 Excel</span>
                     </button>
                </div>
 
                {/* Clear All Button */}
-               <button 
+               <button
                   onClick={handleClearAll}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 rounded-xl border border-red-500/20 transition-all active:scale-95 cursor-pointer"
+                  className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-md border border-red-500/20 transition-all cursor-pointer text-sm font-medium"
                >
-                  <Trash size={16} />
-                  <span className="font-bold text-xs tracking-wide">歸零</span>
+                  <Trash size={14} />
+                  <span>歸零</span>
                </button>
           </div>
       </div>
 
       {/* Table View */}
-      <div className="overflow-hidden rounded-[2rem] border glass-panel" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
+      <div className="overflow-hidden rounded-md border glass-panel" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
         <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
                 <thead>
                     <tr className="border-b" style={{ borderColor: 'var(--glass-border)', background: 'var(--table-header-bg)' }}>
-                        <th className="p-3 text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--table-header-text)' }}>員編</th>
-                        <th className="p-3 text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--table-header-text)' }}>姓名</th>
-                        <th className="p-3 text-sm font-bold uppercase tracking-widest text-right" style={{ color: 'var(--table-header-text)' }}>扣繳稅額</th>
-                        <th className="p-3 text-sm font-bold uppercase tracking-widest text-right" style={{ color: 'var(--table-header-text)' }}>勞保級距</th>
-                        <th className="p-3 text-sm font-bold uppercase tracking-widest text-right" style={{ color: 'var(--table-header-text)' }}>勞保費用</th>
-                        <th className="p-3 text-sm font-bold uppercase tracking-widest text-right" style={{ color: 'var(--table-header-text)' }}>健保級距</th>
-                        <th className="p-3 text-sm font-bold uppercase tracking-widest text-right" style={{ color: 'var(--table-header-text)' }}>健保費用</th>
-                        <th className="p-3 text-sm font-bold uppercase tracking-widest text-right" style={{ color: 'var(--table-header-text)' }}>自提比例</th>
-                        <th className="p-3 text-sm font-bold uppercase tracking-widest text-right" style={{ color: 'var(--table-header-text)' }}>自提金額</th>
-                        <th className="p-3 text-sm font-bold uppercase tracking-widest text-right" style={{ color: 'var(--table-header-text)' }}>總計</th>
-                        <th className="p-3 text-sm font-bold uppercase tracking-widest text-right" style={{ color: 'var(--table-header-text)' }}>操作</th>
+                        <th className="px-4 py-3 text-xs font-medium" style={{ color: 'var(--table-header-text)' }}>員編</th>
+                        <th className="px-4 py-3 text-xs font-medium" style={{ color: 'var(--table-header-text)' }}>姓名</th>
+                        <th className="px-4 py-3 text-xs font-medium text-right" style={{ color: 'var(--table-header-text)' }}>扣繳稅額</th>
+                        <th className="px-4 py-3 text-xs font-medium text-right" style={{ color: 'var(--table-header-text)' }}>勞保級距</th>
+                        <th className="px-4 py-3 text-xs font-medium text-right" style={{ color: 'var(--table-header-text)' }}>勞保費用</th>
+                        <th className="px-4 py-3 text-xs font-medium text-right" style={{ color: 'var(--table-header-text)' }}>健保級距</th>
+                        <th className="px-4 py-3 text-xs font-medium text-right" style={{ color: 'var(--table-header-text)' }}>健保費用</th>
+                        <th className="px-4 py-3 text-xs font-medium text-right" style={{ color: 'var(--table-header-text)' }}>自提比例</th>
+                        <th className="px-4 py-3 text-xs font-medium text-right" style={{ color: 'var(--table-header-text)' }}>自提金額</th>
+                        <th className="px-4 py-3 text-xs font-medium text-right" style={{ color: 'var(--table-header-text)' }}>總計</th>
+                        <th className="px-4 py-3 text-xs font-medium text-right" style={{ color: 'var(--table-header-text)' }}>操作</th>
                     </tr>
                 </thead>
                 <tbody className="" style={{ borderColor: 'var(--glass-border)' }}>
@@ -208,21 +208,21 @@ const DeductionManagement = () => {
                             const total = (item.withholdingTax || 0) + (item.laborFee || 0) + (item.healthFee || 0) + (item.pensionFee || 0);
                             return (
                             <tr key={item.id} className="transition-colors border-b group hover:bg-white/[0.05]" style={{ borderColor: 'var(--glass-border)' }}>
-                                <td className="p-6 font-mono font-bold" style={{ color: 'var(--text-accent)' }}>{item.empId}</td>
-                                <td className="p-6 font-bold" style={{ color: 'var(--text-primary)' }}>{item.name}</td>
-                                <td className="p-6 font-mono text-right" style={{ color: 'var(--text-secondary)' }}>${item.withholdingTax?.toLocaleString()}</td>
-                                <td className="p-6 font-mono text-right" style={{ color: 'var(--text-secondary)' }}>${item.laborLevel?.toLocaleString()}</td>
-                                <td className="p-6 font-mono text-right text-red-300">${item.laborFee?.toLocaleString()}</td>
-                                <td className="p-6 font-mono text-right" style={{ color: 'var(--text-secondary)' }}>${item.healthLevel?.toLocaleString()}</td>
-                                <td className="p-6 font-mono text-right text-red-300">${item.healthFee?.toLocaleString()}</td>
-                                <td className="p-6 font-mono text-right" style={{ color: 'var(--text-secondary)' }}>{item.pensionRate}%</td>
-                                <td className="p-6 font-mono text-right text-red-300">${item.pensionFee?.toLocaleString()}</td>
-                                <td className="p-6 font-mono font-bold text-right text-red-400">${total.toLocaleString()}</td>
-                                <td className="p-6 text-right">
+                                <td className="px-4 py-3 font-mono text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{item.empId}</td>
+                                <td className="px-4 py-3 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{item.name}</td>
+                                <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>${item.withholdingTax?.toLocaleString()}</td>
+                                <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>${item.laborLevel?.toLocaleString()}</td>
+                                <td className="px-4 py-3 font-mono text-sm text-right text-red-500">${item.laborFee?.toLocaleString()}</td>
+                                <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>${item.healthLevel?.toLocaleString()}</td>
+                                <td className="px-4 py-3 font-mono text-sm text-right text-red-500">${item.healthFee?.toLocaleString()}</td>
+                                <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>{item.pensionRate}%</td>
+                                <td className="px-4 py-3 font-mono text-sm text-right text-red-500">${item.pensionFee?.toLocaleString()}</td>
+                                <td className="px-4 py-3 font-mono text-sm font-semibold text-right text-red-500">${total.toLocaleString()}</td>
+                                <td className="px-4 py-3 text-right">
                                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button 
+                                        <button
                                             onClick={() => handleOpenModal(item)}
-                                            className="p-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                                            className="p-1.5 rounded-md hover:bg-white/10 transition-colors cursor-pointer"
                                             style={{ color: 'var(--text-secondary)' }}
                                         >
                                             <Edit2 size={14} />
@@ -253,10 +253,10 @@ const DeductionManagement = () => {
                 
                 {/* Modal Header */}
                 <div className="p-6 border-b flex justify-between items-center" style={{ borderColor: 'var(--glass-border)', background: 'var(--modal-header-bg)' }}>
-                    <h3 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                    <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                         編輯資料
                     </h3>
-                    <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer">
+                    <button onClick={() => setIsModalOpen(false)} className="p-1.5 hover:bg-white/10 rounded-md transition-colors cursor-pointer">
                         <X size={20} style={{ color: 'var(--text-secondary)' }} />
                     </button>
                 </div>
@@ -339,23 +339,27 @@ const DeductionManagement = () => {
                     {/* Labor Insurance */}
                     <div className="grid grid-cols-2 gap-6">
                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-blue-400">勞保級距</label>
+                            <label className="block" style={{ fontSize: 'var(--label-text-size)', fontWeight: 'var(--label-text-weight)', color: 'var(--label-text-color)' }}>勞保級距</label>
                             <input 
                                 type="number" 
                                 value={formData.laborLevel} 
                                 onChange={e => handleChange('laborLevel', e.target.value)}
-                                className="w-full border rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all font-mono"
-                                style={{ background: 'var(--input-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                                className="w-full px-3 py-2 text-sm outline-none transition-all font-mono"
+                                style={{ background: 'var(--input-bg)', border: 'var(--input-border)', borderRadius: 'var(--input-radius)', color: 'var(--text-primary)' }}
+                                onFocus={(e) => e.target.style.boxShadow = 'var(--input-focus-ring)'}
+                                onBlur={(e) => e.target.style.boxShadow = 'none'}
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-blue-400">勞保費用</label>
+                            <label className="block" style={{ fontSize: 'var(--label-text-size)', fontWeight: 'var(--label-text-weight)', color: 'var(--label-text-color)' }}>勞保費用</label>
                             <input 
                                 type="number" 
                                 value={formData.laborFee} 
                                 onChange={e => handleChange('laborFee', e.target.value)}
-                                className="w-full border rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all font-mono"
-                                style={{ background: 'var(--input-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                                className="w-full px-3 py-2 text-sm outline-none transition-all font-mono"
+                                style={{ background: 'var(--input-bg)', border: 'var(--input-border)', borderRadius: 'var(--input-radius)', color: 'var(--text-primary)' }}
+                                onFocus={(e) => e.target.style.boxShadow = 'var(--input-focus-ring)'}
+                                onBlur={(e) => e.target.style.boxShadow = 'none'}
                             />
                         </div>
                     </div>
@@ -363,23 +367,27 @@ const DeductionManagement = () => {
                     {/* Health Insurance */}
                     <div className="grid grid-cols-2 gap-6">
                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">健保級距</label>
+                            <label className="block" style={{ fontSize: 'var(--label-text-size)', fontWeight: 'var(--label-text-weight)', color: 'var(--label-text-color)' }}>健保級距</label>
                             <input 
                                 type="number" 
                                 value={formData.healthLevel} 
                                 onChange={e => handleChange('healthLevel', e.target.value)}
-                                className="w-full border rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all font-mono"
-                                style={{ background: 'var(--input-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                                className="w-full px-3 py-2 text-sm outline-none transition-all font-mono"
+                                style={{ background: 'var(--input-bg)', border: 'var(--input-border)', borderRadius: 'var(--input-radius)', color: 'var(--text-primary)' }}
+                                onFocus={(e) => e.target.style.boxShadow = 'var(--input-focus-ring)'}
+                                onBlur={(e) => e.target.style.boxShadow = 'none'}
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">健保費用</label>
+                            <label className="block" style={{ fontSize: 'var(--label-text-size)', fontWeight: 'var(--label-text-weight)', color: 'var(--label-text-color)' }}>健保費用</label>
                             <input 
                                 type="number" 
                                 value={formData.healthFee} 
                                 onChange={e => handleChange('healthFee', e.target.value)}
-                                className="w-full border rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all font-mono"
-                                style={{ background: 'var(--input-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                                className="w-full px-3 py-2 text-sm outline-none transition-all font-mono"
+                                style={{ background: 'var(--input-bg)', border: 'var(--input-border)', borderRadius: 'var(--input-radius)', color: 'var(--text-primary)' }}
+                                onFocus={(e) => e.target.style.boxShadow = 'var(--input-focus-ring)'}
+                                onBlur={(e) => e.target.style.boxShadow = 'none'}
                             />
                         </div>
                     </div>
@@ -387,24 +395,28 @@ const DeductionManagement = () => {
                     {/* Pension */}
                      <div className="grid grid-cols-2 gap-6">
                          <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-purple-400">自提比例 (%)</label>
+                            <label className="block" style={{ fontSize: 'var(--label-text-size)', fontWeight: 'var(--label-text-weight)', color: 'var(--label-text-color)' }}>自提比例 (%)</label>
                             <input 
                                 type="number" 
                                 step="0.1"
                                 value={formData.pensionRate} 
                                 onChange={e => handleChange('pensionRate', e.target.value)}
-                                className="w-full border rounded-xl px-4 py-3 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all font-mono"
-                                style={{ background: 'var(--input-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                                className="w-full px-3 py-2 text-sm outline-none transition-all font-mono"
+                                style={{ background: 'var(--input-bg)', border: 'var(--input-border)', borderRadius: 'var(--input-radius)', color: 'var(--text-primary)' }}
+                                onFocus={(e) => e.target.style.boxShadow = 'var(--input-focus-ring)'}
+                                onBlur={(e) => e.target.style.boxShadow = 'none'}
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-purple-400">自提金額</label>
+                            <label className="block" style={{ fontSize: 'var(--label-text-size)', fontWeight: 'var(--label-text-weight)', color: 'var(--label-text-color)' }}>自提金額</label>
                             <input 
                                 type="number" 
                                 value={formData.pensionFee} 
                                 onChange={e => handleChange('pensionFee', e.target.value)}
-                                className="w-full border rounded-xl px-4 py-3 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all font-mono"
-                                style={{ background: 'var(--input-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                                className="w-full px-3 py-2 text-sm outline-none transition-all font-mono"
+                                style={{ background: 'var(--input-bg)', border: 'var(--input-border)', borderRadius: 'var(--input-radius)', color: 'var(--text-primary)' }}
+                                onFocus={(e) => e.target.style.boxShadow = 'var(--input-focus-ring)'}
+                                onBlur={(e) => e.target.style.boxShadow = 'none'}
                             />
                         </div>
                     </div>
@@ -413,24 +425,19 @@ const DeductionManagement = () => {
 
                 {/* Footer */}
                 <div className="p-6 border-t flex justify-end gap-3" style={{ borderColor: 'var(--glass-border)', background: 'var(--modal-header-bg)' }}>
-                    <button 
+                    <button
                         onClick={() => setIsModalOpen(false)}
-                        className="px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-white/5 transition-colors cursor-pointer"
-                        style={{ color: 'var(--text-secondary)' }}
+                        className="px-4 py-2 rounded-md text-sm font-medium border transition-colors cursor-pointer"
+                        style={{ color: 'var(--text-secondary)', borderColor: 'var(--glass-border)', background: 'transparent' }}
                     >
                         取消
                     </button>
-                    <button 
+                    <button
                         onClick={handleSubmit}
-                        className="px-6 py-2.5 font-bold tracking-wide transition-all active:scale-95 cursor-pointer"
-                        style={{ 
-                            background: 'var(--btn-primary-bg)', 
-                            color: '#fff',
-                            borderRadius: 'var(--modal-radius)',
-                            boxShadow: 'var(--btn-primary-shadow)'
-                        }}
-                        onMouseEnter={(e) => e.target.style.background = 'var(--btn-primary-hover)'}
-                        onMouseLeave={(e) => e.target.style.background = 'var(--btn-primary-bg)'}
+                        className="px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer"
+                        style={{ background: 'var(--btn-primary-bg)', color: 'var(--glass-bg)' }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--btn-primary-hover)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-primary-bg)'}
                     >
                         儲存資料
                     </button>

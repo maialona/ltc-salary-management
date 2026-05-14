@@ -363,26 +363,28 @@ const SalarySlipDownload = () => {
         {/* Helper Header - Hidden on Print */}
         <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-8 print:hidden">
             <div>
-              <h2 className="text-4xl font-black tracking-tighter mb-2" style={{ color: 'var(--text-primary)' }}>薪資表下載</h2>
-              <p className="font-bold text-sm tracking-wide" style={{ color: 'var(--text-secondary)' }}>檢視並列印員工詳細薪資單</p>
+              <h2 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>薪資表下載</h2>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>檢視並列印員工詳細薪資單</p>
             </div>
             
             <div className="flex gap-4">
-                <button 
+                <button
                   onClick={() => setIsBulkMode(!isBulkMode)}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all border cursor-pointer ${isBulkMode ? 'bg-amber-500 border-amber-500 text-black' : 'hover:bg-white/10 glass-panel'}`}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all border cursor-pointer ${isBulkMode ? 'bg-amber-500 border-amber-500 text-black' : 'hover:bg-white/10 glass-panel'}`}
                   style={isBulkMode ? {} : { borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
                 >
-                    <FileText size={16} />
+                    <FileText size={14} />
                     <span>{isBulkMode ? '切換回單人檢視' : '一鍵下載全部'}</span>
                 </button>
 
                 {!isBulkMode && (
-                    <select 
+                    <select
                         value={selectedEmpId || ''}
                         onChange={e => setSelectedEmpId(e.target.value)}
-                        className="border rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-cyan-500/50 appearance-none cursor-pointer glass-panel"
-                        style={{ background: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+                        className="border px-3 py-2 outline-none appearance-none cursor-pointer glass-panel text-sm"
+                        style={{ background: 'var(--glass-bg)', border: 'var(--input-border)', borderRadius: 'var(--input-radius)', color: 'var(--text-primary)' }}
+                        onFocus={(e) => e.target.style.boxShadow = 'var(--input-focus-ring)'}
+                        onBlur={(e) => e.target.style.boxShadow = 'none'}
                     >
                         <option value="" style={{ background: 'var(--glass-bg)', color: 'var(--text-primary)' }}>選擇員工...</option>
                         {employees.map(e => (
@@ -392,12 +394,14 @@ const SalarySlipDownload = () => {
                 )}
 
                 {(singleData || (isBulkMode && allData?.length > 0)) && (
-                    <button 
+                    <button
                         onClick={handlePrint}
-                        className="flex items-center gap-2 px-5 py-2.5 text-white rounded-xl font-bold shadow-lg transition-all active:scale-95 cursor-pointer"
-                        style={{ background: 'var(--text-accent)', boxShadow: '0 10px 20px -10px var(--text-accent)' }}
+                        className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer"
+                        style={{ background: 'var(--btn-primary-bg)', color: 'var(--glass-bg)' }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--btn-primary-hover)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-primary-bg)'}
                     >
-                        <Printer size={16} />
+                        <Printer size={14} />
                         <span>{isBulkMode ? `列印全體薪資單 (${allData.length})` : '列印 / 下載 PDF'}</span>
                     </button>
                 )}
@@ -462,7 +466,7 @@ const SalarySlipDownload = () => {
                 singleData ? (
                     <SalarySlipTemplate data={singleData} isBulk={false} />
                 ) : (
-                    <div className="flex flex-col items-center justify-center py-32 border rounded-[2rem] glass-panel" style={{ color: 'var(--text-secondary)', borderColor: 'var(--glass-border)' }}>
+                    <div className="flex flex-col items-center justify-center py-24 border rounded-md glass-panel" style={{ color: 'var(--text-secondary)', borderColor: 'var(--glass-border)', borderStyle: 'dashed' }}>
                         <FileText size={48} className="mb-4 opacity-50" />
                         <p className="font-bold">請選擇一位員工以預覽薪資單</p>
                         <p className="text-xs opacity-60 mt-2">或點擊「一鍵下載全部」</p>

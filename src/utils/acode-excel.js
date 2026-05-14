@@ -1,79 +1,108 @@
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
-export const readExcel = (file) => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const sheetName = workbook.SheetNames[0];
-                const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: "" });
-                const headers = json.length > 0 ? Object.keys(json[0]) : [];
-                resolve({ json, headers });
-            } catch (error) {
-                reject(new Error("Excel 解析失敗：" + error.message));
-            }
-        };
-        reader.onerror = (e) => reject(new Error("檔案讀取錯誤"));
-        reader.readAsArrayBuffer(file);
-    });
+const getCellValue = (cell) => {
+  const v = cell.value;
+  if (v === null || v === undefined) return '';
+  if (v instanceof Date) return v;
+  if (typeof v === 'object') {
+    if ('richText' in v) return v.richText.map((r) => r.text).join('');
+    if ('result' in v) return v.result;
+    if ('error' in v) return '';
+  }
+  return v;
 };
 
-export const downloadExcel = (calculationResult, summaryResult, errors, debugInfo) => {
-    const wb = XLSX.utils.book_new();
-    const detailData = calculationResult.map(r => ({
-        序號: r.serialNum,
-        服務日期: r.date,
-        個案姓名: r.client,
-        督導: r.supervisor,
-        A碼代號: r.code,
-        居服員: r.workerId ? (r.workerId + r.worker) : r.worker,
-        身分: r.role,
-        分得數量: r.qty, 
-        分配營收: r.revenueAllocated,
-        抽成率: r.commissionRate,
-        拆帳金額: r.amount, 
-        備註: r.note
-    }));
-    const wsDetail = XLSX.utils.json_to_sheet(detailData);
-    XLSX.utils.book_append_sheet(wb, wsDetail, "詳細拆帳紀錄");
-    
-    // Summary Sheet needs to be flattened for Excel
-    const summaryRows = [];
-    summaryResult.forEach(s => {
-        s.details.forEach(d => {
-            summaryRows.push({
-                服務人員: s.name,
-                員編: s.id,
-                服務個案: d.client,
-                督導: d.supervisor,
-                服務代碼: d.code,
-                數量: d.qty,
-                小計: d.subtotal,
-                拆帳金額: d.amount
-            });
-        });
-    });
-    
-    const wsSummary = XLSX.utils.json_to_sheet(summaryRows);
-    XLSX.utils.book_append_sheet(wb, wsSummary, "人員薪資統計");
+export const readExcel = async (file) => {
+  try {
+    const buffer = await file.arrayBuffer();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) return { json: [], headers: [] };
 
-    if (errors.length > 0) {
-        const wsErrors = XLSX.utils.json_to_sheet(errors.map(e => ({ 錯誤訊息: e })));
-        XLSX.utils.book_append_sheet(wb, wsErrors, "無法媒合紀錄");
-    }
-    
-    if (debugInfo) {
-        const wsDebug = XLSX.utils.json_to_sheet([
-            { 項目: "A碼清冊原始總金額 (Input)", 數值: debugInfo.totalInput },
-            { 項目: "成功媒合並分配之營收 (Matched Revenue)", 數值: debugInfo.totalAllocated },
-            { 項目: "差異金額 (Diff)", 數值: debugInfo.diff },
-            { 項目: "---", 數值: "---" },
-            { 項目: "預計發放總薪資 (Total Salary)", 數值: debugInfo.totalCommissionPaid },
-            { 項目: "產出結果筆數", 數值: debugInfo.resultCount },
-        ]);
-        XLSX.utils.book_append_sheet(wb, wsDebug, "系統診斷報告");
-    }
-    XLSX.writeFile(wb, `拆A碼結果_${new Date().toISOString().slice(0,10)}.xlsx`);
+    const headers = [];
+    worksheet.getRow(1).eachCell({ includeEmpty: false }, (cell) => {
+      headers[cell.col - 1] = String(getCellValue(cell) ?? '');
+    });
+    const validHeaders = headers.filter(Boolean);
+
+    const json = [];
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return;
+      const rowData = {};
+      row.eachCell({ includeEmpty: true }, (cell) => {
+        const header = headers[cell.col - 1];
+        if (header) rowData[header] = getCellValue(cell) ?? '';
+      });
+      validHeaders.forEach((h) => { if (!(h in rowData)) rowData[h] = ''; });
+      json.push(rowData);
+    });
+
+    return { json, headers: validHeaders };
+  } catch (error) {
+    throw new Error('Excel 解析失敗：' + error.message);
+  }
+};
+
+const triggerDownload = (buffer, filename) => {
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+export const downloadExcel = async (calculationResult, summaryResult, errors, debugInfo) => {
+  const workbook = new ExcelJS.Workbook();
+
+  const detailSheet = workbook.addWorksheet('詳細拆帳紀錄');
+  detailSheet.addRow([
+    '序號', '服務日期', '個案姓名', '督導', 'A碼代號',
+    '居服員', '身分', '分得數量', '分配營收', '抽成率', '拆帳金額', '備註',
+  ]);
+  calculationResult.forEach((r) => {
+    detailSheet.addRow([
+      r.serialNum, r.date, r.client, r.supervisor, r.code,
+      r.workerId ? r.workerId + r.worker : r.worker,
+      r.role, r.qty, r.revenueAllocated, r.commissionRate, r.amount, r.note,
+    ]);
+  });
+
+  const summarySheet = workbook.addWorksheet('人員薪資統計');
+  summarySheet.addRow(['服務人員', '員編', '服務個案', '督導', '服務代碼', '數量', '小計', '拆帳金額']);
+  summaryResult.forEach((s) => {
+    s.details.forEach((d) => {
+      summarySheet.addRow([
+        s.name, s.id, d.client, d.supervisor, d.code, d.qty, d.subtotal, d.amount,
+      ]);
+    });
+  });
+
+  if (errors.length > 0) {
+    const errSheet = workbook.addWorksheet('無法媒合紀錄');
+    errSheet.addRow(['錯誤訊息']);
+    errors.forEach((e) => errSheet.addRow([e]));
+  }
+
+  if (debugInfo) {
+    const dbgSheet = workbook.addWorksheet('系統診斷報告');
+    dbgSheet.addRow(['項目', '數值']);
+    [
+      ['A碼清冊原始總金額 (Input)', debugInfo.totalInput],
+      ['成功媒合並分配之營收 (Matched Revenue)', debugInfo.totalAllocated],
+      ['差異金額 (Diff)', debugInfo.diff],
+      ['---', '---'],
+      ['預計發放總薪資 (Total Salary)', debugInfo.totalCommissionPaid],
+      ['產出結果筆數', debugInfo.resultCount],
+    ].forEach((row) => dbgSheet.addRow(row));
+  }
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  triggerDownload(buffer, `拆A碼結果_${new Date().toISOString().slice(0, 10)}.xlsx`);
 };

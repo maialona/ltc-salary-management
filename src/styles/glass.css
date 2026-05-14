@@ -1,49 +1,5 @@
-:root {
-    /* Glass Theme Variables - Light Mode Default */
-    --glass-bg: rgba(255, 255, 255, 0.7);
-    --glass-border: rgba(0, 0, 0, 0.06); 
-    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-    
-    --text-primary: #1f2937;
-    --text-secondary: #6b7280;
-    --text-accent: #3b82f6;
-
-    --btn-primary-bg: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    --btn-primary-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4);
-
-    --accordion-bg: rgba(255, 255, 255, 0.6);
-    --nav-active-bg: rgba(255, 255, 255, 0.9);
-    --nav-active-text: #1f2937;
-    
-    /* New variable for content background */
-    --content-bg: #ffffff;
-}
-
-[data-theme='dark'] {
-    /* Glass Theme Variables - Dark Mode */
-    --glass-bg: rgba(17, 24, 39, 0.7);
-    --glass-border: rgba(255, 255, 255, 0.1);
-    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-    
-    --text-primary: #f3f4f6;
-    --text-secondary: #9ca3af;
-    --text-accent: #60a5fa;
-
-    --btn-primary-bg: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    --btn-primary-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
-
-    --accordion-bg: rgba(31, 41, 55, 0.6);
-    --nav-active-bg: rgba(55, 65, 81, 0.8);
-    --nav-active-text: #f3f4f6;
-
-    /* New variable for content background - keep transparent/dark for dark mode */
-    --content-bg: rgba(0, 0, 0, 0.2);
-}
-
 .glass-panel {
     background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-shadow);
 }

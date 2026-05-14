@@ -48,16 +48,16 @@ const ConfirmModal = ({
       >
         <div className="p-6">
           <div className="flex items-start gap-4">
-            <div className={`p-3 rounded-full shrink-0 ${
-                type === 'danger' ? 'bg-red-500/10' : 
-                type === 'warning' ? 'bg-amber-500/10' : 
-                type === 'success' ? 'bg-emerald-500/10' : 'bg-blue-500/10' 
+            <div className={`p-2.5 rounded-md shrink-0 ${
+                type === 'danger' ? 'bg-red-500/10' :
+                type === 'warning' ? 'bg-amber-500/10' :
+                type === 'success' ? 'bg-emerald-500/10' : 'bg-blue-500/10'
             }`}>
               {getIcon()}
             </div>
             
             <div className="flex-1">
-              <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
+              <h3 className="text-sm font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>
                 {title}
               </h3>
               <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
@@ -70,17 +70,17 @@ const ConfirmModal = ({
         {/* Footer */}
         <div className="p-4 border-t flex justify-end gap-3" style={{ borderColor: 'var(--glass-border)', background: 'var(--modal-header-bg)' }}>
           {!isAlert && (
-            <button 
+            <button
                 onClick={onClose}
-                className="px-4 py-2 rounded-lg text-sm font-bold hover:bg-black/5 transition-colors cursor-pointer"
-                style={{ color: 'var(--text-secondary)' }}
+                className="px-4 py-2 rounded-md text-sm font-medium border transition-colors cursor-pointer"
+                style={{ color: 'var(--text-secondary)', borderColor: 'var(--glass-border)', background: 'transparent' }}
             >
                 {cancelText}
             </button>
           )}
-          <button 
+          <button
             onClick={onConfirm || onClose}
-            className={`px-6 py-2 rounded-lg text-sm font-bold transition-all active:scale-95 cursor-pointer ${getConfirmBtnStyle()}`}
+            className={`px-5 py-2 rounded-md text-sm font-medium transition-all active:scale-95 cursor-pointer ${getConfirmBtnStyle()}`}
           >
             {confirmText}
           </button>

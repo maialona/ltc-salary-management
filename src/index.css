@@ -22,120 +22,113 @@
 }
 
 :root {
-  /* Default Dark Theme (The Abyss) */
-  --bg-primary: #020617;
-  --bg-gradient: radial-gradient(circle at top left, #0f172a, #020617);
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-accent: #22d3ee;
-  --accent-rgb: 34, 211, 238;
+  /* Default Dark Theme (zinc-based, shadcn style) */
+  --bg-primary: #09090b;
+  --bg-gradient: none;
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-accent: #a1a1aa;
+  --accent-rgb: 161, 161, 170;
 
-  --glass-bg: rgba(30, 41, 59, 0.4);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  --glass-bg: #18181b;
+  --glass-border: #27272a;
+  --glass-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 
-  --nav-bg: rgba(0, 0, 0, 0.4);
-  --nav-border: rgba(255, 255, 255, 0.1);
-  --nav-active-bg: rgba(8, 51, 68, 0.3);
-  --nav-active-text: #22d3ee;
+  --nav-bg: #18181b;
+  --nav-border: #27272a;
+  --nav-active-bg: #27272a;
+  --nav-active-text: #fafafa;
 
-  
-  --radius-key: 24px; /* default 3xl */
+  --radius-key: 6px;
 
-  --table-header-bg: transparent;
-  --table-header-text: var(--text-secondary);
+  --table-header-bg: #27272a;
+  --table-header-text: #a1a1aa;
 
-  /* Form & Input Variables (Dark Mode Default) */
-  --input-bg: rgba(0, 0, 0, 0.2);
-  --input-bg-disabled: rgba(255, 255, 255, 0.05);
-  --input-border: 1px solid transparent;
-  --input-radius: 1rem;
-  --input-focus-ring: 0 0 0 2px var(--text-accent);
-  
-  --modal-header-bg: rgba(255, 255, 255, 0.02);
-  --modal-bg: var(--glass-bg);
-  --modal-radius: 2.5rem;
-  --modal-shadow: var(--glass-shadow);
-  
-  --label-text-size: 10px;
-  --label-text-weight: 700;
-  --label-text-color: var(--text-secondary);
-  
-  --btn-primary-bg: var(--text-accent);
-  --btn-primary-hover: var(--text-accent); /* will handle opacity usually */
-  --btn-primary-shadow: 0 4px 14px 0 rgba(38, 100, 235, 0.39);
+  /* Form & Input Variables */
+  --input-bg: #27272a;
+  --input-bg-disabled: #1f1f22;
+  --input-border: 1px solid #3f3f46;
+  --input-radius: 6px;
+  --input-focus-ring: 0 0 0 2px #71717a;
 
-  --accordion-bg: rgba(0, 0, 0, 0.1);
-  
+  --modal-header-bg: #18181b;
+  --modal-bg: #18181b;
+  --modal-radius: 8px;
+  --modal-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+
+  --label-text-size: 0.75rem;
+  --label-text-weight: 500;
+  --label-text-color: #a1a1aa;
+
+  --btn-primary-bg: #fafafa;
+  --btn-primary-hover: #e4e4e7;
+  --btn-primary-text: #09090b;
+  --btn-primary-shadow: none;
+
+  --accordion-bg: #27272a;
+
   /* Expand Button Specifics */
-  --expand-btn-bg: rgba(34, 211, 238, 0.1); /* Cyan-500/10 */
-  --expand-btn-text: #22d3ee; /* Cyan-400 */
+  --expand-btn-bg: #27272a;
+  --expand-btn-text: #fafafa;
   /* Employee Icon Specifics */
-  --emp-icon-bg: rgba(34, 211, 238, 0.2); /* Cyan-500/20 */
-  --emp-icon-text: #22d3ee; /* Cyan-400 */
+  --emp-icon-bg: #3f3f46;
+  --emp-icon-text: #fafafa;
 }
 
 [data-theme="light"] {
-  /* Light Theme (Clean Professional / Card-Based) */
-  --bg-primary: #f3f4f6; /* Gray-100 - Clean business background */
-  --bg-gradient: none;   /* Removed gradient for flat professional look */
-  
-  --text-primary: #111827; /* Gray-900 - High contrast */
-  --text-secondary: #6b7280; /* Gray-500 */
-  --text-accent: #2664eb; /* Updated to user requested Blue */
-  --accent-rgb: 38, 100, 235;
+  /* Light Theme (zinc-based, shadcn style) */
+  --bg-primary: #fafafa;
+  --bg-gradient: none;
 
-  /* Card Style: Solid White, Shadow, No Transparency */
-  --glass-bg: #ffffff; 
-  --glass-border: #e5e7eb; /* Gray-200 - Light Gray for grid lines */
-  --glass-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Soft drop shadow */
+  --text-primary: #09090b;
+  --text-secondary: #71717a;
+  --text-accent: #09090b;
+  --accent-rgb: 9, 9, 11;
+
+  --glass-bg: #ffffff;
+  --glass-border: #e4e4e7;
+  --glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 
   --nav-bg: #ffffff;
-  --nav-border: transparent;
-  --nav-active-bg: #2664eb; /* Updated to user requested Blue */
-  --nav-active-text: #ffffff; /* White text on blue */
+  --nav-border: #e4e4e7;
+  --nav-active-bg: #f4f4f5;
+  --nav-active-text: #09090b;
 
-  /* Hide ambient background glows for clean professional look */
-  .ambient-glow {
-    display: none;
-  }
+  --radius-key: 6px;
 
-  --card-hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  
-  --radius-key: 16px; /* Soft rounded edges, professional but friendly */
-  
-  --table-header-bg: #2664eb;
-  --table-header-text: #ffffff;
-  
-  --accordion-bg: #f4f4f4;
+  --table-header-bg: #f4f4f5;
+  --table-header-text: #71717a;
+
+  --accordion-bg: #f4f4f5;
 
   /* Form & Input Variables */
-  --input-bg: #f9fafb; /* Gray-50 */
-  --input-bg-disabled: #f3f4f6;
-  --input-border: 1px solid #e5e7eb; /* Gray-200 */
-  --input-radius: 0.5rem; /* rounded-lg */
-  --input-focus-ring: 0 0 0 2px #3b82f6; /* Blue-500 */
-  
-  --modal-header-bg: transparent;
+  --input-bg: #ffffff;
+  --input-bg-disabled: #f4f4f5;
+  --input-border: 1px solid #e4e4e7;
+  --input-radius: 6px;
+  --input-focus-ring: 0 0 0 2px #a1a1aa;
+
+  --modal-header-bg: #ffffff;
   --modal-bg: #ffffff;
-  --modal-radius: 0.5rem; /* rounded-lg */
-  --modal-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); /* shadow-xl */
-  
-  --label-text-size: 0.875rem; /* text-sm */
-  --label-text-weight: 500; /* font-medium */
-  --label-text-color: #4b5563; /* Gray-600 */
-  
-  --btn-primary-bg: #2563eb; /* Blue-600 */
-  --btn-primary-hover: #1d4ed8; /* Blue-700 */
+  --modal-radius: 8px;
+  --modal-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+
+  --label-text-size: 0.75rem;
+  --label-text-weight: 500;
+  --label-text-color: #71717a;
+
+  --btn-primary-bg: #09090b;
+  --btn-primary-hover: #27272a;
+  --btn-primary-text: #fafafa;
   --btn-primary-shadow: none;
 
   /* Expand Button Specifics (Light Mode) */
-  --expand-btn-bg: #2563eb; /* Blue Solid */
-  --expand-btn-text: #ffffff; /* White */
+  --expand-btn-bg: #09090b;
+  --expand-btn-text: #fafafa;
 
   /* Employee Icon Specifics (Light Mode) */
-  --emp-icon-bg: #2563eb; /* Blue Solid */
-  --emp-icon-text: #ffffff; /* White */
+  --emp-icon-bg: #e4e4e7;
+  --emp-icon-text: #09090b;
 }
 
 body {
