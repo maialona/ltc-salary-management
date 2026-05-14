@@ -1,10 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Upload, Download, AlertCircle, Hash } from 'lucide-react';
+import { Plus, Edit2, Trash2, Upload, Download, AlertCircle, Hash, Clock } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { getEmployees, saveEmployee, deleteEmployee, importEmployees, clearEmployees } from '../data/employeeStore';
 import { generateUUID } from '../utils/uuid';
 import ConfirmModal from '../components/ConfirmModal';
 
+const safeNum = (v) => {
+  if (v === '-' || v === '' || v === null || v === undefined) return 0;
+  const n = parseFloat(v);
+  return isNaN(n) ? 0 : n;
+};
+
 const EmployeeManagement = () => {
+  const [subTab, setSubTab] = useState('employees');
+  const [overtimeRows, setOvertimeRows] = useState(() => {
+    try { const s = localStorage.getItem('overtime_rows'); return s ? JSON.parse(s) : []; } catch { return []; }
+  });
   const [employees, setEmployees] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
@@ -235,6 +246,44 @@ const EmployeeManagement = () => {
     }
   };
 
+  const handleOvertimeUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    e.target.value = null;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const wb = XLSX.read(new Uint8Array(ev.target.result), { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      if (!ws['!ref']) return;
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      const headers = [];
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const cell = ws[XLSX.utils.encode_cell({ r: 0, c })];
+        headers[c] = cell ? String(cell.v ?? '').trim() : '';
+      }
+      const rows = [];
+      for (let r = 1; r <= range.e.r; r++) {
+        const get = (col) => { const cell = ws[XLSX.utils.encode_cell({ r, c: col })]; return cell ? cell.v ?? '' : ''; };
+        const idx = (h) => headers.findIndex(x => x === h);
+        const name = String(get(idx('姓名'))).trim();
+        if (!name) continue;
+        const actualHours = safeNum(get(idx('實際工時')));
+        const transfer    = safeNum(get(idx('轉場')));
+        const h134 = safeNum(get(idx('1.34')));
+        const h167 = safeNum(get(idx('1.67')));
+        const h267 = safeNum(get(idx('2.67')));
+        const h1   = safeNum(get(idx('1')));
+        const h2   = safeNum(get(idx('2')));
+        const transferFee  = Math.round(transfer * 196);
+        const overtimeFee  = Math.round((h134 + h167 + h267 + h1 + h2) * 200);
+        rows.push({ name, actualHours, transfer, h134, h167, h267, h1, h2, transferFee, overtimeFee });
+      }
+      setOvertimeRows(rows);
+      try { localStorage.setItem('overtime_rows', JSON.stringify(rows)); } catch {}
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
   return (
     <div className="space-y-8">
       {/* Header Block */}
@@ -244,48 +293,97 @@ const EmployeeManagement = () => {
           </div>
 
           <div className="flex gap-2">
-            <button
-                onClick={handleDownloadTemplate}
-                className="px-4 py-2 rounded-md border cursor-pointer transition-all text-sm font-medium flex items-center gap-2 glass-panel"
-                style={{ color: 'var(--text-secondary)' }}
-            >
-                <Download size={14} />
-                <span>下載範本</span>
-            </button>
-
-            <label className="px-4 py-2 rounded-md border cursor-pointer transition-all text-sm font-medium flex items-center gap-2 glass-panel" style={{ color: 'var(--text-secondary)' }}>
-                <Upload size={14} />
-                <span>匯入 Excel</span>
-                <input
-                    type="file"
-                    accept=".xlsx, .xls, .csv"
-                    className="hidden"
-                    onChange={handleFileUpload}
-                />
-            </label>
-
-            <button
-                onClick={handleClearAll}
-                className="px-4 py-2 rounded-md border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-medium transition-all text-sm flex items-center gap-2 cursor-pointer"
-            >
-                <Trash2 size={14} />
-                <span>清除</span>
-            </button>
-            <button
-                onClick={() => handleOpenModal()}
-                className="px-4 py-2 rounded-md font-medium transition-all flex items-center gap-2 text-sm cursor-pointer"
+            {subTab === 'employees' && (<>
+              <button onClick={handleDownloadTemplate} className="px-4 py-2 rounded-md border cursor-pointer transition-all text-sm font-medium flex items-center gap-2 glass-panel" style={{ color: 'var(--text-secondary)' }}>
+                <Download size={14} /><span>下載範本</span>
+              </button>
+              <label className="px-4 py-2 rounded-md border cursor-pointer transition-all text-sm font-medium flex items-center gap-2 glass-panel" style={{ color: 'var(--text-secondary)' }}>
+                <Upload size={14} /><span>匯入 Excel</span>
+                <input type="file" accept=".xlsx, .xls, .csv" className="hidden" onChange={handleFileUpload} />
+              </label>
+              <button onClick={handleClearAll} className="px-4 py-2 rounded-md border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-medium transition-all text-sm flex items-center gap-2 cursor-pointer">
+                <Trash2 size={14} /><span>清除</span>
+              </button>
+              <button onClick={() => handleOpenModal()} className="px-4 py-2 rounded-md font-medium transition-all flex items-center gap-2 text-sm cursor-pointer"
                 style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)' }}
                 onMouseEnter={(e) => e.currentTarget.style.background = 'var(--btn-primary-hover)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-primary-bg)'}
-            >
-                <Plus size={14} strokeWidth={2.5} />
-                <span>新增員工</span>
-            </button>
+                onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-primary-bg)'}>
+                <Plus size={14} strokeWidth={2.5} /><span>新增員工</span>
+              </button>
+            </>)}
+            {subTab === 'overtime' && (
+              <label className="px-4 py-2 rounded-md border cursor-pointer transition-all text-sm font-medium flex items-center gap-2 glass-panel" style={{ color: 'var(--text-secondary)' }}>
+                <Upload size={14} /><span>匯入 Excel</span>
+                <input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleOvertimeUpload} />
+              </label>
+            )}
           </div>
       </div>
 
+      {/* Sub-tab switcher */}
+      <div className="flex gap-1 border-b mb-6" style={{ borderColor: 'var(--glass-border)' }}>
+        {[{ id: 'employees', label: '員工名單', icon: null }, { id: 'overtime', label: '加班時數統計', icon: Clock }].map(tab => (
+          <button key={tab.id} onClick={() => setSubTab(tab.id)}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors -mb-px border-b-2 cursor-pointer"
+            style={{
+              color: subTab === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
+              borderColor: subTab === tab.id ? 'var(--text-primary)' : 'transparent',
+            }}>
+            {tab.icon && React.createElement(tab.icon, { size: 13 })}
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Overtime Tab */}
+      {subTab === 'overtime' && (
+        <div>
+          {overtimeRows.length === 0 ? (
+            <div className="h-64 rounded-md border flex flex-col items-center justify-center border-dashed"
+                 style={{ borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>
+              <Clock size={24} className="mb-3 opacity-30" />
+              <p className="font-medium text-sm">尚無資料</p>
+              <p className="text-xs mt-1.5 opacity-60">請上傳加班費時數統計 Excel 檔案</p>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-md border glass-panel" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse whitespace-nowrap">
+                  <thead>
+                    <tr className="border-b" style={{ borderColor: 'var(--glass-border)', background: 'var(--table-header-bg)' }}>
+                      {['姓名','實際工時','轉場','1.34','1.67','2.67','1','2','轉場費','加班費'].map((h, i) => (
+                        <th key={h} className={`px-4 py-3 text-xs font-medium ${i >= 1 ? 'text-right' : ''}`} style={{ color: 'var(--table-header-text)' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {overtimeRows.map((row, idx) => {
+                      const fmt = (v) => v === 0 ? '-' : v.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+                      return (
+                        <tr key={idx} className="border-b hover:bg-white/[0.05] transition-colors" style={{ borderColor: 'var(--glass-border)' }}>
+                          <td className="px-4 py-3 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{row.name}</td>
+                          <td className="px-4 py-3 text-sm font-mono text-right" style={{ color: 'var(--text-secondary)' }}>{fmt(row.actualHours)}</td>
+                          <td className="px-4 py-3 text-sm font-mono text-right" style={{ color: 'var(--text-secondary)' }}>{fmt(row.transfer)}</td>
+                          <td className="px-4 py-3 text-sm font-mono text-right" style={{ color: 'var(--text-secondary)' }}>{fmt(row.h134)}</td>
+                          <td className="px-4 py-3 text-sm font-mono text-right" style={{ color: 'var(--text-secondary)' }}>{fmt(row.h167)}</td>
+                          <td className="px-4 py-3 text-sm font-mono text-right" style={{ color: 'var(--text-secondary)' }}>{fmt(row.h267)}</td>
+                          <td className="px-4 py-3 text-sm font-mono text-right" style={{ color: 'var(--text-secondary)' }}>{fmt(row.h1)}</td>
+                          <td className="px-4 py-3 text-sm font-mono text-right" style={{ color: 'var(--text-secondary)' }}>{fmt(row.h2)}</td>
+                          <td className="px-4 py-3 text-sm font-mono text-right text-amber-500">{row.transferFee > 0 ? `$${row.transferFee.toLocaleString()}` : '-'}</td>
+                          <td className="px-4 py-3 text-sm font-mono font-semibold text-right text-amber-500">{row.overtimeFee > 0 ? `$${row.overtimeFee.toLocaleString()}` : '-'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Accordion List View */}
-      <div className="space-y-2">
+      {subTab === 'employees' && <div className="space-y-2">
         {employees.length === 0 ? (
            <div className="h-64 rounded-md border flex flex-col items-center justify-center border-dashed"
                 style={{ borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>
@@ -446,7 +544,7 @@ const EmployeeManagement = () => {
             );
           })
         )}
-      </div>
+      </div>}
 
       {/* Modal */}
       {isModalOpen && (
