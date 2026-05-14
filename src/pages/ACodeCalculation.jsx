@@ -178,9 +178,6 @@ const ACodeCalculation = () => {
                 )}
             </div>
             
-            <footer className="mt-12 text-center text-sm pb-8" style={{ color: 'var(--text-secondary)' }}>
-                <p>&copy; {new Date().getFullYear()} LTC Salary System - ACode Module</p>
-            </footer>
         </div>
     );
 };
