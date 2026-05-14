@@ -6,13 +6,6 @@ export const SERVICE_TYPES = {
   UNKNOWN: 'Unknown'
 };
 
-/**
- * Determines the service type based on the code.
- * BA.. => B
- * GA.. => G
- * SA.. => S
- * "未遇" in name/code => Missed
- */
 export const helperParseServiceType = (code, name = '') => {
   const c = code?.toUpperCase() || '';
   const n = name || '';
@@ -25,142 +18,90 @@ export const helperParseServiceType = (code, name = '') => {
   return SERVICE_TYPES.UNKNOWN;
 };
 
-/**
- * Main calculation entry point.
- * @param {Array} records - Array of raw records from Excel
- * @param {Array} employees - Array of employee objects
- */
+const emptyBreakdownType = () => ({
+  count: 0,
+  rawSum: 0,
+  splitSum: 0,
+  selfPayRaw: 0,
+  selfPaySplit: 0,
+  items: [],
+});
+
 export const processSalaryCalculation = (records, employees) => {
   const results = {};
   const warnings = [];
 
-  // 1. Group records by Employee Name
-  // We match by Name mainly, as per PRD "Service List" usually has Name.
-  // Ideally match by Emp ID if available, but PRD says "Records Processing... match 'Service Items'". 
-  // Wait, PRD 2.2 says "Display 'Employee Name'". 
-  // We assume the Excel has an Employee Name column.
-  
   if (!records || records.length === 0) return { results: [], warnings: ['No records to process'] };
 
-  // Helper to find Employee
-  const findEmployee = (name) => {
-    return employees.find(e => e.name.trim() === name.trim());
-  };
+  const findEmployee = (name) => employees.find(e => e.name.trim() === name.trim());
 
   records.forEach(row => {
-    // Detect columns again roughly
-    const findKey = (keys) => Object.keys(row).find(k => keys.includes(k.trim().toLowerCase()));
-    
-    // Employee Name Column
-    const empNameKey = findKey(['服務員', '服務員姓名', 'employee', 'name']);
-    const empName = row[empNameKey];
-
-    // Case Name / ID (Optional for display)
-    const clientNameKey = findKey(['案主', '個案', '個案姓名', 'client']);
-    const clientName = row[clientNameKey] || 'Unknown';
-
-    // Service Code
-    const codeKey = findKey(['代碼', 'code']);
-    const code = row[codeKey] || '';
-
-    // Service Name (distinct from Code if possible)
-    const serviceNameKey = findKey(['服務項目', '項目', 'service', 'item']);
-    const serviceName = row[serviceNameKey] || '';
-
-    // Amount
-    const amountKey = findKey(['總金額', '金額', 'amount', 'total']); // "總金額" per PRD
-    let amount = parseFloat(row[amountKey] || 0);
-
-    // Quantity / Count (Required for Missed service calculation)
-    const countKey = findKey(['數量', '組數', 'count', 'qty']);
-    const count = parseFloat(row[countKey] || 0);
-
-    if (!empName) return; // Skip invalid rows without employee name
+    const empName = String(row['服務員'] || row['服務人員'] || '').trim();
+    if (!empName) return;
 
     const employee = findEmployee(empName);
     if (!employee) {
       if (!warnings.includes(`Employee "${empName}" not found in system.`)) {
-         warnings.push(`Employee "${empName}" not found in system.`);
+        warnings.push(`Employee "${empName}" not found in system.`);
       }
-      return; 
+      return;
     }
 
     if (!results[employee.id]) {
       results[employee.id] = {
-        employee: employee,
-        rawTotal: 0,
-        splitTotal: 0,
-        details: [],
+        employee,
         breakdown: {
-          [SERVICE_TYPES.B]: { count: 0, rawSum: 0, splitSum: 0, items: [] },
-          [SERVICE_TYPES.G]: { count: 0, rawSum: 0, splitSum: 0, items: [] },
-          [SERVICE_TYPES.S]: { count: 0, rawSum: 0, splitSum: 0, items: [] },
-          [SERVICE_TYPES.MISSED]: { count: 0, rawSum: 0, splitSum: 0, items: [] }
-        }
+          [SERVICE_TYPES.B]: emptyBreakdownType(),
+          [SERVICE_TYPES.G]: emptyBreakdownType(),
+          [SERVICE_TYPES.S]: emptyBreakdownType(),
+          [SERVICE_TYPES.MISSED]: emptyBreakdownType(),
+        },
       };
     }
 
-    const type = helperParseServiceType(code, serviceName);
-    // Note: parsed type might be "Unknown". If unknown, we might ignore or classify as B? 
-    // PRD only defines B, G, S, Missed. Let's assume others are ignored or warned.
-    
-    if (type === SERVICE_TYPES.UNKNOWN) {
-        // console.warn('Unknown service type:', code);
-        return;
-    }
+    const serviceCode = String(row['服務項目'] || row['代碼'] || '').trim();
+    const type = helperParseServiceType(serviceCode, serviceCode);
+    if (type === SERVICE_TYPES.UNKNOWN) return;
 
-    // Special handling for Missed
-    let finalAmount = amount;
-    if (type === SERVICE_TYPES.MISSED) {
-      finalAmount = 200 * count; // Fixed 200 * quantity
-    }
+    // 申請金額 = 補助小計 (政府補助單價 × 補助數量)
+    const govAmount = parseFloat(row['補助小計'] || 0);
+    const selfPayAmount = parseFloat(row['自費小計'] || 0);
+    const count = type === SERVICE_TYPES.MISSED
+      ? parseFloat(row['總數量'] || row['補助數量'] || 0)
+      : parseFloat(row['補助數量'] || row['數量'] || 0);
+    const clientName = String(row['Client'] || row['個案'] || '').trim();
 
-    // Single item split calculation (No Rounding yet)
-    // Formula: Amount * Ratio
     const ratio = employee.splits[type.toLowerCase()] || 0;
-    const splitAmount = finalAmount * (ratio / 100);
+    // 拆帳: 不做自動進位
+    const splitAmount = govAmount * (ratio / 100);
+    const selfPaySplitAmount = selfPayAmount * (ratio / 100);
 
-    // Check for Self-Pay flag
-    const paymentTypeKey = findKey(['自費 / 補助', 'payment type', 'type', '自費/補助']);
-    const paymentType = row[paymentTypeKey] || '';
-    const isSelfPay = paymentType.includes('自費');
-
-    results[employee.id].rawTotal += finalAmount;
-    
-    // Add to breakdown
+    // 未遇類型：自費金額直接併入未遇金額（不另列自費欄）
+    const isMissed = type === SERVICE_TYPES.MISSED;
     results[employee.id].breakdown[type].items.push({
       client: clientName,
-      code: code,
-      count: count,
-      amount: finalAmount,
-      split: splitAmount, // Keep precise
-      isSelfPay: isSelfPay
+      code: serviceCode,
+      count,
+      amount: isMissed ? govAmount + selfPayAmount : govAmount,
+      split: isMissed ? splitAmount + selfPaySplitAmount : splitAmount,
+      selfPayAmount: isMissed ? 0 : selfPayAmount,
+      selfPaySplit: isMissed ? 0 : selfPaySplitAmount,
     });
   });
 
-  // 2. Finalize Calculation (Sum and Round)
   const finalOutput = Object.values(results).map(res => {
     let totalSplit = 0;
 
     [SERVICE_TYPES.B, SERVICE_TYPES.G, SERVICE_TYPES.S, SERVICE_TYPES.MISSED].forEach(type => {
       const items = res.breakdown[type].items;
-      // Sum all split amounts for this category
-      const sumSplit = items.reduce((acc, item) => acc + item.split, 0);
-      // Round the sum
-      const roundedSplit = Math.round(sumSplit);
-      
+
       res.breakdown[type].count = items.length;
-      res.breakdown[type].rawSum = items.reduce((acc, item) => acc + item.amount, 0); // Display purpose
-      res.breakdown[type].splitSum = roundedSplit; // Final rounded value
-      res.breakdown[type].selfPaySum = items.reduce((acc, item) => {
-          // Check if item is self pay. 'excelParser' returns '自費/補助' in row, but 'items' pushes raw fields.
-          // Let's check 'excelParser' again. It returns '自費/補助' which calculator row uses?
-          // Wait, 'items.push' in calculator uses: client, code, count, amount, split.
-          // I need to add 'isSelfPay' to the item in calculator.js line 126 first.
-          return acc + (item.isSelfPay ? item.amount : 0);
-      }, 0);
-      
-      totalSplit += roundedSplit;
+      res.breakdown[type].rawSum = items.reduce((acc, item) => acc + item.amount, 0);
+      res.breakdown[type].splitSum = items.reduce((acc, item) => acc + item.split, 0);
+      res.breakdown[type].selfPayRaw = items.reduce((acc, item) => acc + item.selfPayAmount, 0);
+      res.breakdown[type].selfPaySplit = items.reduce((acc, item) => acc + item.selfPaySplit, 0);
+
+      totalSplit += res.breakdown[type].splitSum + res.breakdown[type].selfPaySplit;
     });
 
     res.splitTotal = totalSplit;

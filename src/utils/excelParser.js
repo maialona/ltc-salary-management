@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import * as XLSX from 'xlsx';
 
 const getCellValue = (cell) => {
   const v = cell.value;
@@ -31,6 +32,42 @@ const parseExcelBuffer = async (buffer) => {
     row.eachCell({ includeEmpty: true }, (cell) => {
       const header = headers[cell.col - 1];
       if (header !== undefined) {
+        const val = getCellValue(cell);
+        rowData[header] = val;
+        if (val !== '' && val !== null && val !== undefined) hasData = true;
+      }
+    });
+    headers.forEach((h) => { if (h && !(h in rowData)) rowData[h] = ''; });
+    if (hasData) jsonData.push(rowData);
+  });
+
+  return jsonData;
+};
+
+const parseExcelBufferWithOptions = async (buffer, { sheetMatcher, headerRow = 1 } = {}) => {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+
+  let worksheet;
+  if (sheetMatcher) {
+    worksheet = workbook.worksheets.find((ws) => sheetMatcher(ws.name));
+  }
+  if (!worksheet) worksheet = workbook.worksheets[0];
+  if (!worksheet) return [];
+
+  const headers = [];
+  worksheet.getRow(headerRow).eachCell({ includeEmpty: false }, (cell) => {
+    headers[cell.col - 1] = String(getCellValue(cell) ?? '').trim();
+  });
+
+  const jsonData = [];
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber <= headerRow) return;
+    const rowData = {};
+    let hasData = false;
+    row.eachCell({ includeEmpty: true }, (cell) => {
+      const header = headers[cell.col - 1];
+      if (header) {
         const val = getCellValue(cell);
         rowData[header] = val;
         if (val !== '' && val !== null && val !== undefined) hasData = true;
@@ -117,54 +154,85 @@ export const parseEmployeeExcel = async (file) => {
   return employees;
 };
 
+const parseXlsBufferWithOptions = (uint8Array, { sheetMatcher, headerRow = 1 } = {}) => {
+  const workbook = XLSX.read(uint8Array, { type: 'array' });
+
+  let sheetName;
+  if (sheetMatcher) sheetName = workbook.SheetNames.find(sheetMatcher);
+  if (!sheetName) sheetName = workbook.SheetNames[0];
+  if (!sheetName) return [];
+
+  const worksheet = workbook.Sheets[sheetName];
+  if (!worksheet['!ref']) return [];
+
+  const range = XLSX.utils.decode_range(worksheet['!ref']);
+  const headerRowIdx = headerRow - 1;
+
+  const headers = [];
+  for (let c = range.s.c; c <= range.e.c; c++) {
+    const cell = worksheet[XLSX.utils.encode_cell({ r: headerRowIdx, c })];
+    headers[c] = cell ? String(cell.v ?? '').trim() : '';
+  }
+
+  const jsonData = [];
+  for (let r = headerRowIdx + 1; r <= range.e.r; r++) {
+    const rowData = {};
+    let hasData = false;
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const header = headers[c];
+      if (!header) continue;
+      const cell = worksheet[XLSX.utils.encode_cell({ r, c })];
+      const val = cell != null ? cell.v ?? '' : '';
+      rowData[header] = val;
+      if (val !== '' && val !== null && val !== undefined) hasData = true;
+    }
+    if (hasData) jsonData.push(rowData);
+  }
+
+  return jsonData;
+};
+
 export const parseServiceRecordExcel = async (file) => {
-  const jsonData = await parseExcelToJSON(file);
+  const buffer = await file.arrayBuffer();
+  const isXls = file.name.toLowerCase().endsWith('.xls');
+
+  const options = {
+    sheetMatcher: (name) => name.includes('服務員服務個案計算'),
+    headerRow: 3,
+  };
+
+  const jsonData = isXls
+    ? parseXlsBufferWithOptions(new Uint8Array(buffer), options)
+    : await parseExcelBufferWithOptions(buffer, options);
+
+  const safeParseFloat = (val) => {
+    if (typeof val === 'number') return val;
+    if (!val) return 0;
+    const cleanVal = String(val).replace(/[^\d.-]/g, '');
+    const num = parseFloat(cleanVal);
+    return isNaN(num) ? 0 : num;
+  };
 
   return jsonData
     .map((row) => {
-      const findKey = (keys) =>
-        Object.keys(row).find((k) => keys.includes(k.trim().toLowerCase()));
+      const serviceCode = String(row['服務項目'] || '').trim();
+      if (serviceCode.toUpperCase().startsWith('AA')) return null;
 
-      const empName = row[findKey(['服務人員', '服務員', 'employee'])] || '';
-      const clientName = row[findKey(['服務個案', '案主', 'client'])] || '';
-      const code = row[findKey(['服務代碼', 'code'])] || '';
-      const serviceName = row[findKey(['服務項目', 'service'])] || '';
-
-      const safeParseFloat = (val) => {
-        if (typeof val === 'number') return val;
-        if (!val) return 0;
-        const cleanVal = String(val).replace(/[^\d.-]/g, '');
-        const num = parseFloat(cleanVal);
-        return isNaN(num) ? 0 : num;
-      };
-
-      const count = safeParseFloat(row[findKey(['使用服務數量', '數量', 'count'])]);
-
-      const paymentTypeKey = Object.keys(row).find(
-        (k) =>
-          ['自費/補助', '自費 / 補助', 'payment type', 'type'].includes(
-            k.trim().replace(/\s*[\/\\]\s*/g, '/').toLowerCase()
-          ) || ['自費 / 補助'].includes(k.trim())
-      );
-      const paymentType = row[paymentTypeKey] || '';
-
-      const priceGovt = safeParseFloat(row[findKey(['政府單價', 'govt price'])]);
-      const priceSelf = safeParseFloat(row[findKey(['自費單價', 'self pay price'])]);
-
-      const isSelfPay = paymentType.includes('自費');
-      const unitPrice = isSelfPay ? priceSelf : priceGovt;
-      const totalAmount = unitPrice * count;
-
+      const empName = String(row['服務員'] || '').trim();
       if (!empName) return null;
 
       return {
-        服務員: empName.trim(),
-        Client: clientName.trim(),
-        代碼: code.trim(),
-        服務項目: serviceName.trim(),
-        總金額: totalAmount,
-        數量: count,
-        '自費/補助': paymentType,
+        服務員: empName,
+        Client: String(row['個案'] || '').trim(),
+        服務項目: serviceCode,
+        代碼: serviceCode,
+        政府補助單價: safeParseFloat(row['政府補助單價']),
+        補助數量: safeParseFloat(row['補助數量']),
+        補助小計: safeParseFloat(row['補助小計']),
+        自費單價: safeParseFloat(row['自費單價']),
+        自費數量: safeParseFloat(row['自費數量']),
+        自費小計: safeParseFloat(row['自費小計']),
+        總數量: safeParseFloat(row['總數量']),
       };
     })
     .filter(Boolean);
