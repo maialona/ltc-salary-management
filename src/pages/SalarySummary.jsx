@@ -39,21 +39,24 @@ const SalarySummary = () => {
       const deduction = deductions.find(d => d.empId === emp.empId) || {};
       const record = records.find(r => r.empId === emp.empId) || { b: 0, g: 0, s: 0, missed: 0 };
 
-      // Helper to sum bonus fields EXCEPT bonusA (which is listed separately)
-      const otherBonuses = (bonus.bonusC || 0) + 
-                           (bonus.bonusOpen || 0) + 
-                           (bonus.bonusDev || 0) + 
-                           (bonus.bonusCross || 0) + 
-                           (bonus.referral || 0) + 
-                           (bonus.mentoring || 0) + 
-                           (bonus.fuel || 0) + 
+      const otherBonuses = (bonus.bonusC || 0) +
+                           (bonus.bonusOpen || 0) +
+                           (bonus.bonusDev || 0) +
+                           (bonus.bonusCross || 0) +
+                           (bonus.referral || 0) +
+                           (bonus.mentoring || 0) +
+                           (bonus.fuel || 0) +
                            (bonus.other || 0);
 
-      // Sum of deductions
-      const totalDeduction = (deduction.withholdingTax || 0) + 
-                             (deduction.laborFee || 0) + 
-                             (deduction.healthFee || 0) + 
-                             (deduction.pensionFee || 0);
+      // Fall back to employee insurance data when deduction record has no value
+      const laborFee = deduction.laborFee || emp.laborInsuranceSelfPay || 0;
+      const healthFee = deduction.healthFee || emp.healthInsuranceSelfPay || 0;
+      const pensionFee = deduction.pensionFee || emp.voluntaryPensionDeduction || 0;
+
+      const totalDeduction = (deduction.withholdingTax || 0) +
+                             laborFee +
+                             healthFee +
+                             pensionFee;
 
       // A-Code Amount (derived from System Calculation or Manual Bonus)
       let splitA = 0;

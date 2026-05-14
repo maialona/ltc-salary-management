@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit2, Upload, Trash, Save, X } from 'lucide-react';
+import { Edit2, Upload, Trash, Save, X, RefreshCw } from 'lucide-react';
 import { getDeductions, saveDeduction, clearDeductions, importDeductions } from '../data/deductionStore';
 import { getEmployees } from '../data/employeeStore';
 import { subscribePeriod } from '../data/periodStore';
@@ -58,19 +58,30 @@ const DeductionManagement = () => {
 
     const merged = employees.map(emp => {
         const deduction = deductions.find(d => d.empId === emp.empId) || {};
+        const empLaborLevel = emp.laborInsuranceBracket || 0;
+        const empLaborFee = emp.laborInsuranceSelfPay || 0;
+        const empHealthLevel = emp.healthInsuranceBracket || 0;
+        const empHealthFee = emp.healthInsuranceSelfPay || 0;
+        const empPensionRate = emp.voluntaryPensionRate || 0;
+        const empPensionFee = emp.voluntaryPensionDeduction || 0;
         return {
             ...emp,
             ...deduction,
-            id: emp.id, // Row Key
-            deductionId: deduction.id, // Persistence Key
-            // defaults
+            id: emp.id,
+            deductionId: deduction.id,
             withholdingTax: deduction.withholdingTax || 0,
-            laborLevel: deduction.laborLevel || 0,
-            laborFee: deduction.laborFee || 0,
-            healthLevel: deduction.healthLevel || 0,
-            healthFee: deduction.healthFee || 0,
-            pensionRate: deduction.pensionRate || 0,
-            pensionFee: deduction.pensionFee || 0
+            laborLevel: deduction.laborLevel || empLaborLevel,
+            laborFee: deduction.laborFee || empLaborFee,
+            healthLevel: deduction.healthLevel || empHealthLevel,
+            healthFee: deduction.healthFee || empHealthFee,
+            pensionRate: deduction.pensionRate || empPensionRate,
+            pensionFee: deduction.pensionFee || empPensionFee,
+            _empLaborLevel: empLaborLevel,
+            _empLaborFee: empLaborFee,
+            _empHealthLevel: empHealthLevel,
+            _empHealthFee: empHealthFee,
+            _empPensionRate: empPensionRate,
+            _empPensionFee: empPensionFee,
         };
     });
     setItems(merged);
@@ -90,6 +101,18 @@ const DeductionManagement = () => {
         clearDeductions();
         loadData();
     });
+  };
+
+  const handleSyncFromEmployee = () => {
+    setFormData(prev => ({
+      ...prev,
+      laborLevel: prev._empLaborLevel,
+      laborFee: prev._empLaborFee,
+      healthLevel: prev._empHealthLevel,
+      healthFee: prev._empHealthFee,
+      pensionRate: prev._empPensionRate,
+      pensionFee: prev._empPensionFee,
+    }));
   };
 
   const handleSubmit = (e) => {
@@ -211,9 +234,9 @@ const DeductionManagement = () => {
                                 <td className="px-4 py-3 font-mono text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{item.empId}</td>
                                 <td className="px-4 py-3 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{item.name}</td>
                                 <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>${item.withholdingTax?.toLocaleString()}</td>
-                                <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>${item.laborLevel?.toLocaleString()}</td>
+                                <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>{item.laborLevel?.toLocaleString()}</td>
                                 <td className="px-4 py-3 font-mono text-sm text-right text-red-500">${item.laborFee?.toLocaleString()}</td>
-                                <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>${item.healthLevel?.toLocaleString()}</td>
+                                <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>{item.healthLevel?.toLocaleString()}</td>
                                 <td className="px-4 py-3 font-mono text-sm text-right text-red-500">${item.healthFee?.toLocaleString()}</td>
                                 <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>{item.pensionRate}%</td>
                                 <td className="px-4 py-3 font-mono text-sm text-right text-red-500">${item.pensionFee?.toLocaleString()}</td>
@@ -256,9 +279,21 @@ const DeductionManagement = () => {
                     <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                         編輯資料
                     </h3>
-                    <button onClick={() => setIsModalOpen(false)} className="p-1.5 hover:bg-white/10 rounded-md transition-colors cursor-pointer">
-                        <X size={20} style={{ color: 'var(--text-secondary)' }} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={handleSyncFromEmployee}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border transition-colors cursor-pointer"
+                            style={{ color: 'var(--text-secondary)', borderColor: 'var(--glass-border)', background: 'transparent' }}
+                            title="將勞健保及自提欄位重設為員工管理中的預設值"
+                        >
+                            <RefreshCw size={12} />
+                            重設為員工資料
+                        </button>
+                        <button onClick={() => setIsModalOpen(false)} className="p-1.5 hover:bg-white/10 rounded-md transition-colors cursor-pointer">
+                            <X size={20} style={{ color: 'var(--text-secondary)' }} />
+                        </button>
+                    </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
@@ -339,10 +374,15 @@ const DeductionManagement = () => {
                     {/* Labor Insurance */}
                     <div className="grid grid-cols-2 gap-6">
                          <div className="space-y-2">
-                            <label className="block" style={{ fontSize: 'var(--label-text-size)', fontWeight: 'var(--label-text-weight)', color: 'var(--label-text-color)' }}>勞保級距</label>
-                            <input 
-                                type="number" 
-                                value={formData.laborLevel} 
+                            <div className="flex items-center gap-2">
+                                <label className="block" style={{ fontSize: 'var(--label-text-size)', fontWeight: 'var(--label-text-weight)', color: 'var(--label-text-color)' }}>勞保級距</label>
+                                {formData._empLaborLevel > 0 && formData.laborLevel === formData._empLaborLevel && (
+                                    <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--glass-border)', color: 'var(--text-secondary)' }}>員工資料</span>
+                                )}
+                            </div>
+                            <input
+                                type="number"
+                                value={formData.laborLevel}
                                 onChange={e => handleChange('laborLevel', e.target.value)}
                                 className="w-full px-3 py-2 text-sm outline-none transition-all font-mono"
                                 style={{ background: 'var(--input-bg)', border: 'var(--input-border)', borderRadius: 'var(--input-radius)', color: 'var(--text-primary)' }}
@@ -351,10 +391,15 @@ const DeductionManagement = () => {
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="block" style={{ fontSize: 'var(--label-text-size)', fontWeight: 'var(--label-text-weight)', color: 'var(--label-text-color)' }}>勞保費用</label>
-                            <input 
-                                type="number" 
-                                value={formData.laborFee} 
+                            <div className="flex items-center gap-2">
+                                <label className="block" style={{ fontSize: 'var(--label-text-size)', fontWeight: 'var(--label-text-weight)', color: 'var(--label-text-color)' }}>勞保費用</label>
+                                {formData._empLaborFee > 0 && formData.laborFee === formData._empLaborFee && (
+                                    <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--glass-border)', color: 'var(--text-secondary)' }}>員工資料</span>
+                                )}
+                            </div>
+                            <input
+                                type="number"
+                                value={formData.laborFee}
                                 onChange={e => handleChange('laborFee', e.target.value)}
                                 className="w-full px-3 py-2 text-sm outline-none transition-all font-mono"
                                 style={{ background: 'var(--input-bg)', border: 'var(--input-border)', borderRadius: 'var(--input-radius)', color: 'var(--text-primary)' }}
@@ -367,10 +412,15 @@ const DeductionManagement = () => {
                     {/* Health Insurance */}
                     <div className="grid grid-cols-2 gap-6">
                          <div className="space-y-2">
-                            <label className="block" style={{ fontSize: 'var(--label-text-size)', fontWeight: 'var(--label-text-weight)', color: 'var(--label-text-color)' }}>健保級距</label>
-                            <input 
-                                type="number" 
-                                value={formData.healthLevel} 
+                            <div className="flex items-center gap-2">
+                                <label className="block" style={{ fontSize: 'var(--label-text-size)', fontWeight: 'var(--label-text-weight)', color: 'var(--label-text-color)' }}>健保級距</label>
+                                {formData._empHealthLevel > 0 && formData.healthLevel === formData._empHealthLevel && (
+                                    <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--glass-border)', color: 'var(--text-secondary)' }}>員工資料</span>
+                                )}
+                            </div>
+                            <input
+                                type="number"
+                                value={formData.healthLevel}
                                 onChange={e => handleChange('healthLevel', e.target.value)}
                                 className="w-full px-3 py-2 text-sm outline-none transition-all font-mono"
                                 style={{ background: 'var(--input-bg)', border: 'var(--input-border)', borderRadius: 'var(--input-radius)', color: 'var(--text-primary)' }}
@@ -379,10 +429,15 @@ const DeductionManagement = () => {
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="block" style={{ fontSize: 'var(--label-text-size)', fontWeight: 'var(--label-text-weight)', color: 'var(--label-text-color)' }}>健保費用</label>
-                            <input 
-                                type="number" 
-                                value={formData.healthFee} 
+                            <div className="flex items-center gap-2">
+                                <label className="block" style={{ fontSize: 'var(--label-text-size)', fontWeight: 'var(--label-text-weight)', color: 'var(--label-text-color)' }}>健保費用</label>
+                                {formData._empHealthFee > 0 && formData.healthFee === formData._empHealthFee && (
+                                    <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--glass-border)', color: 'var(--text-secondary)' }}>員工資料</span>
+                                )}
+                            </div>
+                            <input
+                                type="number"
+                                value={formData.healthFee}
                                 onChange={e => handleChange('healthFee', e.target.value)}
                                 className="w-full px-3 py-2 text-sm outline-none transition-all font-mono"
                                 style={{ background: 'var(--input-bg)', border: 'var(--input-border)', borderRadius: 'var(--input-radius)', color: 'var(--text-primary)' }}
@@ -395,11 +450,16 @@ const DeductionManagement = () => {
                     {/* Pension */}
                      <div className="grid grid-cols-2 gap-6">
                          <div className="space-y-2">
-                            <label className="block" style={{ fontSize: 'var(--label-text-size)', fontWeight: 'var(--label-text-weight)', color: 'var(--label-text-color)' }}>自提比例 (%)</label>
-                            <input 
-                                type="number" 
+                            <div className="flex items-center gap-2">
+                                <label className="block" style={{ fontSize: 'var(--label-text-size)', fontWeight: 'var(--label-text-weight)', color: 'var(--label-text-color)' }}>自提比例 (%)</label>
+                                {formData._empPensionRate > 0 && formData.pensionRate === formData._empPensionRate && (
+                                    <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--glass-border)', color: 'var(--text-secondary)' }}>員工資料</span>
+                                )}
+                            </div>
+                            <input
+                                type="number"
                                 step="0.1"
-                                value={formData.pensionRate} 
+                                value={formData.pensionRate}
                                 onChange={e => handleChange('pensionRate', e.target.value)}
                                 className="w-full px-3 py-2 text-sm outline-none transition-all font-mono"
                                 style={{ background: 'var(--input-bg)', border: 'var(--input-border)', borderRadius: 'var(--input-radius)', color: 'var(--text-primary)' }}
@@ -408,10 +468,15 @@ const DeductionManagement = () => {
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="block" style={{ fontSize: 'var(--label-text-size)', fontWeight: 'var(--label-text-weight)', color: 'var(--label-text-color)' }}>自提金額</label>
-                            <input 
-                                type="number" 
-                                value={formData.pensionFee} 
+                            <div className="flex items-center gap-2">
+                                <label className="block" style={{ fontSize: 'var(--label-text-size)', fontWeight: 'var(--label-text-weight)', color: 'var(--label-text-color)' }}>自提金額</label>
+                                {formData._empPensionFee > 0 && formData.pensionFee === formData._empPensionFee && (
+                                    <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--glass-border)', color: 'var(--text-secondary)' }}>員工資料</span>
+                                )}
+                            </div>
+                            <input
+                                type="number"
+                                value={formData.pensionFee}
                                 onChange={e => handleChange('pensionFee', e.target.value)}
                                 className="w-full px-3 py-2 text-sm outline-none transition-all font-mono"
                                 style={{ background: 'var(--input-bg)', border: 'var(--input-border)', borderRadius: 'var(--input-radius)', color: 'var(--text-primary)' }}

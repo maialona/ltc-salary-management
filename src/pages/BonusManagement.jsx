@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import {  Edit2, Upload, Trash, X } from 'lucide-react';
+import {  Edit2, Upload, Trash, X, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { getBonuses, saveBonus, clearBonuses, importBonuses } from '../data/bonusStore';
 import { getEmployees } from '../data/employeeStore';
 import { subscribePeriod } from '../data/periodStore';
@@ -133,6 +134,14 @@ const BonusManagement = () => {
     }));
   };
 
+  const handleDownloadTemplate = () => {
+    const headers = ['員編', '姓名', 'A碼獎金', '丙證獎金', '開案獎金', '開發獎金', '跨區獎金', '介紹費', '帶新人津貼', '油資補助', '其他'];
+    const ws = XLSX.utils.aoa_to_sheet([headers]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '額外獎金');
+    XLSX.writeFile(wb, '額外獎金範本.xlsx');
+  };
+
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -173,6 +182,16 @@ const BonusManagement = () => {
           </div>
 
           <div className="flex gap-4">
+               {/* Download Template Button */}
+               <button
+                  onClick={handleDownloadTemplate}
+                  className="flex items-center gap-2 px-4 py-2 rounded-md border transition-all glass-panel cursor-pointer text-sm font-medium"
+                  style={{ color: 'var(--text-secondary)', borderColor: 'var(--glass-border)' }}
+               >
+                  <Download size={14} />
+                  <span>下載範本</span>
+               </button>
+
                {/* Upload Button */}
                <div className="relative group">
                     <input 
