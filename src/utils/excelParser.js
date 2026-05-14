@@ -122,7 +122,7 @@ export const parseEmployeeExcel = async (file) => {
     const healthInsuranceBracket = parseFloat(row[findKey(['健保級距', 'health insurance bracket'])] || 0);
     const healthDependents = parseFloat(row[findKey(['健保眷屬人數', 'health dependents'])] || 0);
     const healthInsuranceSelfPay = parseFloat(row[findKey(['健保費(自付)', '健保費自付', 'health insurance self pay'])] || 0);
-    const voluntaryPensionRate = parseFloat(row[findKey(['勞退自提(%)', '勞退自提', 'voluntary pension rate'])] || 0);
+    const voluntaryPensionRate = parsePct(row[findKey(['勞退自提(%)', '勞退自提', 'voluntary pension rate'])] || 0);
     const voluntaryPensionDeduction = parseFloat(row[findKey(['應扣勞退自提', 'voluntary pension deduction'])] || 0);
     const dependentsCount = parseFloat(row[findKey(['扶養親屬人數', 'dependents count', 'dependents'])] || 0);
 
