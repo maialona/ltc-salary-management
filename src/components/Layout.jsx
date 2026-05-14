@@ -32,7 +32,7 @@ const Layout = ({ activeTab, onTabChange, children }) => {
         </div>
 
         <footer className="mt-16 pt-6 border-t text-center text-xs" style={{ borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>
-          © {new Date().getFullYear()} 長泰居家服務有限公司. All rights reserved.
+          © {new Date().getFullYear()} 府城長照有限公司. All rights reserved.
         </footer>
       </motion.main>
 
