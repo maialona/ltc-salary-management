@@ -11,9 +11,9 @@ export const helperParseServiceType = (code, name = '') => {
   const n = name || '';
 
   if (n.includes('未遇') || c.includes('未遇')) return SERVICE_TYPES.MISSED;
-  if (c.startsWith('BA')) return SERVICE_TYPES.B;
-  if (c.startsWith('GA')) return SERVICE_TYPES.G;
-  if (c.startsWith('SA')) return SERVICE_TYPES.S;
+  if (c.startsWith('B')) return SERVICE_TYPES.B;
+  if (c.startsWith('G')) return SERVICE_TYPES.G;
+  if (c.startsWith('S')) return SERVICE_TYPES.S;
 
   return SERVICE_TYPES.UNKNOWN;
 };

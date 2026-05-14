@@ -56,7 +56,8 @@ const SalarySummary = () => {
       const totalDeduction = (deduction.withholdingTax || 0) +
                              laborFee +
                              healthFee +
-                             pensionFee;
+                             pensionFee +
+                             (deduction.otherDeduction || 0);
 
       // A-Code Amount (derived from System Calculation or Manual Bonus)
       let splitA = 0;

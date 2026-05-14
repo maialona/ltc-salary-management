@@ -270,6 +270,9 @@ export const parseDeductionExcel = async (file) => {
       const pensionFee = parseFloat(
         row[findKey(['自提金額', 'pension fee', 'pension amount'])] || 0
       );
+      const otherDeduction = parseFloat(
+        row[findKey(['應扣費用', 'other deduction', 'deduction fee'])] || 0
+      );
 
       if (!empId && !name) return null;
 
@@ -283,6 +286,7 @@ export const parseDeductionExcel = async (file) => {
         healthFee,
         pensionRate,
         pensionFee,
+        otherDeduction,
       };
     })
     .filter(Boolean);
@@ -304,7 +308,7 @@ export const parseBonusExcel = async (file) => {
         row[findKey(['丙證獎金', 'c license', 'license c'])] || 0
       );
       const bonusOpen = parseFloat(
-        row[findKey(['開案獎金', 'open case', 'opening bonus'])] || 0
+        row[findKey(['服務獎金', 'open case', 'opening bonus'])] || 0
       );
       const bonusDev = parseFloat(
         row[findKey(['開發獎金', 'development bonus'])] || 0

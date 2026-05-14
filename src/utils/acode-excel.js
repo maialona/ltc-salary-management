@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import * as XLSX from 'xlsx';
 
 const getCellValue = (cell) => {
   const v = cell.value;
@@ -12,9 +13,47 @@ const getCellValue = (cell) => {
   return v;
 };
 
+const readXls = (buffer) => {
+  const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' });
+  const sheetName = workbook.SheetNames[0];
+  if (!sheetName) return { json: [], headers: [] };
+  const worksheet = workbook.Sheets[sheetName];
+  if (!worksheet['!ref']) return { json: [], headers: [] };
+
+  const range = XLSX.utils.decode_range(worksheet['!ref']);
+  const headers = [];
+  for (let c = range.s.c; c <= range.e.c; c++) {
+    const cell = worksheet[XLSX.utils.encode_cell({ r: 0, c })];
+    headers[c] = cell ? String(cell.v ?? '').trim() : '';
+  }
+  const validHeaders = headers.filter(Boolean);
+
+  const json = [];
+  for (let r = 1; r <= range.e.r; r++) {
+    const rowData = {};
+    let hasData = false;
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const header = headers[c];
+      if (!header) continue;
+      const cell = worksheet[XLSX.utils.encode_cell({ r, c })];
+      const val = cell != null ? cell.v ?? '' : '';
+      rowData[header] = val;
+      if (val !== '' && val !== null && val !== undefined) hasData = true;
+    }
+    if (hasData) json.push(rowData);
+  }
+
+  return { json, headers: validHeaders };
+};
+
 export const readExcel = async (file) => {
   try {
     const buffer = await file.arrayBuffer();
+
+    if (file.name.toLowerCase().endsWith('.xls')) {
+      return readXls(buffer);
+    }
+
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(buffer);
     const worksheet = workbook.worksheets[0];

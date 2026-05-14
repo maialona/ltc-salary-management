@@ -57,18 +57,28 @@ const BonusManagement = () => {
     const employees = getEmployees();
     const bonuses = getBonuses();
 
+    let aCodeResults = [];
+    try {
+      const saved = localStorage.getItem('acode_calc_state');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.results && parsed.results.finalSummary) {
+          aCodeResults = parsed.results.finalSummary;
+        }
+      }
+    } catch (e) { /* ignore */ }
+
     // drive by employees
     const merged = employees.map(emp => {
         const bonus = bonuses.find(b => b.empId === emp.empId) || {};
-        // We use the Employee's ID as the key for the row, but we need to track Bonus ID for saving
-        // If bonus.id doesn't exist, it means this employee has no bonus record yet.
+        const aCodeResult = aCodeResults.find(r => r.id === emp.empId || r.name === emp.name);
+        const aCodeAmount = aCodeResult ? aCodeResult.totalCommission : 0;
         return {
-            ...emp, // contains empId, name, etc.
-            ...bonus, // contains bonus values
-            id: emp.id, // reliable row key
-            bonusId: bonus.id, // persistence key
-            // defaults for fields if not in bonus
-            bonusA: bonus.bonusA || 0,
+            ...emp,
+            ...bonus,
+            id: emp.id,
+            bonusId: bonus.id,
+            bonusA: aCodeAmount || bonus.bonusA || 0,
             bonusC: bonus.bonusC || 0,
             bonusOpen: bonus.bonusOpen || 0,
             bonusDev: bonus.bonusDev || 0,
@@ -135,7 +145,7 @@ const BonusManagement = () => {
   };
 
   const handleDownloadTemplate = () => {
-    const headers = ['員編', '姓名', 'A碼獎金', '丙證獎金', '開案獎金', '開發獎金', '跨區獎金', '介紹費', '帶新人津貼', '油資補助', '其他'];
+    const headers = ['員編', '姓名', 'A碼獎金', '丙證獎金', '服務獎金', '開發獎金', '跨區獎金', '介紹費', '帶新人津貼', '油資補助', '其他'];
     const ws = XLSX.utils.aoa_to_sheet([headers]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '額外獎金');
@@ -162,7 +172,7 @@ const BonusManagement = () => {
   const fields = [
       { key: 'bonusA', label: 'A碼拆帳金額', color: 'text-amber-400', border: 'focus:border-amber-500/50', ring: 'focus:ring-amber-500/50' },
       { key: 'bonusC', label: '丙證獎金', color: 'text-amber-400', border: 'focus:border-amber-500/50', ring: 'focus:ring-amber-500/50' },
-      { key: 'bonusOpen', label: '開案獎金', color: 'text-emerald-400', border: 'focus:border-emerald-500/50', ring: 'focus:ring-emerald-500/50' },
+      { key: 'bonusOpen', label: '服務獎金', color: 'text-emerald-400', border: 'focus:border-emerald-500/50', ring: 'focus:ring-emerald-500/50' },
       { key: 'bonusDev', label: '開發獎金', color: 'text-emerald-400', border: 'focus:border-emerald-500/50', ring: 'focus:ring-emerald-500/50' },
       { key: 'bonusCross', label: '跨區獎金', color: 'text-blue-400', border: 'focus:border-blue-500/50', ring: 'focus:ring-blue-500/50' },
       { key: 'referral', label: '介紹費', color: 'text-purple-400', border: 'focus:border-purple-500/50', ring: 'focus:ring-purple-500/50' },
@@ -245,17 +255,17 @@ const BonusManagement = () => {
                             const total = (item.bonusA || 0) + (item.bonusC || 0) + (item.bonusOpen || 0) + (item.bonusDev || 0) + (item.bonusCross || 0) + (item.referral || 0) + (item.mentoring || 0) + (item.fuel || 0) + (item.other || 0);
                             return (
                             <tr key={item.id} className="transition-colors border-b group hover:bg-white/[0.05]" style={{ borderColor: 'var(--glass-border)' }}>
-                                <td className="p-3 font-mono font-bold" style={{ color: 'var(--text-accent)' }}>{item.empId}</td>
-                                <td className="p-3 font-bold" style={{ color: 'var(--text-primary)' }}>{item.name}</td>
+                                <td className="px-4 py-3 font-mono text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{item.empId}</td>
+                                <td className="px-4 py-3 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{item.name}</td>
                                 {fields.map(f => (
-                                    <td key={f.key} className={`p-3 font-mono text-right ${item[f.key] > 0 ? f.color : ''}`} style={{ color: item[f.key] > 0 ? undefined : 'var(--text-secondary)' }}>
+                                    <td key={f.key} className={`px-4 py-3 font-mono text-sm text-right ${item[f.key] > 0 ? f.color : ''}`} style={{ color: item[f.key] > 0 ? undefined : 'var(--text-secondary)' }}>
                                         {item[f.key] > 0 ? `$${item[f.key].toLocaleString()}` : '-'}
                                     </td>
                                 ))}
-                                <td className="p-3 font-mono font-bold text-right text-yellow-400">
+                                <td className="px-4 py-3 font-mono text-sm font-semibold text-right text-yellow-400">
                                     ${total.toLocaleString()}
                                 </td>
-                                <td className="p-3 text-right">
+                                <td className="px-4 py-3 text-right">
                                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
                                             onClick={() => handleOpenModal(item)}

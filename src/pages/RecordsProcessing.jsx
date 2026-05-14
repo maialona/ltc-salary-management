@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Upload, AlertTriangle, ChevronDown, CloudUpload, FileText } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Upload, AlertTriangle, ChevronDown, CloudUpload, FileText, RotateCcw } from 'lucide-react';
 import { parseServiceRecordExcel } from '../utils/excelParser';
 import { processSalaryCalculation } from '../utils/calculator';
 import { getEmployees } from '../data/employeeStore';
@@ -13,6 +13,7 @@ const RecordsProcessing = () => {
   const [warnings, setWarnings] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
+  const fileInputRef = useRef(null);
 
   React.useEffect(() => {
     try {
@@ -115,42 +116,62 @@ const RecordsProcessing = () => {
   return (
     <div className="space-y-8">
 
-      {/* Upload Zone */}
-      <div
-        className={`relative rounded-md border transition-all duration-300 glass-panel ${isProcessing ? 'h-52' : 'h-40 hover:h-52'}`}
-        style={{ borderColor: 'var(--glass-border)', borderStyle: 'dashed' }}
-      >
-        <input
-          type="file"
-          accept=".xlsx, .xls"
-          onChange={handleFileUpload}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-50"
-          disabled={isProcessing}
-        />
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
-          {isProcessing ? (
-            <div className="flex flex-col items-center gap-4">
-              <div className="relative w-10 h-10">
-                <div className="absolute inset-0 rounded-full border-2" style={{ borderColor: 'var(--glass-border)' }}></div>
-                <div className="absolute inset-0 rounded-full border-t-2 border-zinc-400 animate-spin"></div>
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx, .xls"
+        onChange={handleFileUpload}
+        className="hidden"
+        disabled={isProcessing}
+      />
+
+      {/* Upload Zone — hidden once results are loaded */}
+      {(isProcessing || results.length === 0) && (
+        <div
+          className={`relative rounded-md border transition-all duration-300 glass-panel ${isProcessing ? 'h-52' : 'h-40 hover:h-52'}`}
+          style={{ borderColor: 'var(--glass-border)', borderStyle: 'dashed', cursor: isProcessing ? 'default' : 'pointer' }}
+          onClick={() => !isProcessing && fileInputRef.current?.click()}
+        >
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+            {isProcessing ? (
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative w-10 h-10">
+                  <div className="absolute inset-0 rounded-full border-2" style={{ borderColor: 'var(--glass-border)' }}></div>
+                  <div className="absolute inset-0 rounded-full border-t-2 border-zinc-400 animate-spin"></div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>分析中...</h3>
+                  <p className="text-xs mt-1 font-mono" style={{ color: 'var(--text-secondary)' }}>解析資料結構</p>
+                </div>
               </div>
+            ) : (
               <div>
-                <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>分析中...</h3>
-                <p className="text-xs mt-1 font-mono" style={{ color: 'var(--text-secondary)' }}>解析資料結構</p>
+                <div className="w-10 h-10 rounded-md flex items-center justify-center mx-auto mb-3 border"
+                  style={{ background: 'var(--accordion-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>
+                  <CloudUpload size={18} />
+                </div>
+                <h3 className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>服務清冊上傳</h3>
+                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>拖曳或點擊選擇 Excel 檔案（工作表：服務員服務個案計算，第3列為標題）</p>
               </div>
-            </div>
-          ) : (
-            <div>
-              <div className="w-10 h-10 rounded-md flex items-center justify-center mx-auto mb-3 border"
-                style={{ background: 'var(--accordion-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>
-                <CloudUpload size={18} />
-              </div>
-              <h3 className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>服務清冊上傳</h3>
-              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>拖曳或點擊選擇 Excel 檔案（工作表：服務員服務個案計算，第3列為標題）</p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Re-upload button — shown after successful parse */}
+      {results.length > 0 && !isProcessing && (
+        <div className="flex justify-end">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs transition-opacity hover:opacity-70"
+            style={{ borderColor: 'var(--glass-border)', color: 'var(--text-secondary)', background: 'var(--accordion-bg)' }}
+          >
+            <RotateCcw size={12} />
+            重新上傳
+          </button>
+        </div>
+      )}
 
       {/* Warnings */}
       {warnings.length > 0 && (

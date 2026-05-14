@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { processData } from '../utils/acode-processor';
-import StepWizard from '../components/acode/StepWizard';
 import FileUpload from '../components/acode/FileUpload';
 import ResultsDashboard from '../components/acode/ResultsDashboard';
 import Modal from '../components/acode/Modal';
@@ -149,8 +148,6 @@ const ACodeCalculation = () => {
                     </div>
                 </header>
 
-                <StepWizard step={step} />
-                
                 {step === 1 && (
                     <FileUpload 
                         files={files}

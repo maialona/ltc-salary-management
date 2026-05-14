@@ -250,7 +250,7 @@ const SalarySlipDownload = () => {
     // Or just assume user won't double enter. Let's filter it out if we use system data.
     const bonusDetails = [
       { label: '丙證獎金', value: bonus.bonusC || 0 },
-      { label: '開案獎金', value: bonus.bonusOpen || 0 },
+      { label: '服務獎金', value: bonus.bonusOpen || 0 },
       { label: '開發獎金', value: bonus.bonusDev || 0 },
       { label: '跨區獎金', value: bonus.bonusCross || 0 },
       { label: '介紹費', value: bonus.referral || 0 },

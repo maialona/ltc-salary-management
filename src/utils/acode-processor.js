@@ -52,13 +52,17 @@ export const processData = async (files, updateProgress) => {
         const date = normalizeDate(row['服務日期'] || row['日期']);
         const client = cleanName(row['服務個案'] || row['個案姓名'] || row['個案']);
         const worker = cleanName(row['服務人員'] || row['居服員'] || row['員工']);
+        const supervisor = String(row['居督'] || row['督導'] || '').trim();
         const serviceCode = String(row['服務代碼'] || '').toUpperCase();
         const timeObj = parseTimeRange(row['服務時間'] || row['時間'] || row['開始時間']);
-        
+
         if (date && client && worker) {
             const key = `${date}_${client}`;
             if (!serviceData[key]) {
-                serviceData[key] = { workers: new Set(), details: [] };
+                serviceData[key] = { workers: new Set(), details: [], supervisor: '' };
+            }
+            if (supervisor && !serviceData[key].supervisor) {
+                serviceData[key].supervisor = supervisor;
             }
             serviceData[key].workers.add(worker);
             serviceData[key].details.push({ worker, code: serviceCode, time: timeObj });
@@ -99,7 +103,6 @@ export const processData = async (files, updateProgress) => {
             const client = cleanName(row['個案姓名'] || row['姓名']);
             const code = (row['服務代碼'] || row['碼別'] || row['項目'] || row['服務項目'] || '').trim().toUpperCase();
             const serialNum = String(row['序號'] || row['No'] || row['流水號'] || '').trim();
-            const supervisor = (row['督導'] || row['督導員'] || '').trim();
             
             const totalQty = parseFloat(row['數量'] || 0);
             const totalSubtotal = parseFloat(row['小計'] || row['金額'] || 0);
@@ -131,6 +134,7 @@ export const processData = async (files, updateProgress) => {
                 const key = `${date}_${client}`;
                 if (debugGovKeys.length < 5) debugGovKeys.push(key);
 
+                const supervisor = (serviceData[key] && serviceData[key].supervisor) || '';
                 let targetWorkers = [];
                 let assignmentNote = '';
                 let isMatched = false;
