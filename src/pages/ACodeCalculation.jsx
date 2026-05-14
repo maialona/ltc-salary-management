@@ -130,7 +130,7 @@ const ACodeCalculation = () => {
     };
 
     return (
-        <div className="min-h-screen transition-colors p-8">
+        <div className="transition-colors p-8">
             <Modal 
                 isOpen={modal.isOpen} 
                 title={modal.title} 
