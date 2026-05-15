@@ -194,26 +194,36 @@ export function lookupWithholdingTax(income, dependents) {
   if (!income || income <= 0) return 0;
   const dep = Math.min(Math.max(Math.round(dependents || 0), 0), 11);
 
-  // Below table minimum → 0
-  if (income <= 89500) return 0;
+  // The TAX_ROWS minIncome keys have a non-uniform offset due to two extra
+  // "page header" rows inserted during data entry (at code rows 113501 and 130501):
+  //   - income < 114001  → keys are 1000 below the official bracket start
+  //   - income ≥ 114001  → keys are  500 below the official bracket start
+  //
+  // Official first non-zero bracket: 90,501~91,000 (dep0 = 2,020)
+  // Official last bracket covered by table: 165,001~165,500
 
-  // Above table maximum → linear extrapolation using last two rows
-  if (income > 165000) {
-    const last  = TAX_ROWS[TAX_ROWS.length - 1];   // 164501 row
-    const prev  = TAX_ROWS[TAX_ROWS.length - 2];   // 164001 row
+  // Below official table minimum → 0
+  if (income <= 90500) return 0;
+
+  // Above table maximum (last row 164501 covers official 165001~165500) → extrapolate
+  if (income > 165500) {
+    const last  = TAX_ROWS[TAX_ROWS.length - 1];
+    const prev  = TAX_ROWS[TAX_ROWS.length - 2];
     const slope = (last[1 + dep] - prev[1 + dep]) / 500;
-    const excess = income - 164500;
+    const excess = income - 165500;
     return Math.max(0, Math.round(last[1 + dep] + slope * excess));
   }
 
-  // Binary search for matching bracket
+  const adjustment = income < 114001 ? 1000 : 500;
+  const adjusted = income - adjustment;
+
   let lo = 0, hi = TAX_ROWS.length - 1;
   while (lo <= hi) {
     const mid = (lo + hi) >> 1;
     const rowMin = TAX_ROWS[mid][0];
-    if (income < rowMin) {
+    if (adjusted < rowMin) {
       hi = mid - 1;
-    } else if (income >= rowMin + 500) {
+    } else if (adjusted >= rowMin + 500) {
       lo = mid + 1;
     } else {
       return TAX_ROWS[mid][1 + dep] || 0;
