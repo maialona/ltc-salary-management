@@ -1,12 +1,15 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Upload, AlertTriangle, ChevronDown, CloudUpload, FileText, RotateCcw } from 'lucide-react';
 import { parseServiceRecordExcel } from '../utils/excelParser';
 import { processSalaryCalculation } from '../utils/calculator';
 import { getEmployees } from '../data/employeeStore';
 import { saveRecords } from '../data/recordsStore';
+import { getPeriod, subscribePeriod } from '../data/periodStore';
 
 const fmt = (val, decimals = 1) =>
   val.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+
+const bgsKey = (period) => `bgs_calc_state_${period}`;
 
 const RecordsProcessing = () => {
   const [results, setResults] = useState([]);
@@ -15,25 +18,33 @@ const RecordsProcessing = () => {
   const [expandedId, setExpandedId] = useState(null);
   const fileInputRef = useRef(null);
 
-  React.useEffect(() => {
+  const loadFromStorage = (period) => {
     try {
-      const savedState = localStorage.getItem('bgs_calc_state');
+      const savedState = localStorage.getItem(bgsKey(period));
       if (savedState) {
         const parsed = JSON.parse(savedState);
         if (parsed.results && parsed.results.length > 0) {
           setResults(parsed.results);
-          if (parsed.warnings) setWarnings(parsed.warnings);
+          setWarnings(parsed.warnings ?? []);
+          return;
         }
       }
     } catch (e) {
       console.error('Failed to restore BGS state', e);
     }
+    setResults([]);
+    setWarnings([]);
+  };
+
+  useEffect(() => {
+    loadFromStorage(getPeriod());
+    return subscribePeriod((period) => loadFromStorage(period));
   }, []);
 
   React.useEffect(() => {
     if (results.length > 0) {
       try {
-        localStorage.setItem('bgs_calc_state', JSON.stringify({ results, warnings }));
+        localStorage.setItem(bgsKey(getPeriod()), JSON.stringify({ results, warnings }));
       } catch (e) {
         if (e.name === 'QuotaExceededError' || e.message.includes('quota')) {
           setWarnings(prev => [...prev, '系統警告：資料量過大超出瀏覽器限制 (5MB)，本次計算結果將無法於關閉後自動還原。']);

@@ -6,6 +6,7 @@ import { generateUUID } from '../utils/uuid';
 import ConfirmModal from '../components/ConfirmModal';
 import { INSTITUTIONS, getInstitutionName } from '../constants/institutions.js';
 import { useInstitution } from '../context/InstitutionContext.jsx';
+import { getPeriod, subscribePeriod } from '../data/periodStore.js';
 
 const safeNum = (v) => {
   if (v === '-' || v === '' || v === null || v === undefined) return 0;
@@ -17,7 +18,7 @@ const EmployeeManagement = () => {
   const { currentInstitution } = useInstitution();
   const [subTab, setSubTab] = useState('employees');
   const [overtimeRows, setOvertimeRows] = useState(() => {
-    try { const s = localStorage.getItem('overtime_rows'); return s ? JSON.parse(s) : []; } catch { return []; }
+    try { const s = localStorage.getItem(`overtime_rows_${getPeriod()}`); return s ? JSON.parse(s) : []; } catch { return []; }
   });
   const [employees, setEmployees] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -84,6 +85,16 @@ const EmployeeManagement = () => {
   useEffect(() => {
     loadEmployees();
   }, [currentInstitution]);
+
+  useEffect(() => {
+    const loadOvertime = (period) => {
+      try {
+        const s = localStorage.getItem(`overtime_rows_${period}`);
+        setOvertimeRows(s ? JSON.parse(s) : []);
+      } catch { setOvertimeRows([]); }
+    };
+    return subscribePeriod(loadOvertime);
+  }, []);
 
   const loadEmployees = async () => {
     try {
@@ -290,7 +301,7 @@ const EmployeeManagement = () => {
         rows.push({ name, actualHours, transfer, h134, h167, h267, h1, h2, transferFee, overtimeFee });
       }
       setOvertimeRows(rows);
-      try { localStorage.setItem('overtime_rows', JSON.stringify(rows)); } catch {}
+      try { localStorage.setItem(`overtime_rows_${getPeriod()}`, JSON.stringify(rows)); } catch {}
     };
     reader.readAsArrayBuffer(file);
   };

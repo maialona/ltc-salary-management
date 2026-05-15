@@ -93,7 +93,7 @@ export function AppSidebar({ activeTab, onTabChange, onCollapsedChange }) {
         <motion.div
           animate={{ opacity: isCollapsed ? 0 : 1 }}
           transition={{ duration: 0.15 }}
-          className="absolute inset-x-2 flex items-center gap-1"
+          className="absolute inset-x-2.5 inset-y-0 flex items-center gap-1"
           style={{ pointerEvents: isCollapsed ? 'none' : 'auto' }}
         >
           <button

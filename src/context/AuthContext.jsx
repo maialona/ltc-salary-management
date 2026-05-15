@@ -11,13 +11,14 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     return onIdTokenChanged(auth, async (user) => {
-      setError(null);
       if (!user) {
         setFirebaseUser(null);
         setDbUser(null);
+        // 不在此處清除 error，讓登入頁能顯示白名單錯誤
         return;
       }
 
+      setError(null);
       setFirebaseUser(user);
 
       // 向後端取使用者資料（同時驗證白名單）

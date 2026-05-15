@@ -25,7 +25,7 @@ export default function UserMenu({ isCollapsed }) {
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 4 }}
-            className="absolute bottom-full left-2 right-2 mb-1 rounded-lg p-3 z-50"
+            className="fixed left-2 bottom-28 w-44 rounded-lg p-3 z-50"
             style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', boxShadow: 'var(--modal-shadow)' }}
           >
             <p className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>確定要登出嗎？</p>

@@ -20,11 +20,30 @@ services:
       context: .
       dockerfile: Dockerfile.api
     env_file: ./server/.env
+    environment:
+      DATABASE_URL: postgres://salary:dev@db:5432/salary
+      CORS_ORIGIN: http://localhost
     depends_on:
       db:
         condition: service_healthy
     ports:
       - "3000:3000"
+    command: sh -c "node scripts/migrate.js && node src/index.js"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        VITE_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY}
+        VITE_FIREBASE_AUTH_DOMAIN: ${VITE_FIREBASE_AUTH_DOMAIN}
+        VITE_FIREBASE_PROJECT_ID: ${VITE_FIREBASE_PROJECT_ID}
+        VITE_FIREBASE_APP_ID: ${VITE_FIREBASE_APP_ID}
+        VITE_API_BASE_URL: http://localhost:3000
+    depends_on:
+      - api
+    ports:
+      - "80:80"
 
 volumes:
   pgdata:
