@@ -245,7 +245,6 @@ const RecordsProcessing = () => {
             ] : []),
             ...(hasSelfPay ? [
               { key: '自費', value: ['B', 'G', 'S', 'Missed'].reduce((a, t) => a + bd[t].selfPayRaw, 0), color: 'text-pink-400 border-pink-400/20' },
-              { key: '自費拆', value: ['B', 'G', 'S', 'Missed'].reduce((a, t) => a + bd[t].selfPaySplit, 0), color: 'text-pink-500 border-pink-500/20' },
             ] : []),
           ].filter(t => t.value > 0);
 
@@ -263,7 +262,6 @@ const RecordsProcessing = () => {
             ] : []),
             ...(hasSelfPay ? [
               { label: '自費金額', value: ['B', 'G', 'S', 'Missed'].reduce((a, t) => a + bd[t].selfPayRaw, 0), color: 'text-pink-400' },
-              { label: '自費拆帳', value: ['B', 'G', 'S', 'Missed'].reduce((a, t) => a + bd[t].selfPaySplit, 0), color: 'text-pink-500' },
             ] : []),
           ];
 
@@ -366,7 +364,6 @@ const RecordsProcessing = () => {
                             <th className="px-3 py-2 text-right font-medium">申請金額</th>
                             <th className="px-3 py-2 text-right font-medium">拆帳金額</th>
                             {hasSelfPay && <th className="px-3 py-2 text-right font-medium">自費申請</th>}
-                            {hasSelfPay && <th className="px-3 py-2 text-right font-medium">自費拆帳</th>}
                           </tr>
                         </thead>
                         <tbody>
@@ -393,7 +390,6 @@ const RecordsProcessing = () => {
                                     <td className="px-3 py-1.5 text-right font-mono" style={{ color: 'var(--text-primary)' }}>${fmt(item.amount, 0)}</td>
                                     <td className="px-3 py-1.5 text-right font-mono" style={{ color: 'var(--text-accent)' }}>${fmt(item.split, 1)}</td>
                                     {hasSelfPay && <td className="px-3 py-1.5 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>{item.selfPayAmount > 0 ? `$${fmt(item.selfPayAmount, 0)}` : '—'}</td>}
-                                    {hasSelfPay && <td className="px-3 py-1.5 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>{item.selfPaySplit > 0 ? `$${fmt(item.selfPaySplit, 1)}` : '—'}</td>}
                                   </tr>
                                 ))}
                               </React.Fragment>

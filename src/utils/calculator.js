@@ -76,16 +76,16 @@ export const processSalaryCalculation = (records, employees) => {
     const splitAmount = govAmount * (ratio / 100);
     const selfPaySplitAmount = selfPayAmount * (ratio / 100);
 
-    // 未遇類型：自費金額直接併入未遇金額（不另列自費欄）
+    // 自費拆帳依碼別直接合入 split；未遇類型的 amount 也一併合入
     const isMissed = type === SERVICE_TYPES.MISSED;
     results[employee.id].breakdown[type].items.push({
       client: clientName,
       code: serviceCode,
       count,
       amount: isMissed ? govAmount + selfPayAmount : govAmount,
-      split: isMissed ? splitAmount + selfPaySplitAmount : splitAmount,
+      split: splitAmount + selfPaySplitAmount,
       selfPayAmount: isMissed ? 0 : selfPayAmount,
-      selfPaySplit: isMissed ? 0 : selfPaySplitAmount,
+      selfPaySplit: 0,
     });
   });
 
@@ -101,7 +101,7 @@ export const processSalaryCalculation = (records, employees) => {
       res.breakdown[type].selfPayRaw = items.reduce((acc, item) => acc + item.selfPayAmount, 0);
       res.breakdown[type].selfPaySplit = items.reduce((acc, item) => acc + item.selfPaySplit, 0);
 
-      totalSplit += res.breakdown[type].splitSum + res.breakdown[type].selfPaySplit;
+      totalSplit += res.breakdown[type].splitSum;
     });
 
     res.splitTotal = totalSplit;
