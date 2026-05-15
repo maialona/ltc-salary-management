@@ -3,10 +3,13 @@ import { motion } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import {
   Users, FileSpreadsheet, Coins, Banknote, Download,
   Calculator, Calendar, ChevronLeft, ChevronRight,
-  Sun, Moon,
+  Sun, Moon, ShieldCheck,
 } from 'lucide-react';
 import { getPeriod, offsetPeriod, subscribePeriod } from '../data/periodStore';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext.jsx';
+import InstitutionSelector from './InstitutionSelector.jsx';
+import UserMenu from './UserMenu.jsx';
 
 const COLLAPSED_W = '3.25rem';
 const EXPANDED_W = '14rem';
@@ -18,24 +21,15 @@ const sidebarVariants = {
 
 const transition = { type: 'tween', ease: 'easeOut', duration: 0.2 };
 
-// icon values are lucide-react component constructors, rendered via createElement
-// to avoid JSX variable tracking issues (no react/jsx-uses-vars in this project)
-const navGroups = [
-  [
-    { id: 'employees', icon: Users, label: '員工管理' },
-  ],
-  [
-    { id: 'records', icon: FileSpreadsheet, label: 'B、G、S碼計算' },
-    { id: 'acode', icon: Calculator, label: 'A碼計算' },
-  ],
-  [
-    { id: 'bonuses', icon: Coins, label: '額外獎金' },
-    { id: 'deductions', icon: FileSpreadsheet, label: '應扣費用' },
-  ],
-  [
-    { id: 'summary', icon: Banknote, label: '薪資總表' },
-    { id: 'download', icon: Download, label: '薪資表下載' },
-  ],
+const ALL_NAV_ITEMS = [
+  { id: 'employees', icon: Users, label: '員工管理', adminOnly: false },
+  { id: 'records', icon: FileSpreadsheet, label: 'B、G、S碼計算', adminOnly: false },
+  { id: 'acode', icon: Calculator, label: 'A碼計算', adminOnly: false },
+  { id: 'bonuses', icon: Coins, label: '額外獎金', adminOnly: false },
+  { id: 'deductions', icon: FileSpreadsheet, label: '應扣費用', adminOnly: false },
+  { id: 'summary', icon: Banknote, label: '薪資總表', adminOnly: false },
+  { id: 'download', icon: Download, label: '薪資表下載', adminOnly: false },
+  { id: 'users', icon: ShieldCheck, label: '使用者管理', adminOnly: true },
 ];
 
 function NavLabel({ isCollapsed, children }) {
@@ -55,6 +49,9 @@ export function AppSidebar({ activeTab, onTabChange, onCollapsedChange }) {
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [period, setPeriod] = useState(getPeriod());
   const { theme, toggleTheme } = useTheme();
+  const { dbUser } = useAuth();
+
+  const navItems = ALL_NAV_ITEMS.filter(item => !item.adminOnly || dbUser?.role === 'admin');
 
   useEffect(() => {
     return subscribePeriod(setPeriod);
@@ -84,6 +81,9 @@ export function AppSidebar({ activeTab, onTabChange, onCollapsedChange }) {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
+      {/* Institution Selector */}
+      <InstitutionSelector isCollapsed={isCollapsed} />
+
       {/* Period Selector */}
       <div
         className="flex items-center h-14 border-b px-2 shrink-0 overflow-hidden relative"
@@ -134,7 +134,7 @@ export function AppSidebar({ activeTab, onTabChange, onCollapsedChange }) {
 
       {/* Navigation — flex-1 so it fills space, py-3 for breathing room */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden py-3 px-2 flex flex-col gap-1.5">
-        {navGroups.flat().map((item) => {
+        {navItems.map((item) => {
           const isActive = activeTab === item.id;
           return (
             <button
@@ -161,11 +161,12 @@ export function AppSidebar({ activeTab, onTabChange, onCollapsedChange }) {
         })}
       </nav>
 
-      {/* Bottom: Theme Toggle */}
+      {/* Bottom: User Menu + Theme Toggle */}
       <div
-        className="border-t px-2 py-2 shrink-0"
+        className="border-t px-2 py-2 shrink-0 flex flex-col gap-1"
         style={{ borderColor: 'var(--nav-border)' }}
       >
+        <UserMenu isCollapsed={isCollapsed} />
         <button
           onClick={toggleTheme}
           className="flex items-center w-full h-10 rounded-lg px-2.5 transition-colors duration-150 cursor-pointer hover:bg-white/5"

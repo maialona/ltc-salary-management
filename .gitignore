@@ -11,6 +11,15 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+
+# Dev-only output
+graphify-out/
+
+# Server secrets
+server/.env
+server/.firebase-key.json
+*-firebase-adminsdk-*.json
 
 # Editor directories and files
 .vscode/*

@@ -3,11 +3,13 @@ import { Edit2, Upload, Trash, Save, X, RefreshCw } from 'lucide-react';
 import { getDeductions, saveDeduction, clearDeductions, importDeductions } from '../data/deductionStore';
 import { getEmployees } from '../data/employeeStore';
 import { subscribePeriod } from '../data/periodStore';
+import { useInstitution } from '../context/InstitutionContext';
 import { generateUUID } from '../utils/uuid';
 import { parseDeductionExcel } from '../utils/excelParser';
 import ConfirmModal from '../components/ConfirmModal';
 
 const DeductionManagement = () => {
+  const { currentInstitution } = useInstitution();
   const [items, setItems] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({});
@@ -50,11 +52,10 @@ const DeductionManagement = () => {
     loadData();
     const unsubscribe = subscribePeriod(() => loadData());
     return unsubscribe;
-  }, []);
+  }, [currentInstitution]);
 
-  const loadData = () => {
-    const employees = getEmployees();
-    const deductions = getDeductions();
+  const loadData = async () => {
+    const [employees, deductions] = await Promise.all([getEmployees(), getDeductions()]);
 
     const merged = employees.map(emp => {
         const deduction = deductions.find(d => d.empId === emp.empId) || {};
@@ -98,8 +99,8 @@ const DeductionManagement = () => {
   };
 
   const handleClearAll = () => {
-    showConfirm('歸零確認', '確定要歸零所有應扣費用金額嗎？(員工名單不會被刪除)', 'danger', () => {
-        clearDeductions();
+    showConfirm('歸零確認', '確定要歸零所有應扣費用金額嗎？(員工名單不會被刪除)', 'danger', async () => {
+        await clearDeductions();
         loadData();
     });
   };
@@ -116,11 +117,10 @@ const DeductionManagement = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const deductionData = {
-          id: formData.id,
           empId: formData.empId,
           name: formData.name,
           withholdingTax: formData.withholdingTax,
@@ -132,8 +132,7 @@ const DeductionManagement = () => {
           pensionFee: formData.pensionFee,
           otherDeduction: formData.otherDeduction || 0,
       };
-
-      saveDeduction(deductionData);
+      await saveDeduction(deductionData);
       setIsModalOpen(false);
       loadData();
     } catch (err) {
@@ -154,7 +153,7 @@ const DeductionManagement = () => {
 
     try {
       const newDeductions = await parseDeductionExcel(file);
-      const { count } = importDeductions(newDeductions);
+      const { count } = await importDeductions(newDeductions);
       alert(`成功匯入/更新 ${count} 筆應扣費用資料。`);
       loadData();
     } catch (err) {

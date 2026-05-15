@@ -1,0 +1,17 @@
+node_modules
+server/node_modules
+dist
+.git
+.gitignore
+
+# Secrets — never bake into images
+server/.env
+server/.firebase-key.json
+*-firebase-adminsdk-*.json
+
+# Dev-only files
+graphify-out
+scripts
+debug_excel.cjs
+test-calculation.js
+debug_excel.js

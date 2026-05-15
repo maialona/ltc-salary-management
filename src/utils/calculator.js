@@ -105,6 +105,7 @@ export const processSalaryCalculation = (records, employees) => {
     });
 
     res.splitTotal = totalSplit;
+    res.totalCommission = totalSplit;
     return res;
   }).sort((a, b) => {
     const idA = a.employee.empId || '';

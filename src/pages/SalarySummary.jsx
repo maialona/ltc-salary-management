@@ -4,8 +4,9 @@ import { getEmployees } from '../data/employeeStore';
 import { getBonuses, saveBonus } from '../data/bonusStore';
 import { getDeductions, saveDeduction } from '../data/deductionStore';
 import { getRecords } from '../data/recordsStore';
+import { getAcodeResults } from '../data/acodeStore';
 import { subscribePeriod } from '../data/periodStore';
-import { generateUUID } from '../utils/uuid';
+import { useInstitution } from '../context/InstitutionContext';
 
 const money = (val) => (val && val !== 0) ? `$${val.toLocaleString()}` : '-';
 const pct   = (val) => (val && val !== 0) ? `${val}%` : '-';
@@ -49,6 +50,7 @@ const Divider = ({ label }) => (
 
 // ─── Main component ───────────────────────────────────────────────────────────
 const SalarySummary = () => {
+  const { currentInstitution } = useInstitution();
   const [subTab, setSubTab]     = useState('bgs');
   const [bgsItems, setBgsItems] = useState([]);
   const [aItems, setAItems]     = useState([]);
@@ -58,23 +60,15 @@ const SalarySummary = () => {
     loadData();
     const unsub = subscribePeriod(() => loadData());
     return unsub;
-  }, []);
+  }, [currentInstitution]);
 
   // ── Data loading ────────────────────────────────────────────────────────────
-  const loadData = () => {
-    const employees  = getEmployees();
-    const bonuses    = getBonuses();
-    const deductions = getDeductions();
-    const records    = getRecords();
+  const loadData = async () => {
+    const [employees, bonuses, deductions, records, acodeData] = await Promise.all([
+      getEmployees(), getBonuses(), getDeductions(), getRecords(), getAcodeResults(),
+    ]);
 
-    let aCodeResults = [];
-    try {
-      const saved = localStorage.getItem('acode_calc_state');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.results?.finalSummary) aCodeResults = parsed.results.finalSummary;
-      }
-    } catch { /* ignore */ }
+    const aCodeResults = acodeData?.finalSummary ?? [];
 
     // BGS碼薪資
     const bgs = employees.map(emp => {
@@ -172,55 +166,24 @@ const SalarySummary = () => {
     setModal(prev => ({ ...prev, form: { ...prev.form, [key]: parseFloat(val) || 0 } }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const { type, raw, form } = modal;
-    const currentBonuses    = getBonuses();
-    const currentDeductions = getDeductions();
-    const existingBonus     = currentBonuses.find(b => b.empId === raw.empId) || {};
-    const existingDeduction = currentDeductions.find(d => d.empId === raw.empId) || {};
 
     if (type === 'bgs') {
-      saveBonus({
-        ...existingBonus,
-        id: existingBonus.id || generateUUID(),
-        empId: raw.empId,
-        name:  raw.name,
-        bgsOtherSubsidy: form.otherSubsidy,
-        other:           form.other,
-      });
-      saveDeduction({
-        ...existingDeduction,
-        id:              existingDeduction.id || generateUUID(),
-        empId:           raw.empId,
-        laborFee:        form.laborFee,
-        healthFee:       form.healthFee,
-        pensionFee:      form.pensionFee,
-        otherDeduction:  form.otherDeduction,
-      });
+      await Promise.all([
+        saveBonus({ empId: raw.empId, name: raw.name, bgsOtherSubsidy: form.otherSubsidy, other: form.other }),
+        saveDeduction({ empId: raw.empId, laborFee: form.laborFee, healthFee: form.healthFee, pensionFee: form.pensionFee, otherDeduction: form.otherDeduction }),
+      ]);
     } else {
-      saveBonus({
-        ...existingBonus,
-        id: existingBonus.id || generateUUID(),
-        empId: raw.empId,
-        name:  raw.name,
-        bonusCross:   form.crossArea,
-        bonusOpen:    form.serviceBonus,
-        bonusDev:     form.quotaDev,
-        bonusC:       form.certBonus,
-        referral:     form.referral,
-        mentoring:    form.mentoring,
-        holidayBonus: form.holidayBonus,
-        otherSubsidy: form.otherSubsidy,
-        other:        form.other,
-        fuel:         form.fuel,
-      });
-      saveDeduction({
-        ...existingDeduction,
-        id:             existingDeduction.id || generateUUID(),
-        empId:          raw.empId,
-        withholdingTax: form.withholdingTax,
-        otherDeduction: form.otherDeduction,
-      });
+      await Promise.all([
+        saveBonus({
+          empId: raw.empId, name: raw.name,
+          bonusCross: form.crossArea, bonusOpen: form.serviceBonus, bonusDev: form.quotaDev,
+          bonusC: form.certBonus, referral: form.referral, mentoring: form.mentoring,
+          holidayBonus: form.holidayBonus, otherSubsidy: form.otherSubsidy, other: form.other, fuel: form.fuel,
+        }),
+        saveDeduction({ empId: raw.empId, withholdingTax: form.withholdingTax, otherDeduction: form.otherDeduction }),
+      ]);
     }
 
     setModal({ open: false, type: null, form: {}, raw: {} });

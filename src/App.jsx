@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import Layout from './components/Layout';
 import { ThemeProvider } from './context/ThemeContext';
-// Import pages (placeholders for now)
+import { AuthProvider } from './context/AuthContext.jsx';
+import { InstitutionProvider } from './context/InstitutionContext.jsx';
+import AuthGate from './components/AuthGate.jsx';
 import EmployeeManagement from './pages/EmployeeManagement';
 import DeductionManagement from './pages/DeductionManagement';
 import BonusManagement from './pages/BonusManagement';
@@ -9,40 +11,29 @@ import RecordsProcessing from './pages/RecordsProcessing';
 import SalarySummary from './pages/SalarySummary';
 import SalarySlipDownload from './pages/SalarySlipDownload';
 import ACodeCalculation from './pages/ACodeCalculation';
-
-// Placeholder components if files don't exist yet (to avoid build errors)
-const PlaceholderEmployee = () => <div className="p-8 glass-card"><h2>Employee Management (Coming Soon)</h2></div>;
-const PlaceholderRecords = () => <div className="p-8 glass-card"><h2>Records Processing (Coming Soon)</h2></div>;
+import UserManagement from './pages/UserManagement.jsx';
 
 function App() {
   const [activeTab, setActiveTab] = useState('employees');
 
   return (
     <ThemeProvider>
-      <Layout activeTab={activeTab} onTabChange={setActiveTab}>
-        {activeTab === 'employees' && (
-          // We will replace this with actual component once created
-          <EmployeeManagement />
-        )}
-        {activeTab === 'deductions' && (
-          <DeductionManagement />
-        )}
-        {activeTab === 'bonuses' && (
-          <BonusManagement />
-        )}
-        {activeTab === 'records' && (
-          <RecordsProcessing />
-        )}
-        {activeTab === 'acode' && (
-          <ACodeCalculation />
-        )}
-        {activeTab === 'summary' && (
-          <SalarySummary />
-        )}
-        {activeTab === 'download' && (
-          <SalarySlipDownload />
-        )}
-      </Layout>
+      <AuthProvider>
+        <InstitutionProvider>
+          <AuthGate>
+            <Layout activeTab={activeTab} onTabChange={setActiveTab}>
+              {activeTab === 'employees' && <EmployeeManagement />}
+              {activeTab === 'deductions' && <DeductionManagement />}
+              {activeTab === 'bonuses' && <BonusManagement />}
+              {activeTab === 'records' && <RecordsProcessing />}
+              {activeTab === 'acode' && <ACodeCalculation />}
+              {activeTab === 'summary' && <SalarySummary />}
+              {activeTab === 'download' && <SalarySlipDownload />}
+              {activeTab === 'users' && <UserManagement />}
+            </Layout>
+          </AuthGate>
+        </InstitutionProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

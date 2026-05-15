@@ -1,0 +1,282 @@
+import { useState, useEffect, useCallback } from 'react';
+import { Plus, Pencil, UserX, UserCheck, ChevronDown, ChevronUp } from 'lucide-react';
+import { INSTITUTIONS } from '../constants/institutions.js';
+import { apiGet, apiPost, apiPut, apiDelete } from '../lib/apiClient.js';
+import { useAuth } from '../context/AuthContext.jsx';
+
+const ROLE_LABELS = { admin: '管理員', institution_user: '機構使用者' };
+
+const emptyForm = { email: '', role: 'institution_user', institution_code: INSTITUTIONS[0].code, display_name: '' };
+
+function UserForm({ initial = emptyForm, onSave, onCancel, loading }) {
+  const [form, setForm] = useState(initial);
+  const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div>
+        <label className="block text-xs mb-1" style={{ color: 'var(--label-text-color)' }}>Email *</label>
+        <input
+          type="email"
+          value={form.email}
+          onChange={e => set('email', e.target.value)}
+          placeholder="user@example.com"
+          disabled={!!initial.id}
+          className="w-full rounded px-3 h-9 text-sm disabled:opacity-50"
+          style={{ background: 'var(--input-bg)', border: 'var(--input-border)', color: 'var(--text-primary)' }}
+        />
+      </div>
+      <div>
+        <label className="block text-xs mb-1" style={{ color: 'var(--label-text-color)' }}>顯示名稱</label>
+        <input
+          type="text"
+          value={form.display_name}
+          onChange={e => set('display_name', e.target.value)}
+          placeholder="選填"
+          className="w-full rounded px-3 h-9 text-sm"
+          style={{ background: 'var(--input-bg)', border: 'var(--input-border)', color: 'var(--text-primary)' }}
+        />
+      </div>
+      <div>
+        <label className="block text-xs mb-1" style={{ color: 'var(--label-text-color)' }}>角色 *</label>
+        <select
+          value={form.role}
+          onChange={e => set('role', e.target.value)}
+          className="w-full rounded px-3 h-9 text-sm cursor-pointer"
+          style={{ background: 'var(--input-bg)', border: 'var(--input-border)', color: 'var(--text-primary)' }}
+        >
+          <option value="institution_user">機構使用者</option>
+          <option value="admin">管理員</option>
+        </select>
+      </div>
+      {form.role === 'institution_user' && (
+        <div>
+          <label className="block text-xs mb-1" style={{ color: 'var(--label-text-color)' }}>所屬機構 *</label>
+          <select
+            value={form.institution_code}
+            onChange={e => set('institution_code', e.target.value)}
+            className="w-full rounded px-3 h-9 text-sm cursor-pointer"
+            style={{ background: 'var(--input-bg)', border: 'var(--input-border)', color: 'var(--text-primary)' }}
+          >
+            {INSTITUTIONS.map(inst => (
+              <option key={inst.code} value={inst.code}>{inst.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
+      <div className="flex gap-2 pt-1">
+        <button
+          onClick={() => onSave(form)}
+          disabled={loading || !form.email}
+          className="flex-1 h-9 rounded text-sm font-medium disabled:opacity-50 cursor-pointer"
+          style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)' }}
+        >
+          {loading ? '儲存中…' : '儲存'}
+        </button>
+        <button
+          onClick={onCancel}
+          className="flex-1 h-9 rounded text-sm cursor-pointer hover:bg-white/5"
+          style={{ color: 'var(--text-secondary)' }}
+        >
+          取消
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function UserRow({ user, onEdit, onToggleDisabled, isSelf }) {
+  const [open, setOpen] = useState(false);
+  const instName = INSTITUTIONS.find(i => i.code === user.institution_code)?.name;
+
+  return (
+    <div className="rounded-lg overflow-hidden" style={{ background: 'var(--accordion-bg)' }}>
+      <button
+        className="flex items-center w-full px-4 h-12 gap-3 text-left cursor-pointer hover:bg-white/5 transition-colors"
+        onClick={() => setOpen(v => !v)}
+      >
+        <div
+          className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+          style={{ background: 'var(--nav-active-bg)', color: 'var(--nav-active-text)' }}
+        >
+          {(user.display_name || user.email)[0].toUpperCase()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate" style={{ color: user.disabled ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
+            {user.display_name || user.email}
+          </p>
+          <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
+            {ROLE_LABELS[user.role]}{instName ? ` · ${instName}` : ''}{user.disabled ? ' · 已停用' : ''}
+          </p>
+        </div>
+        {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+      </button>
+
+      {open && (
+        <div className="px-4 pb-4 pt-1 border-t flex flex-col gap-2" style={{ borderColor: 'var(--glass-border)' }}>
+          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>{user.email}</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => onEdit(user)}
+              className="flex items-center gap-1.5 text-xs rounded px-3 py-1.5 cursor-pointer hover:bg-white/5"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <Pencil size={12} /> 編輯
+            </button>
+            {!isSelf && (
+              <button
+                onClick={() => onToggleDisabled(user)}
+                className="flex items-center gap-1.5 text-xs rounded px-3 py-1.5 cursor-pointer hover:bg-white/5"
+                style={{ color: user.disabled ? '#86efac' : '#fca5a5' }}
+              >
+                {user.disabled ? <UserCheck size={12} /> : <UserX size={12} />}
+                {user.disabled ? '啟用' : '停用'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function UserManagement() {
+  const { dbUser } = useAuth();
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [error, setError] = useState(null);
+
+  const loadUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      setUsers(await apiGet('/api/users'));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadUsers(); }, [loadUsers]);
+
+  const handleAdd = async (form) => {
+    setSaving(true);
+    setError(null);
+    try {
+      await apiPost('/api/users', {
+        email: form.email,
+        role: form.role,
+        institution_code: form.role === 'admin' ? undefined : form.institution_code,
+        display_name: form.display_name || undefined,
+      });
+      setShowAdd(false);
+      await loadUsers();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEdit = async (form) => {
+    setSaving(true);
+    setError(null);
+    try {
+      await apiPut(`/api/users/${form.id}`, {
+        role: form.role,
+        institution_code: form.role === 'admin' ? null : form.institution_code,
+        display_name: form.display_name || null,
+      });
+      setEditing(null);
+      await loadUsers();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleToggleDisabled = async (user) => {
+    setError(null);
+    try {
+      if (user.disabled) {
+        await apiPut(`/api/users/${user.id}`, { disabled: false });
+      } else {
+        await apiDelete(`/api/users/${user.id}`);
+      }
+      await loadUsers();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>使用者管理</h1>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+            新增帳號並指派機構權限
+          </p>
+        </div>
+        <button
+          onClick={() => { setShowAdd(true); setEditing(null); }}
+          className="flex items-center gap-2 rounded-lg px-4 h-9 text-sm font-medium cursor-pointer"
+          style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)' }}
+        >
+          <Plus size={15} /> 新增使用者
+        </button>
+      </div>
+
+      {error && (
+        <div className="rounded-lg px-4 py-3 text-sm" style={{ background: '#3f1212', color: '#fca5a5' }}>
+          {error}
+        </div>
+      )}
+
+      {/* 新增表單 */}
+      {showAdd && (
+        <div className="rounded-xl p-5" style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)' }}>
+          <h3 className="text-sm font-medium mb-4" style={{ color: 'var(--text-primary)' }}>新增使用者</h3>
+          <UserForm onSave={handleAdd} onCancel={() => setShowAdd(false)} loading={saving} />
+        </div>
+      )}
+
+      {/* 編輯表單 */}
+      {editing && (
+        <div className="rounded-xl p-5" style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)' }}>
+          <h3 className="text-sm font-medium mb-4" style={{ color: 'var(--text-primary)' }}>編輯使用者</h3>
+          <UserForm
+            initial={editing}
+            onSave={handleEdit}
+            onCancel={() => setEditing(null)}
+            loading={saving}
+          />
+        </div>
+      )}
+
+      {/* 使用者列表 */}
+      {loading ? (
+        <p className="text-sm text-center py-8" style={{ color: 'var(--text-secondary)' }}>載入中…</p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {users.map(u => (
+            <UserRow
+              key={u.id}
+              user={u}
+              isSelf={u.id === dbUser?.id}
+              onEdit={u => { setEditing({ ...u, display_name: u.display_name ?? '' }); setShowAdd(false); }}
+              onToggleDisabled={handleToggleDisabled}
+            />
+          ))}
+          {users.length === 0 && (
+            <p className="text-sm text-center py-8" style={{ color: 'var(--text-secondary)' }}>尚無使用者</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

@@ -53,7 +53,7 @@ const RecordsProcessing = () => {
     setTimeout(async () => {
       try {
         const rawData = await parseServiceRecordExcel(file);
-        const employees = getEmployees();
+        const employees = await getEmployees();
 
         if (!rawData || rawData.length === 0) {
           throw new Error('Excel 檔案似乎是空的或無法讀取，請確認工作表名稱含有「服務員服務個案計算」且第3列為標題列');
@@ -75,7 +75,7 @@ const RecordsProcessing = () => {
             selfPay: ['B', 'G', 'S', 'Missed'].reduce((acc, t) => acc + res.breakdown[t].selfPaySplit, 0),
             breakdown: res.breakdown,
           }));
-          saveRecords(recordsToSave);
+          await saveRecords(recordsToSave);
         }
 
         setResults(calcResults);

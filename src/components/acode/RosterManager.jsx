@@ -11,17 +11,15 @@ const RosterManager = ({ onRosterUpdate }) => {
   const [roster, setRoster] = useState([]);
   const [showSyncAlert, setShowSyncAlert] = useState(false);
 
-  const loadAndSyncRoster = () => {
-    const employees = getEmployees();
-    // Map employeeStore data to A-Code expected format
+  const loadAndSyncRoster = async () => {
+    const employees = await getEmployees();
     const mappedRoster = employees.map(emp => ({
         '員編': emp.empId,
         '姓名': emp.name,
         '職級': emp.position === 'Full-time' ? '正職' : '兼職',
-        '員工編號': emp.empId, // redundant but safe for legacy logic
-        '員工姓名': emp.name   // redundant but safe
+        '員工編號': emp.empId,
+        '員工姓名': emp.name
     }));
-    
     setRoster(mappedRoster);
     if (onRosterUpdate) onRosterUpdate(mappedRoster);
   };

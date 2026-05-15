@@ -1,21 +1,27 @@
 import React, { useState, useEffect } from "react";
 import { processData } from '../utils/acode-processor';
+import { getEmployees } from '../data/employeeStore';
+import { getAcodeResults, saveAcodeResults, deleteAcodeResults } from '../data/acodeStore';
+import { subscribePeriod } from '../data/periodStore';
+import { useInstitution } from '../context/InstitutionContext';
 import FileUpload from '../components/acode/FileUpload';
 import ResultsDashboard from '../components/acode/ResultsDashboard';
 import Modal from '../components/acode/Modal';
 
 const ACodeCalculation = () => {
+    const { currentInstitution } = useInstitution();
+
     // Core Data State
     const [files, setFiles] = useState({ serviceRecord: null, govRecord: null, staffList: null });
     const [fileStatus, setFileStatus] = useState({ serviceRecord: false, govRecord: false, staffList: false });
     const [fileHeaders, setFileHeaders] = useState({ serviceRecord: [], govRecord: [], staffList: [] });
-    
+
     // Calculation State
     const [isProcessing, setIsProcessing] = useState(false);
     const [progressText, setProgressText] = useState("");
     const [results, setResults] = useState(null);
     const [step, setStep] = useState(1);
-    
+
     // Result View State
     const [selectedWorker, setSelectedWorker] = useState(null);
 
@@ -25,69 +31,54 @@ const ACodeCalculation = () => {
         setModal({ isOpen: true, title: "系統訊息", content, type });
     };
 
-    // Load Roster from Employee Store on mount
+    // On mount and when institution/period changes: sync roster + restore saved results
     useEffect(() => {
-        const loadSyncedRoster = () => {
+        const init = async () => {
+            // Reset wizard state when switching institution or period
+            setResults(null);
+            setStep(1);
+            setSelectedWorker(null);
             try {
-                // 1. Sync Roster
-                const employees = localStorage.getItem('salary_system_employees');
-                if (employees) {
-                    const parsed = JSON.parse(employees);
-                    const mappedRoster = parsed.map(emp => ({
+                const [employees, savedResults] = await Promise.all([
+                    getEmployees(),
+                    getAcodeResults(),
+                ]);
+
+                if (employees && employees.length > 0) {
+                    const mappedRoster = employees.map(emp => ({
                         '員編': emp.empId,
                         '姓名': emp.name,
                         '職級': emp.position === 'Full-time' ? '正職' : '兼職',
-                        '員工編號': emp.empId, 
-                        '員工姓名': emp.name   
+                        '員工編號': emp.empId,
+                        '員工姓名': emp.name
                     }));
-                    
-                    if (mappedRoster.length > 0) {
-                        setFiles(prev => ({ ...prev, staffList: mappedRoster }));
-                        setFileStatus(prev => ({ ...prev, staffList: true }));
-                    }
+                    setFiles(prev => ({ ...prev, staffList: mappedRoster }));
+                    setFileStatus(prev => ({ ...prev, staffList: true }));
                 }
 
-                // 2. Restore Calculation State
-                const savedState = localStorage.getItem('acode_calc_state');
-                if (savedState) {
-                    const parsedState = JSON.parse(savedState);
-                    // Only restore if we have valid results
-                    if (parsedState.results && parsedState.step === 3) {
-                        setResults(parsedState.results);
-                        setStep(3);
-                        if (parsedState.selectedWorker) {
-                            setSelectedWorker(parsedState.selectedWorker);
-                        } else if (parsedState.results.finalSummary.length > 0) {
-                             setSelectedWorker(parsedState.results.finalSummary[0].name);
-                        }
-                    }
+                if (savedResults && savedResults.finalSummary?.length > 0) {
+                    setResults(savedResults);
+                    setStep(3);
+                    setSelectedWorker(savedResults.finalSummary[0].name);
                 }
             } catch (e) {
                 console.error("Failed to sync/restore", e);
             }
         };
-        
-        loadSyncedRoster();
-    }, []);
 
-    // Save state when results change
+        init();
+        const unsub = subscribePeriod(init);
+        return unsub;
+    }, [currentInstitution]);
+
+    // Auto-save results to API when calculation completes
     useEffect(() => {
         if (results && step === 3) {
-            try {
-                localStorage.setItem('acode_calc_state', JSON.stringify({
-                    results,
-                    step,
-                    selectedWorker
-                }));
-            } catch (e) {
+            saveAcodeResults(results).catch(e => {
                 console.error("Auto-save failed:", e);
-                // If quota exceeded, warn the user
-                if (e.name === 'QuotaExceededError' || e.message.includes('quota')) {
-                    showAlert("注意：資料量過大，瀏覽器無法自動除存。關閉視窗後資料將會遺失。", "warning");
-                }
-            }
+            });
         }
-    }, [results, step, selectedWorker]);
+    }, [results, step]);
 
     const handleProcess = async () => {
         setIsProcessing(true);
@@ -95,11 +86,10 @@ const ACodeCalculation = () => {
         setProgressText("初始化...");
 
         try {
-            // Small delay to allow UI to update
             await new Promise(r => setTimeout(r, 100));
-            
+
             const resultData = await processData(files, setProgressText);
-            
+
             setResults(resultData);
             if (resultData.finalSummary.length > 0) {
                 setSelectedWorker(resultData.finalSummary[0].name);
@@ -114,28 +104,25 @@ const ACodeCalculation = () => {
         }
     };
 
-    const handleReset = () => {
-        // Clear state
+    const handleReset = async () => {
         setResults(null);
         setStep(1);
         setSelectedWorker(null);
-        
-        // Clear persisted state
         try {
-            localStorage.removeItem('acode_calc_state');
+            await deleteAcodeResults();
         } catch (e) {
-            console.error("Failed to clear state", e);
+            console.error("Failed to delete acode results", e);
         }
     };
 
     return (
         <div className="transition-colors p-8">
-            <Modal 
-                isOpen={modal.isOpen} 
-                title={modal.title} 
-                content={modal.content} 
-                type={modal.type} 
-                onConfirm={() => setModal(prev => ({ ...prev, isOpen: false }))} 
+            <Modal
+                isOpen={modal.isOpen}
+                title={modal.title}
+                content={modal.content}
+                type={modal.type}
+                onConfirm={() => setModal(prev => ({ ...prev, isOpen: false }))}
             />
 
             <div className="max-w-7xl mx-auto">
@@ -144,12 +131,11 @@ const ACodeCalculation = () => {
                         <h1 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
                            A碼拆帳系統
                         </h1>
-                        
                     </div>
                 </header>
 
                 {step === 1 && (
-                    <FileUpload 
+                    <FileUpload
                         files={files}
                         setFiles={setFiles}
                         fileStatus={fileStatus}
@@ -163,7 +149,7 @@ const ACodeCalculation = () => {
                 )}
 
                 {step === 3 && results && (
-                    <ResultsDashboard 
+                    <ResultsDashboard
                         debugInfo={results.debugInfo}
                         errors={results.errors}
                         summaryResult={results.finalSummary}
@@ -174,7 +160,6 @@ const ACodeCalculation = () => {
                     />
                 )}
             </div>
-            
         </div>
     );
 };

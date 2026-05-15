@@ -3,12 +3,15 @@ import {  Edit2, Upload, Trash, X, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { getBonuses, saveBonus, clearBonuses, importBonuses } from '../data/bonusStore';
 import { getEmployees } from '../data/employeeStore';
+import { getAcodeResults } from '../data/acodeStore';
 import { subscribePeriod } from '../data/periodStore';
+import { useInstitution } from '../context/InstitutionContext';
 import { generateUUID } from '../utils/uuid';
 import { parseBonusExcel } from '../utils/excelParser';
 import ConfirmModal from '../components/ConfirmModal';
 
 const BonusManagement = () => {
+  const { currentInstitution } = useInstitution();
   const [items, setItems] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({});
@@ -51,22 +54,13 @@ const BonusManagement = () => {
     loadData();
     const unsubscribe = subscribePeriod(() => loadData());
     return unsubscribe;
-  }, []);
+  }, [currentInstitution]);
 
-  const loadData = () => {
-    const employees = getEmployees();
-    const bonuses = getBonuses();
-
-    let aCodeResults = [];
-    try {
-      const saved = localStorage.getItem('acode_calc_state');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.results && parsed.results.finalSummary) {
-          aCodeResults = parsed.results.finalSummary;
-        }
-      }
-    } catch (e) { /* ignore */ }
+  const loadData = async () => {
+    const [employees, bonuses, acodeData] = await Promise.all([
+      getEmployees(), getBonuses(), getAcodeResults(),
+    ]);
+    const aCodeResults = acodeData?.finalSummary ?? [];
 
     // drive by employees
     const merged = employees.map(emp => {
@@ -104,18 +98,16 @@ const BonusManagement = () => {
   };
 
   const handleClearAll = () => {
-    showConfirm('歸零確認', '確定要歸零所有額外獎金金額嗎？(員工名單不會被刪除)', 'danger', () => {
-        clearBonuses();
+    showConfirm('歸零確認', '確定要歸零所有額外獎金金額嗎？(員工名單不會被刪除)', 'danger', async () => {
+        await clearBonuses();
         loadData();
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Save only the bonus fields + linkage keys
       const bonusData = {
-          id: formData.id,
           empId: formData.empId,
           name: formData.name,
           bonusA: formData.bonusA,
@@ -126,10 +118,9 @@ const BonusManagement = () => {
           referral: formData.referral,
           mentoring: formData.mentoring,
           fuel: formData.fuel,
-          other: formData.other
+          other: formData.other,
       };
-      
-      saveBonus(bonusData);
+      await saveBonus(bonusData);
       setIsModalOpen(false);
       loadData();
     } catch (err) {
@@ -158,7 +149,7 @@ const BonusManagement = () => {
 
     try {
       const newBonuses = await parseBonusExcel(file);
-      const { count } = importBonuses(newBonuses);
+      const { count } = await importBonuses(newBonuses);
       showAlert('匯入成功', `成功匯入/更新 ${count} 筆額外獎金資料。`, 'success');
       loadData();
     } catch (err) {

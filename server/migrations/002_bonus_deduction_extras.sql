@@ -1,0 +1,7 @@
+-- Add name column and extra bonus fields missing from initial schema
+ALTER TABLE bonuses ADD COLUMN IF NOT EXISTS name TEXT NOT NULL DEFAULT '';
+ALTER TABLE bonuses ADD COLUMN IF NOT EXISTS bgs_other_subsidy NUMERIC NOT NULL DEFAULT 0;
+ALTER TABLE bonuses ADD COLUMN IF NOT EXISTS other_subsidy NUMERIC NOT NULL DEFAULT 0;
+ALTER TABLE bonuses ADD COLUMN IF NOT EXISTS holiday_bonus NUMERIC NOT NULL DEFAULT 0;
+
+ALTER TABLE deductions ADD COLUMN IF NOT EXISTS name TEXT NOT NULL DEFAULT '';

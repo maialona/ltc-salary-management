@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getEmployees } from '../data/employeeStore';
 import { getBonuses } from '../data/bonusStore';
 import { getDeductions } from '../data/deductionStore';
 import { getRecords } from '../data/recordsStore';
+import { getAcodeResults } from '../data/acodeStore';
 import { subscribePeriod, getPeriod } from '../data/periodStore';
+import { useInstitution } from '../context/InstitutionContext';
 import { Download, AlertTriangle, FileText, CheckCircle, Printer } from 'lucide-react';
 
 const SalarySlipTemplate = ({ data, isBulk = false }) => {
@@ -157,33 +159,53 @@ const SalarySlipTemplate = ({ data, isBulk = false }) => {
 
 // Main Component
 const SalarySlipDownload = () => {
+  const { currentInstitution } = useInstitution();
   const [employees, setEmployees] = useState([]);
   const [selectedEmpId, setSelectedEmpId] = useState(null);
   const [singleData, setSingleData] = useState(null);
   const [allData, setAllData] = useState(null); // For bulk view
   const [isBulkMode, setIsBulkMode] = useState(false);
+  // refs 讓 period subscription callback 不受 stale closure 影響
+  const employeesRef = useRef([]);
+  const bonusesRef = useRef([]);
+  const deductionsRef = useRef([]);
+  const recordsRef = useRef([]);
+  const acodeResultsRef = useRef(null);
+
+  const loadAllData = async () => {
+    const [emps, bonuses, deductions, records, acodeData] = await Promise.all([
+      getEmployees(), getBonuses(), getDeductions(), getRecords(), getAcodeResults(),
+    ]);
+    setEmployees(emps);
+    employeesRef.current = emps;
+    bonusesRef.current = bonuses;
+    deductionsRef.current = deductions;
+    recordsRef.current = records;
+    acodeResultsRef.current = acodeData;
+  };
 
   useEffect(() => {
-    setEmployees(getEmployees());
-  }, []);
+    loadAllData();
+  }, [currentInstitution]);
 
   useEffect(() => {
     if (selectedEmpId) {
-        setIsBulkMode(false); // Switch to single mode if specific employee selected
+        setIsBulkMode(false);
         const d = processEmployeeData(selectedEmpId);
         setSingleData(d);
     } else {
         setSingleData(null);
     }
-    
-    // Subscribe to global period change
-    const unsubscribe = subscribePeriod(() => {
-        if(selectedEmpId) {
+
+    // Subscribe to global period change — reload all data then re-render
+    const unsubscribe = subscribePeriod(async () => {
+        await loadAllData();
+        if (selectedEmpId) {
             const d = processEmployeeData(selectedEmpId);
             setSingleData(d);
         }
-        if(isBulkMode) {
-             prepareBulkData();
+        if (isBulkMode) {
+            prepareBulkData();
         }
     });
     return unsubscribe;
@@ -193,54 +215,35 @@ const SalarySlipDownload = () => {
   useEffect(() => {
       if (isBulkMode) {
           prepareBulkData();
-          setSelectedEmpId(null); // Clear selection
+          setSelectedEmpId(null);
       }
   }, [isBulkMode]);
 
   const prepareBulkData = () => {
-      // Process all employees
-      const all = getEmployees().map(e => processEmployeeData(e.empId)).filter(d => d !== null);
+      const all = employeesRef.current.map(e => processEmployeeData(e.empId)).filter(d => d !== null);
       setAllData(all);
   };
 
   const processEmployeeData = (empId) => {
-    const emp = getEmployees().find(e => e.empId === empId);
+    const emp = employeesRef.current.find(e => e.empId === empId);
     if (!emp) return null;
 
-    const bonuses = getBonuses();
-    const deductions = getDeductions();
-    const records = getRecords();
-
-    const bonus = bonuses.find(b => b.empId === empId) || {};
-    const deduction = deductions.find(d => d.empId === empId) || {};
-    const record = records.find(r => r.empId === empId) || { breakdown: null };
+    const bonus = bonusesRef.current.find(b => b.empId === empId) || {};
+    const deduction = deductionsRef.current.find(d => d.empId === empId) || {};
+    const record = recordsRef.current.find(r => r.empId === empId) || { breakdown: null };
 
     // --- A-Code Integration ---
-    // Try to load A-Code results from local storage
     let aCodeData = { splitSum: 0, items: [] };
-    try {
-        const savedACodeState = localStorage.getItem('acode_calc_state');
-        if (savedACodeState) {
-            const parsed = JSON.parse(savedACodeState);
-            // Fix: Use finalSummary which is the one used in the dashboard view and contains the aggregated data
-            if (parsed.results && parsed.results.finalSummary) {
-                // Find this employee's A-Code result
-                // Match by ID first (more precise), then Name
-                const empResult = parsed.results.finalSummary.find(res => res.id === empId || res.name === emp.name);
-                
-                if (empResult) {
-                    aCodeData.splitSum = empResult.totalCommission;
-                    aCodeData.items = empResult.details.map(d => ({
-                        code: d.code,
-                        count: parseFloat(d.qty),
-                        amount: d.amount, // Commission amount
-                        client: d.client
-                    }));
-                }
-            }
-        }
-    } catch (e) {
-        console.error("Failed to load A-Code data", e);
+    const acodeFinalSummary = acodeResultsRef.current?.finalSummary ?? [];
+    const empResult = acodeFinalSummary.find(res => res.id === empId || res.name === emp.name);
+    if (empResult) {
+        aCodeData.splitSum = empResult.totalCommission;
+        aCodeData.items = empResult.details.map(d => ({
+            code: d.code,
+            count: parseFloat(d.qty),
+            amount: d.amount,
+            client: d.client
+        }));
     }
 
     // Bonus Breakdown - Remove A-Code from here if it was manually entered, 

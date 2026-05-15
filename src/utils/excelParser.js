@@ -1,17 +1,7 @@
 import ExcelJS from 'exceljs';
 import * as XLSX from 'xlsx';
-
-const getCellValue = (cell) => {
-  const v = cell.value;
-  if (v === null || v === undefined) return '';
-  if (v instanceof Date) return v;
-  if (typeof v === 'object') {
-    if ('richText' in v) return v.richText.map((r) => r.text).join('');
-    if ('result' in v) return v.result;
-    if ('error' in v) return '';
-  }
-  return v;
-};
+import { getCellValue } from './excel-core';
+import { INSTITUTION_NAME_TO_CODE } from '../constants/institutions.js';
 
 const parseExcelBuffer = async (buffer) => {
   const workbook = new ExcelJS.Workbook();
@@ -96,7 +86,9 @@ export const parseEmployeeExcel = async (file) => {
     const idNumber =
       row[findKey(['id number', 'idnumber', 'id', '身分證', '身分證字號'])] || '';
     const position = row[findKey(['position', 'position type', '職級'])] || 'Full-time';
-    const organization = row[findKey(['所屬機構', 'organization', 'org'])] || '';
+    const orgRaw = String(row[findKey(['所屬機構', 'organization', 'org'])] || '').trim();
+    // 中文名 → institution code；若已是 code 則直接用
+    const organization = INSTITUTION_NAME_TO_CODE[orgRaw] ?? orgRaw;
     const paymentMethodRaw = String(row[findKey(['薪資領取方式', 'payment method', 'payment'])] || '匯款').trim();
     const paymentMethod = paymentMethodRaw.includes('現') ? '領現' : '匯款';
 

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Upload, Download, AlertCircle, Hash, Clock } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { getEmployees, saveEmployee, deleteEmployee, importEmployees, clearEmployees } from '../data/employeeStore';
+import { getEmployees, saveEmployee, updateEmployee, deleteEmployee, importEmployees, clearEmployees } from '../data/employeeStore';
 import { generateUUID } from '../utils/uuid';
 import ConfirmModal from '../components/ConfirmModal';
+import { INSTITUTIONS, getInstitutionName } from '../constants/institutions.js';
+import { useInstitution } from '../context/InstitutionContext.jsx';
 
 const safeNum = (v) => {
   if (v === '-' || v === '' || v === null || v === undefined) return 0;
@@ -12,6 +14,7 @@ const safeNum = (v) => {
 };
 
 const EmployeeManagement = () => {
+  const { currentInstitution } = useInstitution();
   const [subTab, setSubTab] = useState('employees');
   const [overtimeRows, setOvertimeRows] = useState(() => {
     try { const s = localStorage.getItem('overtime_rows'); return s ? JSON.parse(s) : []; } catch { return []; }
@@ -80,10 +83,14 @@ const EmployeeManagement = () => {
 
   useEffect(() => {
     loadEmployees();
-  }, []);
+  }, [currentInstitution]);
 
-  const loadEmployees = () => {
-    setEmployees(getEmployees());
+  const loadEmployees = async () => {
+    try {
+      setEmployees(await getEmployees());
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   const handleOpenModal = (employee = null) => {
@@ -94,14 +101,13 @@ const EmployeeManagement = () => {
     } else {
       setEditingEmployee(null);
       setFormData({
-        id: generateUUID(),
         empId: '',
         name: '',
         idNumber: '',
         bankCode: '',
         bankAccount: '',
         position: 'Full-time',
-        organization: '',
+        organization: currentInstitution,
         paymentMethod: '匯款',
         splits: { b: 0, g: 0, s: 0, missed: 0, aa09: 0 },
         laborInsuranceBracket: 0,
@@ -118,25 +124,30 @@ const EmployeeManagement = () => {
   };
 
   const handleDelete = (id) => {
-    showConfirm('刪除確認', '確定要刪除這位員工嗎？此動作無法復原。', 'danger', () => {
-        deleteEmployee(id);
-        loadEmployees();
+    showConfirm('刪除確認', '確定要刪除這位員工嗎？此動作無法復原。', 'danger', async () => {
+        await deleteEmployee(id);
+        await loadEmployees();
     });
   };
 
   const handleClearAll = () => {
-    showConfirm('清除確認', '確定要清除所有員工資料嗎？此動作無法復原。', 'danger', () => {
-        clearEmployees();
-        loadEmployees();
+    showConfirm('清除確認', '確定要清除所有員工資料嗎？此動作無法復原。', 'danger', async () => {
+        await clearEmployees();
+        await loadEmployees();
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     try {
-      saveEmployee(formData);
+      if (editingEmployee) {
+        await updateEmployee(formData.id, formData);
+      } else {
+        await saveEmployee(formData);
+      }
       setIsModalOpen(false);
-      loadEmployees();
+      await loadEmployees();
     } catch (err) {
       setError(err.message);
     }
@@ -195,7 +206,7 @@ const EmployeeManagement = () => {
 
     sheet.addRow({
       empId: 'C001', name: '王小明', idNumber: 'A123456789', position: 'Full-time',
-      organization: 'XX長照機構', paymentMethod: '匯款',
+      organization: '府城', paymentMethod: '匯款',
       bgsSplit: 60, aa09Split: 55,
       bankCode: '822', bankAccount: '1234567890123',
       laborInsuranceBracket: 26400, laborInsuranceSelfPay: 472,
@@ -204,7 +215,7 @@ const EmployeeManagement = () => {
     });
     sheet.addRow({
       empId: 'C002', name: '李小花', idNumber: 'B987654321', position: 'Part-time',
-      organization: 'YY日照中心', paymentMethod: '領現',
+      organization: '鴻康', paymentMethod: '領現',
       bgsSplit: 50, aa09Split: 45,
       bankCode: '004', bankAccount: '9876543210987',
       laborInsuranceBracket: 0, laborInsuranceSelfPay: 0,
@@ -236,9 +247,9 @@ const EmployeeManagement = () => {
     try {
       const { parseEmployeeExcel } = await import('../utils/excelParser');
       const newEmployees = await parseEmployeeExcel(file);
-      const { count } = importEmployees(newEmployees);
+      const { count } = await importEmployees(newEmployees);
       showAlert('匯入成功', `成功匯入/更新 ${count} 筆員工資料。`, 'success');
-      loadEmployees();
+      await loadEmployees();
     } catch (err) {
       showAlert('匯入失敗', '檔案匯入錯誤: ' + err.message, 'danger');
     } finally {
@@ -475,7 +486,7 @@ const EmployeeManagement = () => {
                                     <div className="space-y-2">
                                         <div className="flex justify-between">
                                             <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>所屬機構</span>
-                                            <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{emp.organization || '-'}</span>
+                                            <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{getInstitutionName(emp.organization) || '-'}</span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>薪資領取方式</span>
@@ -620,15 +631,25 @@ const EmployeeManagement = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="block" style={{ fontSize: 'var(--label-text-size)', fontWeight: 'var(--label-text-weight)', color: 'var(--label-text-color)' }}>所屬機構</label>
-                  <input
-                    className="w-full px-3 py-2 text-sm outline-none transition-all"
-                    style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: 'var(--input-border)', borderRadius: 'var(--input-radius)' }}
-                    onFocus={(e) => e.target.style.boxShadow = 'var(--input-focus-ring)'}
-                    onBlur={(e) => e.target.style.boxShadow = 'none'}
-                    value={formData.organization || ''}
-                    onChange={(e) => handleChange('organization', e.target.value)}
-                    placeholder="XX長照機構"
-                  />
+                  <div className="relative">
+                    <select
+                      className="w-full px-3 py-2 text-sm outline-none transition-all appearance-none cursor-pointer"
+                      style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: 'var(--input-border)', borderRadius: 'var(--input-radius)' }}
+                      onFocus={(e) => e.target.style.boxShadow = 'var(--input-focus-ring)'}
+                      onBlur={(e) => e.target.style.boxShadow = 'none'}
+                      value={formData.organization || currentInstitution}
+                      onChange={(e) => handleChange('organization', e.target.value)}
+                    >
+                      {INSTITUTIONS.map(inst => (
+                        <option key={inst.code} value={inst.code} style={{ background: 'var(--input-bg)', color: 'var(--text-primary)' }}>
+                          {inst.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-50" style={{ color: 'var(--text-primary)' }}>
+                      <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 1L5 5L9 1"/></svg>
+                    </div>
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <label className="block" style={{ fontSize: 'var(--label-text-size)', fontWeight: 'var(--label-text-weight)', color: 'var(--label-text-color)' }}>薪資領取方式</label>
