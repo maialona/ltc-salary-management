@@ -21,14 +21,35 @@ function dbToClient(row) {
     bgsOtherSubsidy: parseFloat(row.bgs_other_subsidy) || 0,
     otherSubsidy: parseFloat(row.other_subsidy) || 0,
     holidayBonus: parseFloat(row.holiday_bonus) || 0,
+    // notes
+    bgsOtherSubsidyNote: row.bgs_other_subsidy_note || '',
+    bgsOtherNote:        row.bgs_other_note         || '',
+    crossAreaNote:       row.cross_area_note         || '',
+    serviceBonusNote:    row.service_bonus_note      || '',
+    quotaDevNote:        row.quota_dev_note          || '',
+    certBonusNote:       row.cert_bonus_note         || '',
+    referralNote:        row.referral_note           || '',
+    mentoringNote:       row.mentoring_note          || '',
+    holidayBonusNote:    row.holiday_bonus_note      || '',
+    otherSubsidyNote:    row.other_subsidy_note      || '',
+    otherNote:           row.other_note              || '',
+    fuelNote:            row.fuel_note               || '',
   };
 }
 
 async function upsertBonus(client, institutionCode, period, bonus) {
   const { rows } = await client.query(
-    `INSERT INTO bonuses (institution_code, period, emp_id, name, bonus_a, bonus_c, bonus_open, bonus_dev,
-       bonus_cross, referral, mentoring, fuel, other, bgs_other_subsidy, other_subsidy, holiday_bonus)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+    `INSERT INTO bonuses (
+       institution_code, period, emp_id, name,
+       bonus_a, bonus_c, bonus_open, bonus_dev, bonus_cross,
+       referral, mentoring, fuel, other,
+       bgs_other_subsidy, other_subsidy, holiday_bonus,
+       bgs_other_subsidy_note, bgs_other_note,
+       cross_area_note, service_bonus_note, quota_dev_note, cert_bonus_note,
+       referral_note, mentoring_note, holiday_bonus_note,
+       other_subsidy_note, other_note, fuel_note
+     )
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28)
      ON CONFLICT (institution_code, period, emp_id) DO UPDATE SET
        name = EXCLUDED.name,
        bonus_a = EXCLUDED.bonus_a, bonus_c = EXCLUDED.bonus_c,
@@ -38,6 +59,18 @@ async function upsertBonus(client, institutionCode, period, bonus) {
        bgs_other_subsidy = EXCLUDED.bgs_other_subsidy,
        other_subsidy = EXCLUDED.other_subsidy,
        holiday_bonus = EXCLUDED.holiday_bonus,
+       bgs_other_subsidy_note = EXCLUDED.bgs_other_subsidy_note,
+       bgs_other_note         = EXCLUDED.bgs_other_note,
+       cross_area_note        = EXCLUDED.cross_area_note,
+       service_bonus_note     = EXCLUDED.service_bonus_note,
+       quota_dev_note         = EXCLUDED.quota_dev_note,
+       cert_bonus_note        = EXCLUDED.cert_bonus_note,
+       referral_note          = EXCLUDED.referral_note,
+       mentoring_note         = EXCLUDED.mentoring_note,
+       holiday_bonus_note     = EXCLUDED.holiday_bonus_note,
+       other_subsidy_note     = EXCLUDED.other_subsidy_note,
+       other_note             = EXCLUDED.other_note,
+       fuel_note              = EXCLUDED.fuel_note,
        updated_at = now()
      RETURNING *`,
     [
@@ -46,6 +79,10 @@ async function upsertBonus(client, institutionCode, period, bonus) {
       bonus.bonusCross || 0, bonus.referral || 0, bonus.mentoring || 0,
       bonus.fuel || 0, bonus.other || 0,
       bonus.bgsOtherSubsidy || 0, bonus.otherSubsidy || 0, bonus.holidayBonus || 0,
+      bonus.bgsOtherSubsidyNote || '', bonus.bgsOtherNote     || '',
+      bonus.crossAreaNote    || '', bonus.serviceBonusNote || '', bonus.quotaDevNote    || '', bonus.certBonusNote   || '',
+      bonus.referralNote     || '', bonus.mentoringNote    || '', bonus.holidayBonusNote|| '',
+      bonus.otherSubsidyNote || '', bonus.otherNote        || '', bonus.fuelNote        || '',
     ]
   );
   return rows[0];

@@ -27,7 +27,7 @@ const ALL_NAV_ITEMS = [
   { id: 'acode', icon: Calculator, label: 'A碼計算', adminOnly: false },
   { id: 'bonuses', icon: Coins, label: '額外獎金', adminOnly: false },
   { id: 'deductions', icon: FileSpreadsheet, label: '應扣費用', adminOnly: false },
-  { id: 'summary', icon: Banknote, label: '薪資總表', adminOnly: false },
+  { id: 'summary', icon: Banknote, label: '薪資報表', adminOnly: false },
   { id: 'download', icon: Download, label: '薪資表下載', adminOnly: false },
   { id: 'users', icon: ShieldCheck, label: '使用者管理', adminOnly: true },
 ];

@@ -70,6 +70,7 @@ const DeductionManagement = () => {
             ...deduction,
             id: emp.id,
             deductionId: deduction.id,
+            name: deduction.name || emp.name,
             withholdingTax: deduction.withholdingTax || 0,
             laborLevel: deduction.laborLevel || empLaborLevel,
             laborFee: deduction.laborFee || empLaborFee,
