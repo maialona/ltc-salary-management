@@ -431,7 +431,7 @@ function buildBgsData(emp, bonus, deduction, record) {
   const pensionFee    = deduction.pensionFee ?? emp.voluntaryPensionDeduction ?? 0;
   const otherDeduction = deduction.otherDeduction || 0;
   const net = Math.round(totalSplit + otherSubsidy + other - laborFee - healthFee - pensionFee - otherDeduction);
-  return { emp, institutionName: getInstitutionName(emp.organization),
+  return { type: 'bgs', emp, institutionName: getInstitutionName(emp.organization),
            serviceItems, totalSplit, otherSubsidy, other,
            laborFee, healthFee, pensionFee, otherDeduction, net };
 }
@@ -455,7 +455,7 @@ function buildAcodeData(emp, bonus, deduction, aCodeResult) {
   const otherDeduction  = deduction.otherDeduction || 0;
   const allSubsidy = fuel + otherSubsidy + other + bonusItems.reduce((s, b) => s + b.value, 0);
   const net = Math.round(totalSplit + allSubsidy - withholdingTax - otherDeduction);
-  return { emp, institutionName: getInstitutionName(emp.organization),
+  return { type: 'acode', emp, institutionName: getInstitutionName(emp.organization),
            serviceItems, totalSplit, fuel, otherSubsidy, other, bonusItems,
            withholdingTax, otherDeduction, net };
 }
@@ -489,7 +489,7 @@ function buildSummaryData(emp, bonus, deduction, record, aCodeResult) {
                     + referral + mentoring + holidayBonus + acodeOtherSubsidy + other + fuel;
   const totalDeduction = laborFee + healthFee + pensionFee + withholdingTax + otherDeduction;
   const net = Math.round(totalIncome - totalDeduction);
-  return { emp, institutionName: getInstitutionName(emp.organization),
+  return { type: 'summary', emp, institutionName: getInstitutionName(emp.organization),
            splitB, splitG, splitS, splitMissed, bgsServiceIncome, bgsOtherSubsidy,
            laborFee, healthFee, pensionFee,
            splitA, crossArea, serviceBonus, quotaDev, certBonus, referral, mentoring, holidayBonus,
@@ -505,7 +505,7 @@ const SLIP_TYPES = [
 ];
 
 const SlipRenderer = ({ slipType, data, isBulk }) => {
-  if (!data) return null;
+  if (!data || data.type !== slipType) return null;
   if (slipType === 'bgs')     return <BgsTemplate     data={data} isBulk={isBulk} />;
   if (slipType === 'acode')   return <AcodeTemplate   data={data} isBulk={isBulk} />;
   if (slipType === 'summary') return <SummaryTemplate data={data} isBulk={isBulk} />;
