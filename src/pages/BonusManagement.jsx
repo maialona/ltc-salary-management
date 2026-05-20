@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import {  Edit2, Upload, Trash, X, Download } from 'lucide-react';
+import { Edit2, Upload, X, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { getBonuses, saveBonus, clearBonuses, importBonuses } from '../data/bonusStore';
+import { getBonuses, saveBonus, importBonuses } from '../data/bonusStore';
 import { getEmployees } from '../data/employeeStore';
 import { getAcodeResults } from '../data/acodeStore';
 import { subscribePeriod } from '../data/periodStore';
@@ -95,13 +95,6 @@ const BonusManagement = () => {
         id: item.bonusId || generateUUID() 
     });
     setIsModalOpen(true);
-  };
-
-  const handleClearAll = () => {
-    showConfirm('歸零確認', '確定要歸零所有額外獎金金額嗎？(員工名單不會被刪除)', 'danger', async () => {
-        await clearBonuses();
-        loadData();
-    });
   };
 
   const handleSubmit = async (e) => {
@@ -208,14 +201,6 @@ const BonusManagement = () => {
                     </button>
                </div>
 
-               {/* Clear All Button */}
-               <button
-                  onClick={handleClearAll}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-md border border-red-500/20 transition-all cursor-pointer text-sm font-medium"
-               >
-                  <Trash size={14} />
-                  <span>歸零</span>
-               </button>
           </div>
       </div>
 

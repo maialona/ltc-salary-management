@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Edit2, X, Calculator } from 'lucide-react';
+import { Edit2, X, Calculator, Download } from 'lucide-react';
 import FilledBellIcon from '../components/ui/filled-bell-icon';
 import { getEmployees } from '../data/employeeStore';
 import { getBonuses, saveBonus } from '../data/bonusStore';
 import { getDeductions, saveDeduction } from '../data/deductionStore';
 import { getRecords } from '../data/recordsStore';
 import { getAcodeResults } from '../data/acodeStore';
-import { subscribePeriod } from '../data/periodStore';
+import { subscribePeriod, getPeriod } from '../data/periodStore';
 import { useInstitution } from '../context/InstitutionContext';
 import { lookupWithholdingTax } from '../data/withholdingTaxTable';
+import { exportBgsExcel, exportAcodeExcel, exportSummaryExcel } from '../utils/salary-excel';
 
 const money = (val) => (val && val !== 0) ? `$${val.toLocaleString()}` : '-';
 const pct   = (val) => (val && val !== 0) ? `${val}%` : '-';
@@ -160,6 +161,7 @@ const SalarySummary = () => {
   const [aItems, setAItems]             = useState([]);
   const [summaryItems, setSummaryItems] = useState([]);
   const [applying, setApplying]         = useState(false);
+  const [exporting, setExporting]       = useState(false);
   const [modal, setModal]               = useState({ open: false, type: null, form: {}, raw: {} });
   const [noteModal, setNoteModal]       = useState({ open: false, type: null, form: {}, raw: {} });
 
@@ -545,6 +547,20 @@ const SalarySummary = () => {
     loadData();
   };
 
+  // ── Excel export ────────────────────────────────────────────────────────────
+  const handleExport = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const period = getPeriod();
+      if (subTab === 'bgs')     await exportBgsExcel(bgsItems, period);
+      if (subTab === 'acode')   await exportAcodeExcel(aItems, period);
+      if (subTab === 'summary') await exportSummaryExcel(summaryItems, period);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   // ── Batch apply auto-computed withholding tax to deductions store ──────────
   const applyAutoTax = async () => {
     if (summaryItems.length === 0) return;
@@ -625,8 +641,19 @@ const SalarySummary = () => {
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div>
+      <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>薪資報表</h2>
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ color: 'var(--text-secondary)', borderColor: 'var(--glass-border)', background: 'transparent' }}
+          onMouseEnter={e => { if (!exporting) e.currentTarget.style.background = 'var(--glass-border)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+        >
+          <Download size={14} />
+          {exporting ? '匯出中…' : '匯出 Excel'}
+        </button>
       </div>
 
       {/* Sub-tab selector */}

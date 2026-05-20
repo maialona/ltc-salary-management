@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Edit2, Upload, Trash, Save, X, RefreshCw } from 'lucide-react';
-import { getDeductions, saveDeduction, clearDeductions, importDeductions } from '../data/deductionStore';
+import { Edit2, Upload, Save, X, RefreshCw } from 'lucide-react';
+import { getDeductions, saveDeduction, importDeductions } from '../data/deductionStore';
 import { getEmployees } from '../data/employeeStore';
 import { subscribePeriod } from '../data/periodStore';
 import { useInstitution } from '../context/InstitutionContext';
@@ -99,13 +99,6 @@ const DeductionManagement = () => {
     setIsModalOpen(true);
   };
 
-  const handleClearAll = () => {
-    showConfirm('歸零確認', '確定要歸零所有應扣費用金額嗎？(員工名單不會被刪除)', 'danger', async () => {
-        await clearDeductions();
-        loadData();
-    });
-  };
-
   const handleSyncFromEmployee = () => {
     setFormData(prev => ({
       ...prev,
@@ -191,14 +184,6 @@ const DeductionManagement = () => {
                     </button>
                </div>
 
-               {/* Clear All Button */}
-               <button
-                  onClick={handleClearAll}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-md border border-red-500/20 transition-all cursor-pointer text-sm font-medium"
-               >
-                  <Trash size={14} />
-                  <span>歸零</span>
-               </button>
           </div>
       </div>
 
