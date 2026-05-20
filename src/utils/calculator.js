@@ -82,6 +82,7 @@ export const processSalaryCalculation = (records, employees) => {
       client: clientName,
       code: serviceCode,
       count,
+      unitPrice: parseFloat(row['政府補助單價'] || 0),
       amount: isMissed ? govAmount + selfPayAmount : govAmount,
       split: splitAmount + selfPaySplitAmount,
       selfPayAmount: isMissed ? 0 : selfPayAmount,

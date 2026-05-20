@@ -30,7 +30,7 @@ const EmployeeManagement = () => {
     position: 'Full-time',
     organization: '',
     paymentMethod: '匯款',
-    splits: { b: 0, g: 0, s: 0, missed: 0, aa09: 0 },
+    splits: { b: 0, g: 0, s: 0, missed: 0, aa09: 0, otherAcode: 0 },
     laborInsuranceBracket: 0,
     laborInsuranceSelfPay: 0,
     healthInsuranceBracket: 0,
@@ -120,7 +120,7 @@ const EmployeeManagement = () => {
         position: 'Full-time',
         organization: currentInstitution,
         paymentMethod: '匯款',
-        splits: { b: 0, g: 0, s: 0, missed: 0, aa09: 0 },
+        splits: { b: 0, g: 0, s: 0, missed: 0, aa09: 0, otherAcode: 0 },
         laborInsuranceBracket: 0,
         laborInsuranceSelfPay: 0,
         healthInsuranceBracket: 0,
@@ -197,6 +197,7 @@ const EmployeeManagement = () => {
       { header: '薪資領取方式', key: 'paymentMethod', width: 14 },
       { header: 'BGS碼抽成', key: 'bgsSplit', width: 13 },
       { header: 'AA09抽成', key: 'aa09Split', width: 13 },
+      { header: '其餘A碼抽成', key: 'otherAcodeSplit', width: 14 },
       { header: '銀行代碼', key: 'bankCode', width: 12 },
       { header: '匯款帳號', key: 'bankAccount', width: 20 },
       { header: '勞(就)保級距', key: 'laborInsuranceBracket', width: 16 },
@@ -218,7 +219,7 @@ const EmployeeManagement = () => {
     sheet.addRow({
       empId: 'C001', name: '王小明', idNumber: 'A123456789', position: 'Full-time',
       organization: '府城', paymentMethod: '匯款',
-      bgsSplit: 60, aa09Split: 55,
+      bgsSplit: 60, aa09Split: 55, otherAcodeSplit: 50,
       bankCode: '822', bankAccount: '1234567890123',
       laborInsuranceBracket: 26400, laborInsuranceSelfPay: 472,
       healthInsuranceBracket: 26400, healthDependents: 1, healthInsuranceSelfPay: 826,
@@ -227,7 +228,7 @@ const EmployeeManagement = () => {
     sheet.addRow({
       empId: 'C002', name: '李小花', idNumber: 'B987654321', position: 'Part-time',
       organization: '鴻康', paymentMethod: '領現',
-      bgsSplit: 50, aa09Split: 45,
+      bgsSplit: 50, aa09Split: 45, otherAcodeSplit: 40,
       bankCode: '004', bankAccount: '9876543210987',
       laborInsuranceBracket: 0, laborInsuranceSelfPay: 0,
       healthInsuranceBracket: 0, healthDependents: 0, healthInsuranceSelfPay: 0,
@@ -532,6 +533,10 @@ const EmployeeManagement = () => {
                                             <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>AA09抽成</span>
                                             <span className="text-xs font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{emp.splits?.aa09 ?? 0}%</span>
                                         </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>其餘A碼抽成</span>
+                                            <span className="text-xs font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{emp.splits?.otherAcode ?? 0}%</span>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -742,7 +747,7 @@ const EmployeeManagement = () => {
               {/* 抽成比例 */}
               <div className="p-4 rounded-md border" style={{ borderColor: 'var(--glass-border)', background: 'var(--accordion-bg)' }}>
                 <label className="block mb-3" style={{ fontSize: 'var(--label-text-size)', fontWeight: 'var(--label-text-weight)', color: 'var(--label-text-color)' }}>抽成比例</label>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-1.5">
                     <label className="block text-xs" style={{ color: 'var(--text-secondary)' }}>BGS碼抽成</label>
                     <div className="relative">
@@ -770,6 +775,22 @@ const EmployeeManagement = () => {
                         onBlur={(e) => e.target.style.boxShadow = 'none'}
                         value={formData.splits.aa09 || 0}
                         onChange={(e) => handleChange('aa09', parseFloat(e.target.value) || 0, true)}
+                        placeholder="55"
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs pointer-events-none" style={{ color: 'var(--text-secondary)' }}>%</div>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-xs" style={{ color: 'var(--text-secondary)' }}>其餘A碼抽成</label>
+                    <div className="relative">
+                      <input
+                        type="number" min="0" max="100" step="0.1"
+                        className="w-full px-3 py-2 text-sm text-center font-mono font-semibold outline-none transition-all"
+                        style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: 'var(--input-border)', borderRadius: 'var(--input-radius)' }}
+                        onFocus={(e) => e.target.style.boxShadow = 'var(--input-focus-ring)'}
+                        onBlur={(e) => e.target.style.boxShadow = 'none'}
+                        value={formData.splits.otherAcode || 0}
+                        onChange={(e) => handleChange('otherAcode', parseFloat(e.target.value) || 0, true)}
                         placeholder="55"
                       />
                       <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs pointer-events-none" style={{ color: 'var(--text-secondary)' }}>%</div>

@@ -99,6 +99,7 @@ export const parseEmployeeExcel = async (file) => {
 
     const bgsSplit = parsePct(row[findKey(['bgs碼抽成', 'bgs split', 'bgs抽成', '拆帳比例', 'global split', 'split ratio'])] || 0);
     const aa09Split = parsePct(row[findKey(['aa09抽成', 'aa09 split', 'aa09'])] || 0);
+    const otherAcodeSplit = parsePct(row[findKey(['其餘a碼抽成', '其餘a碼', '其他a碼抽成', 'other acode split', 'other a split'])] || 0);
 
     const b = bgsSplit || parseFloat(row[findKey(['b', 'b code', 'b碼', 'b拆帳'])] || 0);
     const g = bgsSplit || parseFloat(row[findKey(['g', 'g code', 'g碼', 'g拆帳'])] || 0);
@@ -132,7 +133,7 @@ export const parseEmployeeExcel = async (file) => {
       paymentMethod,
       bankCode: String(bankCode).trim(),
       bankAccount: String(bankAccount).trim(),
-      splits: { b, g, s, missed, aa09: aa09Split },
+      splits: { b, g, s, missed, aa09: aa09Split, otherAcode: otherAcodeSplit },
       laborInsuranceBracket,
       laborInsuranceSelfPay,
       healthInsuranceBracket,

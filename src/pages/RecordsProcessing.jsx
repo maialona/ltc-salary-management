@@ -360,6 +360,7 @@ const RecordsProcessing = () => {
                         <thead className="sticky top-0 z-10" style={{ background: 'var(--table-header-bg)', color: 'var(--table-header-text)' }}>
                           <tr>
                             <th className="px-3 py-2 text-left font-medium">服務項目</th>
+                            <th className="px-3 py-2 text-right font-medium">政府補助單價</th>
                             <th className="px-3 py-2 text-right font-medium">數量</th>
                             <th className="px-3 py-2 text-right font-medium">申請金額</th>
                             <th className="px-3 py-2 text-right font-medium">拆帳金額</th>
@@ -371,7 +372,7 @@ const RecordsProcessing = () => {
                             const clientTotalAmount = group.items.reduce((s, i) => s + i.amount, 0);
                             const clientTotalSplit = group.items.reduce((s, i) => s + i.split, 0);
                             const clientSelfPayAmount = group.items.reduce((s, i) => s + i.selfPayAmount, 0);
-                            const colSpanCount = 4 + (hasSelfPay ? 2 : 0);
+                            const colSpanCount = 5 + (hasSelfPay ? 1 : 0);
                             return (
                               <React.Fragment key={idx}>
                                 <tr className="border-t" style={{ borderColor: 'var(--glass-border)', background: 'var(--accordion-bg)' }}>
@@ -386,6 +387,7 @@ const RecordsProcessing = () => {
                                 {group.items.map((item, i) => (
                                   <tr key={i} className="border-t" style={{ borderColor: 'var(--glass-border)' }}>
                                     <td className="px-3 py-1.5 pl-6 font-mono" style={{ color: 'var(--text-secondary)' }}>{item.code}</td>
+                                    <td className="px-3 py-1.5 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>{item.unitPrice > 0 ? `$${fmt(item.unitPrice, 0)}` : '—'}</td>
                                     <td className="px-3 py-1.5 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>{item.count}</td>
                                     <td className="px-3 py-1.5 text-right font-mono" style={{ color: 'var(--text-primary)' }}>${fmt(item.amount, 0)}</td>
                                     <td className="px-3 py-1.5 text-right font-mono" style={{ color: 'var(--text-accent)' }}>${fmt(item.split, 1)}</td>

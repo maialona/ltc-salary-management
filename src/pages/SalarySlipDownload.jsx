@@ -6,7 +6,7 @@ import { getRecords } from '../data/recordsStore';
 import { getAcodeResults } from '../data/acodeStore';
 import { subscribePeriod, getPeriod } from '../data/periodStore';
 import { useInstitution } from '../context/InstitutionContext';
-import { getInstitutionName } from '../constants/institutions';
+import { getInstitutionFullName } from '../constants/institutions';
 import { FileText, Printer } from 'lucide-react';
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
@@ -17,11 +17,14 @@ const today = () => new Date().toLocaleDateString('zh-TW');
 // ─── Print style (injected once) ─────────────────────────────────────────────
 const PRINT_STYLE = `
   @media print {
-    @page { size: A4; margin: 12mm; }
+    @page { size: A4; margin: 0; }
     html, body, #root, #salary-slip-root {
       height: auto !important; overflow: visible !important;
       position: static !important; display: block !important;
     }
+    body { padding: 8mm 0; margin: 0 !important; }
+    main { margin-left: 0 !important; padding: 0 !important; }
+    #salary-slip-root { display: flex; flex-direction: column; align-items: center; }
     .slip-page { page-break-after: always; break-after: page; }
     .slip-page:last-child { page-break-after: auto; break-after: auto; }
     .print\\:hidden { display: none !important; }
@@ -29,8 +32,8 @@ const PRINT_STYLE = `
 `;
 
 // ─── Shared print-page wrapper ────────────────────────────────────────────────
-const SlipPage = ({ isBulk, children }) => (
-  <div className={`bg-white text-black mx-auto max-w-[190mm] min-h-[267mm] shadow-lg print:shadow-none print:w-full print:max-w-none print:min-h-0 print:m-0 rounded-sm${isBulk ? ' slip-page mb-8 print:mb-0' : ''}`}>
+const SlipPage = ({ isBulk, breakAfter, children }) => (
+  <div className={`bg-white text-black mx-auto max-w-[190mm] min-h-[267mm] shadow-lg print:shadow-none print:w-full print:max-w-none print:min-h-0 print:m-0 rounded-sm${isBulk ? ' slip-page mb-8 print:mb-0' : ''}${breakAfter ? ' print:break-after-page' : ''}`}>
     {children}
   </div>
 );
@@ -58,7 +61,7 @@ const SlipHeader = ({ title, period, emp, institutionName }) => (
 );
 
 // ─── Service items table (shared layout) ──────────────────────────────────────
-const ServiceTable = ({ rows, splitTotal, showRaw = true }) => (
+const ServiceCards = ({ rows, splitTotal, showRaw = true }) => (
   <table className="w-full text-[10px] border-collapse">
     <thead>
       <tr className="bg-gray-100 border-b border-gray-300">
@@ -73,15 +76,27 @@ const ServiceTable = ({ rows, splitTotal, showRaw = true }) => (
       {rows.length === 0 ? (
         <tr><td colSpan={showRaw ? 5 : 4} className="py-3 text-center text-gray-400 italic">無服務紀錄</td></tr>
       ) : (
-        rows.map((row, i) => (
-          <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
-            <td className="py-1 px-2 font-medium">{row.client}</td>
-            <td className="py-1 px-2 font-mono">{row.code}</td>
-            <td className="py-1 px-2 text-right font-mono">{Number(row.count ?? row.qty ?? 0).toFixed(2)}</td>
-            {showRaw && <td className="py-1 px-2 text-right font-mono">{money(row.rawAmount ?? row.subtotal ?? row.amount)}</td>}
-            <td className="py-1 px-2 text-right font-mono font-semibold">{money(row.splitAmount ?? row.split ?? row.amount)}</td>
-          </tr>
-        ))
+        rows.map((row, i) => {
+          const isFirstOfClient = i === 0 || rows[i - 1].client !== row.client;
+          const span = isFirstOfClient ? rows.slice(i).findIndex((r, j) => j > 0 && r.client !== row.client) : -1;
+          const rowSpan = isFirstOfClient ? (span === -1 ? rows.length - i : span) : 0;
+          return (
+            <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
+              {isFirstOfClient && (
+                <td rowSpan={rowSpan} className="py-1 px-2 font-medium align-top border-r border-gray-100">{row.client}</td>
+              )}
+              <td className="py-1 px-2 font-mono">
+                {row.code}
+                {row.unitPrice > 0 && (
+                  <span className="ml-1 text-gray-400">${row.unitPrice.toLocaleString()}</span>
+                )}
+              </td>
+              <td className="py-1 px-2 text-right font-mono">{Number(row.count ?? row.qty ?? 0).toFixed(2)}</td>
+              {showRaw && <td className="py-1 px-2 text-right font-mono">{money(row.rawAmount ?? row.subtotal ?? row.amount)}</td>}
+              <td className="py-1 px-2 text-right font-mono font-semibold">{money(row.splitAmount ?? row.split ?? row.amount)}</td>
+            </tr>
+          );
+        })
       )}
     </tbody>
     <tfoot>
@@ -147,12 +162,8 @@ const BgsTemplate = ({ data, isBulk }) => {
   const { emp, institutionName, serviceItems, totalSplit,
           otherSubsidy, other, laborFee, healthFee, pensionFee, otherDeduction, net } = data;
   const sp = emp.splits || {};
-  const splitDesc = [
-    sp.b      && `B碼 ${sp.b}%`,
-    sp.g      && `G碼 ${sp.g}%`,
-    sp.s      && `S碼 ${sp.s}%`,
-    sp.missed && `未遇 ${sp.missed}%`,
-  ].filter(Boolean).join('　');
+  const splitRate = sp.b || sp.g || sp.s || sp.missed;
+  const splitDesc = splitRate ? `${splitRate}%` : null;
 
   const totalIncome = totalSplit + (otherSubsidy || 0) + (other || 0);
   const totalDed = (laborFee || 0) + (healthFee || 0) + (pensionFee || 0) + (otherDeduction || 0);
@@ -161,65 +172,74 @@ const BgsTemplate = ({ data, isBulk }) => {
   const rows = serviceItems.map(it => ({
     client: it.client,
     code: it.code,
+    unitPrice: it.unitPrice,
     count: it.count,
     rawAmount: (it.amount || 0) + (it.selfPayAmount || 0),
     splitAmount: it.split,
   }));
 
   return (
-    <SlipPage isBulk={isBulk}>
-      <div className="p-8 space-y-4">
-        <SlipHeader title="BGS碼薪資明細表" period={getPeriod()} emp={emp} institutionName={institutionName} />
+    <>
+      {/* 第一頁：薪資單 */}
+      <SlipPage isBulk={isBulk} breakAfter>
+        <div className="p-8 space-y-4">
+          <SlipHeader title="BGS碼薪資明細表" period={getPeriod()} emp={emp} institutionName={institutionName} />
 
-        {/* 人員基本資料 */}
-        <section>
-          <SectionLabel>人員基本資料</SectionLabel>
-          <InfoGrid cells={[
-            { label: '姓名',     value: emp.name },
-            { label: '所屬機構', value: institutionName },
-            { label: '匯款帳號', value: emp.bankAccount ? `${emp.bankCode || ''} ${emp.bankAccount}`.trim() : null },
-            { label: 'BGS碼抽成', value: splitDesc || null },
-            { label: '勞保費 (級距)', value: emp.laborInsuranceBracket ? `$${emp.laborInsuranceBracket.toLocaleString()}` : null },
-            { label: '健保費 (級距)', value: emp.healthInsuranceBracket ? `$${emp.healthInsuranceBracket.toLocaleString()}` : null },
-            { label: '勞退自提率', value: emp.voluntaryPensionRate ? `${emp.voluntaryPensionRate}%` : null },
-          ]} />
-        </section>
-
-        {/* 服務項目明細 */}
-        <section>
-          <SectionLabel>服務項目明細（BGS碼 / 未遇）</SectionLabel>
-          <ServiceTable rows={rows} splitTotal={totalSplit} />
-        </section>
-
-        {/* 其他收入 */}
-        {(otherSubsidy > 0 || other > 0) && (
+          {/* 人員基本資料 */}
           <section>
-            <SectionLabel>其他收入</SectionLabel>
+            <SectionLabel>人員基本資料</SectionLabel>
+            <InfoGrid cells={[
+              { label: '姓名',     value: emp.name },
+              { label: '匯款帳號', value: emp.bankAccount ? `${emp.bankCode || ''} ${emp.bankAccount}`.trim() : null },
+              { label: 'BGS碼抽成', value: splitDesc || null },
+              { label: '勞保費 (級距)', value: emp.laborInsuranceBracket ? `${emp.laborInsuranceBracket.toLocaleString()}` : null },
+              { label: '健保費 (級距)', value: emp.healthInsuranceBracket ? `${emp.healthInsuranceBracket.toLocaleString()}` : null },
+              { label: '健保眷屬人數', value: emp.healthDependents != null && emp.healthDependents !== '' ? `${emp.healthDependents}` : null },
+              { label: '勞退自提率', value: emp.voluntaryPensionRate ? `${emp.voluntaryPensionRate}%` : null },
+            ]} />
+          </section>
+
+          {/* 其他收入 */}
+          {(otherSubsidy > 0 || other > 0) && (
+            <section>
+              <SectionLabel>其他收入</SectionLabel>
+              <div className="bg-gray-50 rounded px-3 py-2">
+                <AmountRow label="其他補貼" value={otherSubsidy} />
+                <AmountRow label="其他" value={other} />
+                {(otherSubsidy > 0 || other > 0) && (
+                  <SubtotalRow label="其他收入小計" value={otherSubsidy + other} />
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* 應扣費用 */}
+          <section>
+            <SectionLabel>應扣費用明細</SectionLabel>
             <div className="bg-gray-50 rounded px-3 py-2">
-              <AmountRow label="其他補貼" value={otherSubsidy} />
-              <AmountRow label="其他" value={other} />
-              {(otherSubsidy > 0 || other > 0) && (
-                <SubtotalRow label="其他收入小計" value={otherSubsidy + other} />
-              )}
+              <AmountRow label="勞保費" value={laborFee} negative />
+              <AmountRow label="健保費" value={healthFee} negative />
+              <AmountRow label={`勞退自提${emp.voluntaryPensionRate ? ` (${emp.voluntaryPensionRate}%)` : ''}`} value={pensionFee} negative />
+              <AmountRow label="其他扣款" value={otherDeduction} negative />
+              <SubtotalRow label="應扣小計" value={totalDed} negative />
             </div>
           </section>
-        )}
 
-        {/* 應扣費用 */}
-        <section>
-          <SectionLabel>應扣費用明細</SectionLabel>
-          <div className="bg-gray-50 rounded px-3 py-2">
-            <AmountRow label={`勞保費${emp.laborInsuranceBracket ? ` (級距 $${emp.laborInsuranceBracket.toLocaleString()})` : ''}`} value={laborFee} negative />
-            <AmountRow label={`健保費${emp.healthInsuranceBracket ? ` (級距 $${emp.healthInsuranceBracket.toLocaleString()})` : ''}`} value={healthFee} negative />
-            <AmountRow label={`勞退自提${emp.voluntaryPensionRate ? ` (${emp.voluntaryPensionRate}%)` : ''}`} value={pensionFee} negative />
-            <AmountRow label="其他扣款" value={otherDeduction} negative />
-            <SubtotalRow label="應扣小計" value={totalDed} negative />
-          </div>
-        </section>
+          <NetFooter income={totalIncome} deduction={totalDed} net={net} />
+        </div>
+      </SlipPage>
 
-        <NetFooter income={totalIncome} deduction={totalDed} net={net} />
-      </div>
-    </SlipPage>
+      {/* 第二頁：服務項目明細 */}
+      <SlipPage isBulk={isBulk}>
+        <div className="p-8 space-y-4">
+          <SlipHeader title="BGS碼服務項目明細" period={getPeriod()} emp={emp} institutionName={institutionName} />
+          <section>
+            <SectionLabel>服務項目明細（BGS碼 / 未遇）</SectionLabel>
+            <ServiceCards rows={rows} splitTotal={totalSplit} />
+          </section>
+        </div>
+      </SlipPage>
+    </>
   );
 };
 
@@ -231,6 +251,7 @@ const AcodeTemplate = ({ data, isBulk }) => {
           fuel, otherSubsidy, other, bonusItems,
           withholdingTax, otherDeduction, net } = data;
   const acodeRate = emp.splits?.aa09;
+  const otherAcodeRate = emp.splits?.otherAcode;
 
   const allSubsidyBonus = (fuel || 0) + (otherSubsidy || 0) + (other || 0)
     + bonusItems.reduce((s, b) => s + b.value, 0);
@@ -246,53 +267,61 @@ const AcodeTemplate = ({ data, isBulk }) => {
   }));
 
   return (
-    <SlipPage isBulk={isBulk}>
-      <div className="p-8 space-y-4">
-        <SlipHeader title="A碼及獎金薪資明細表" period={getPeriod()} emp={emp} institutionName={institutionName} />
+    <>
+      {/* 第一頁：薪資單 */}
+      <SlipPage isBulk={isBulk} breakAfter>
+        <div className="p-8 space-y-4">
+          <SlipHeader title="A碼及獎金薪資明細表" period={getPeriod()} emp={emp} institutionName={institutionName} />
 
-        {/* 人員基本資料 */}
-        <section>
-          <SectionLabel>人員基本資料</SectionLabel>
-          <InfoGrid cells={[
-            { label: '姓名',     value: emp.name },
-            { label: '所屬機構', value: institutionName },
-            { label: 'A碼抽成',  value: acodeRate ? `${acodeRate}%` : null },
-          ]} />
-        </section>
-
-        {/* A碼服務項目明細 */}
-        <section>
-          <SectionLabel>A碼服務項目明細</SectionLabel>
-          <ServiceTable rows={rows} splitTotal={totalSplit} />
-        </section>
-
-        {/* 獎金及補貼 */}
-        {allSubsidyBonus > 0 && (
+          {/* 人員基本資料 */}
           <section>
-            <SectionLabel>獎金及補貼</SectionLabel>
+            <SectionLabel>人員基本資料</SectionLabel>
+            <InfoGrid cells={[
+              { label: '姓名',       value: emp.name },
+              { label: 'AA09抽成',   value: acodeRate ? `${acodeRate}%` : null },
+              { label: '其餘A碼抽成', value: otherAcodeRate ? `${otherAcodeRate}%` : null },
+            ]} />
+          </section>
+
+          {/* 獎金及補貼 */}
+          {allSubsidyBonus > 0 && (
+            <section>
+              <SectionLabel>獎金及補貼</SectionLabel>
+              <div className="bg-gray-50 rounded px-3 py-2">
+                <AmountRow label="油資補貼" value={fuel} />
+                <AmountRow label="其他補貼" value={otherSubsidy} />
+                {bonusItems.map((b, i) => <AmountRow key={i} label={b.label} value={b.value} />)}
+                <AmountRow label="其他" value={other} />
+                <SubtotalRow label="獎金補貼小計" value={allSubsidyBonus} />
+              </div>
+            </section>
+          )}
+
+          {/* 應扣費用（不含勞健保，已在 BGS 薪資中扣除） */}
+          <section>
+            <SectionLabel>應扣費用明細</SectionLabel>
             <div className="bg-gray-50 rounded px-3 py-2">
-              <AmountRow label="油資補貼" value={fuel} />
-              <AmountRow label="其他補貼" value={otherSubsidy} />
-              {bonusItems.map((b, i) => <AmountRow key={i} label={b.label} value={b.value} />)}
-              <AmountRow label="其他" value={other} />
-              <SubtotalRow label="獎金補貼小計" value={allSubsidyBonus} />
+              <AmountRow label={`扣繳稅額${emp.dependentsCount != null ? ` (扶養 ${emp.dependentsCount} 人)` : ''}`} value={withholdingTax} negative />
+              <AmountRow label="其他扣款" value={otherDeduction} negative />
+              {totalDed > 0 && <SubtotalRow label="應扣小計" value={totalDed} negative />}
             </div>
           </section>
-        )}
 
-        {/* 應扣費用（不含勞健保，已在 BGS 薪資中扣除） */}
-        <section>
-          <SectionLabel>應扣費用明細</SectionLabel>
-          <div className="bg-gray-50 rounded px-3 py-2">
-            <AmountRow label={`扣繳稅額${emp.dependentsCount != null ? ` (扶養 ${emp.dependentsCount} 人)` : ''}`} value={withholdingTax} negative />
-            <AmountRow label="其他扣款" value={otherDeduction} negative />
-            {totalDed > 0 && <SubtotalRow label="應扣小計" value={totalDed} negative />}
-          </div>
-        </section>
+          <NetFooter income={totalSplit + allSubsidyBonus} deduction={totalDed} net={net} />
+        </div>
+      </SlipPage>
 
-        <NetFooter income={totalSplit + allSubsidyBonus} deduction={totalDed} net={net} />
-      </div>
-    </SlipPage>
+      {/* 第二頁：服務項目明細 */}
+      <SlipPage isBulk={isBulk}>
+        <div className="p-8 space-y-4">
+          <SlipHeader title="A碼服務項目明細" period={getPeriod()} emp={emp} institutionName={institutionName} />
+          <section>
+            <SectionLabel>A碼服務項目明細</SectionLabel>
+            <ServiceCards rows={rows} splitTotal={totalSplit} />
+          </section>
+        </div>
+      </SlipPage>
+    </>
   );
 };
 
@@ -354,8 +383,8 @@ const SummaryTemplate = ({ data, isBulk }) => {
             {hasBgs && (
               <div className="mt-2 pt-1 border-t border-gray-200 space-y-0 text-[10px]">
                 <SectionLabel>BGS 應扣費用</SectionLabel>
-                <AmountRow label={`勞保費${emp.laborInsuranceBracket ? ` ($${emp.laborInsuranceBracket.toLocaleString()})` : ''}`} value={laborFee} negative />
-                <AmountRow label={`健保費${emp.healthInsuranceBracket ? ` ($${emp.healthInsuranceBracket.toLocaleString()})` : ''}`} value={healthFee} negative />
+                <AmountRow label="勞保費" value={laborFee} negative />
+                <AmountRow label="健保費" value={healthFee} negative />
                 <AmountRow label={`勞退${emp.voluntaryPensionRate ? ` (${emp.voluntaryPensionRate}%)` : ''}`} value={pensionFee} negative />
                 {bgsDed > 0 && <SubtotalRow label="BGS應扣小計" value={bgsDed} negative />}
               </div>
@@ -431,7 +460,7 @@ function buildBgsData(emp, bonus, deduction, record) {
   const pensionFee    = deduction.pensionFee ?? emp.voluntaryPensionDeduction ?? 0;
   const otherDeduction = deduction.otherDeduction || 0;
   const net = Math.round(totalSplit + otherSubsidy + other - laborFee - healthFee - pensionFee - otherDeduction);
-  return { type: 'bgs', emp, institutionName: getInstitutionName(emp.organization),
+  return { type: 'bgs', emp, institutionName: getInstitutionFullName(emp.organization),
            serviceItems, totalSplit, otherSubsidy, other,
            laborFee, healthFee, pensionFee, otherDeduction, net };
 }
@@ -455,7 +484,7 @@ function buildAcodeData(emp, bonus, deduction, aCodeResult) {
   const otherDeduction  = deduction.otherDeduction || 0;
   const allSubsidy = fuel + otherSubsidy + other + bonusItems.reduce((s, b) => s + b.value, 0);
   const net = Math.round(totalSplit + allSubsidy - withholdingTax - otherDeduction);
-  return { type: 'acode', emp, institutionName: getInstitutionName(emp.organization),
+  return { type: 'acode', emp, institutionName: getInstitutionFullName(emp.organization),
            serviceItems, totalSplit, fuel, otherSubsidy, other, bonusItems,
            withholdingTax, otherDeduction, net };
 }
@@ -489,7 +518,7 @@ function buildSummaryData(emp, bonus, deduction, record, aCodeResult) {
                     + referral + mentoring + holidayBonus + acodeOtherSubsidy + other + fuel;
   const totalDeduction = laborFee + healthFee + pensionFee + withholdingTax + otherDeduction;
   const net = Math.round(totalIncome - totalDeduction);
-  return { type: 'summary', emp, institutionName: getInstitutionName(emp.organization),
+  return { type: 'summary', emp, institutionName: getInstitutionFullName(emp.organization),
            splitB, splitG, splitS, splitMissed, bgsServiceIncome, bgsOtherSubsidy,
            laborFee, healthFee, pensionFee,
            splitA, crossArea, serviceBonus, quotaDev, certBonus, referral, mentoring, holidayBonus,
