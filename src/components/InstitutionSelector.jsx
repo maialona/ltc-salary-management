@@ -16,8 +16,7 @@ export default function InstitutionSelector({ isCollapsed }) {
         animate={{ opacity: isCollapsed ? 0 : 1 }}
         transition={{ duration: 0.15 }}
         className="absolute inset-y-0 flex items-center gap-3"
-        style={{ left: '1.125rem', right: '0.625rem' }}
-        style={{ pointerEvents: isCollapsed ? 'none' : 'auto' }}
+        style={{ left: '1.125rem', right: '0.625rem', pointerEvents: isCollapsed ? 'none' : 'auto' }}
       >
         <Building2 size={16} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
         {canSwitch ? (

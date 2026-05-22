@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Upload, AlertTriangle, ChevronDown, CloudUpload, FileText, RotateCcw } from 'lucide-react';
-import { parseServiceRecordExcel } from '../utils/excelParser';
+import { parseServiceRecordExcel, parseCaseQuantityExcel } from '../utils/excelParser';
 import { processSalaryCalculation } from '../utils/calculator';
 import { getEmployees } from '../data/employeeStore';
 import { saveRecords } from '../data/recordsStore';
 import { getPeriod, subscribePeriod } from '../data/periodStore';
+import { saveCaseQuantity } from '../data/caseQuantityStore';
 
 const fmt = (val, decimals = 1) =>
   val.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
@@ -64,6 +65,15 @@ const RecordsProcessing = () => {
     setTimeout(async () => {
       try {
         const rawData = await parseServiceRecordExcel(file);
+
+        // 同步快取「個案服務數量」工作表，供「總表核對」頁使用
+        try {
+          const caseQty = await parseCaseQuantityExcel(file);
+          if (caseQty.length > 0) saveCaseQuantity(getPeriod(), caseQty);
+        } catch (e) {
+          console.warn('parseCaseQuantityExcel failed (non-blocking):', e);
+        }
+
         const employees = await getEmployees();
 
         if (!rawData || rawData.length === 0) {

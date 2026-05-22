@@ -231,6 +231,81 @@ export const parseServiceRecordExcel = async (file) => {
     .filter(Boolean);
 };
 
+export const parseCaseQuantityExcel = async (file) => {
+  const buffer = await file.arrayBuffer();
+  const isXls = file.name.toLowerCase().endsWith('.xls');
+
+  const options = {
+    sheetMatcher: (name) => name.includes('個案服務數量'),
+    headerRow: 3,
+  };
+
+  const jsonData = isXls
+    ? parseXlsBufferWithOptions(new Uint8Array(buffer), options)
+    : await parseExcelBufferWithOptions(buffer, options);
+
+  const safeNum = (val) => {
+    if (typeof val === 'number') return val;
+    const n = parseFloat(String(val ?? '').replace(/[^\d.-]/g, ''));
+    return isNaN(n) ? 0 : n;
+  };
+
+  return jsonData
+    .map((row) => {
+      const caseName = String(row['個案'] || '').trim();
+      if (!caseName) return null;
+      const code = String(row['服務項目'] || '').trim();
+      if (!code || code.toUpperCase().startsWith('AA')) return null;
+      return {
+        case: caseName,
+        code,
+        quantity: safeNum(row['使用服務數量']),
+        govAmount: safeNum(row['政府額度']),
+        selfPayRatio: String(row['民眾自費比例'] ?? '').trim(),
+        selfPayAmount: safeNum(row['民眾部份負擔額度']),
+        selfPayQuantity: safeNum(row['自費數量']),
+        selfPaySubtotal: safeNum(row['自費小計']),
+      };
+    })
+    .filter(Boolean);
+};
+
+export const parseWelfareSummaryExcel = async (file) => {
+  const buffer = await file.arrayBuffer();
+  const isXls = file.name.toLowerCase().endsWith('.xls');
+
+  const options = { headerRow: 5 };
+
+  const jsonData = isXls
+    ? parseXlsBufferWithOptions(new Uint8Array(buffer), options)
+    : await parseExcelBufferWithOptions(buffer, options);
+
+  const safeNum = (val) => {
+    if (typeof val === 'number') return val;
+    const n = parseFloat(String(val ?? '').replace(/[^\d.-]/g, ''));
+    return isNaN(n) ? 0 : n;
+  };
+
+  return jsonData
+    .map((row) => {
+      const caseName = String(row['個案姓名'] || '').trim();
+      if (!caseName) return null;
+      const codeFullName = String(row['服務項目\r\n類別'] || row['服務項目類別'] || row['服務項目\n類別'] || '').trim();
+      const code = codeFullName.split(/\s+/)[0];
+      if (!code || code.toUpperCase().startsWith('AA')) return null;
+      return {
+        case: caseName,
+        code,
+        codeFullName,
+        quantity: safeNum(row['次數']),
+        govAmount: safeNum(row['申報費用']),
+        selfPayRatio: String(row['部分負擔比率'] ?? '').trim(),
+        selfPayAmount: safeNum(row['部分負擔\r\n費用'] || row['部分負擔費用'] || row['部分負擔\n費用'] || 0),
+      };
+    })
+    .filter(Boolean);
+};
+
 export const parseDeductionExcel = async (file) => {
   const jsonData = await parseExcelToJSON(file);
 
