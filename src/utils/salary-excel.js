@@ -46,6 +46,7 @@ export const exportBgsExcel = async (items, period) => {
 
   const headers = [
     '員編', '姓名', '領款方式',
+    'B碼申請金額', 'G碼申請金額', 'S碼申請金額', '服務未遇',
     'B碼拆帳金額', 'G碼拆帳金額', 'S碼拆帳金額', '服務未遇拆帳', '服務所得總額',
     '其他補貼', '其他(1)', '應領金額',
     '勞保級距', '勞保費用', '健保級距', '健保眷屬人數', '健保費用',
@@ -63,6 +64,7 @@ export const exportBgsExcel = async (items, period) => {
   items.forEach((item, idx) => {
     const row = sheet.addRow([
       item.empId, item.name, item.paymentMethod,
+      num(item.rawB), num(item.rawG), num(item.rawS), num(item.rawMissed),
       num(item.splitB), num(item.splitG), num(item.splitS), num(item.splitMissed), num(item.serviceIncome),
       num(item.otherSubsidy), num(item.other1), num(item.payable),
       num(item.laborBracket), num(item.laborFee), num(item.healthBracket), item.healthDependents, num(item.healthFee),
@@ -71,19 +73,15 @@ export const exportBgsExcel = async (items, period) => {
     ]);
     styleDataRow(row, idx % 2 === 1);
 
-    // format money columns (indices 3-20 except 14=眷屬人數)
+    // format money columns; col 19=健保眷屬人數, col 21=勞退自提% are excluded
     row.eachCell({ includeEmpty: true }, (cell, colNum) => {
-      if (colNum >= 4 && colNum !== 16 && colNum !== 17) {
-        if (colNum === 17) {
-          cell.numFmt = '0.00%';
-        } else {
-          cell.numFmt = '#,##0';
-          cell.alignment = { horizontal: 'right' };
-        }
+      if (colNum >= 4 && colNum !== 19 && colNum !== 21) {
+        cell.numFmt = '#,##0';
+        cell.alignment = { horizontal: 'right' };
       }
     });
-    // pension rate column (col 17, 1-based)
-    const pensionCell = row.getCell(17);
+    // pension rate column (col 21, 1-based)
+    const pensionCell = row.getCell(21);
     pensionCell.numFmt = '0.00%';
     pensionCell.alignment = { horizontal: 'right' };
   });
@@ -92,6 +90,10 @@ export const exportBgsExcel = async (items, period) => {
   if (items.length > 0) {
     const totalsRow = sheet.addRow([
       '合計', '', '',
+      items.reduce((s, r) => s + num(r.rawB), 0),
+      items.reduce((s, r) => s + num(r.rawG), 0),
+      items.reduce((s, r) => s + num(r.rawS), 0),
+      items.reduce((s, r) => s + num(r.rawMissed), 0),
       items.reduce((s, r) => s + num(r.splitB), 0),
       items.reduce((s, r) => s + num(r.splitG), 0),
       items.reduce((s, r) => s + num(r.splitS), 0),
@@ -130,7 +132,7 @@ export const exportAcodeExcel = async (items, period) => {
 
   const headers = [
     '員編', '姓名', '領款方式',
-    'A碼拆帳金額', '服務所得總額',
+    'A碼申請金額', 'A碼拆帳金額', '服務所得總額',
     '跨區補助', '服務獎金', '額度開發', '丙證獎金', '介紹費', '帶新人津貼', '節日獎金',
     '其他補貼', '其他(2)', '應領金額',
     '扣繳稅額', '油資補貼', '應扣費用(2)', '總額', '實領金額',
@@ -147,7 +149,7 @@ export const exportAcodeExcel = async (items, period) => {
   items.forEach((item, idx) => {
     const row = sheet.addRow([
       item.empId, item.name, item.paymentMethod,
-      num(item.splitA), num(item.serviceIncome),
+      num(item.rawA), num(item.splitA), num(item.serviceIncome),
       num(item.crossArea), num(item.serviceBonus), num(item.quotaDev), num(item.certBonus),
       num(item.referral), num(item.mentoring), num(item.holidayBonus),
       num(item.otherSubsidy), num(item.other2), num(item.payable),
@@ -166,6 +168,7 @@ export const exportAcodeExcel = async (items, period) => {
   if (items.length > 0) {
     const totalsRow = sheet.addRow([
       '合計', '', '',
+      items.reduce((s, r) => s + num(r.rawA), 0),
       items.reduce((s, r) => s + num(r.splitA), 0),
       items.reduce((s, r) => s + num(r.serviceIncome), 0),
       items.reduce((s, r) => s + num(r.crossArea), 0),
@@ -203,6 +206,7 @@ export const exportSummaryExcel = async (items, period) => {
 
   const headers = [
     '員編', '姓名',
+    'A碼申請金額', 'B碼申請金額', 'G碼申請金額', 'S碼申請金額', '服務未遇',
     'A碼拆帳金額', 'B碼拆帳金額', 'G碼拆帳金額', 'S碼拆帳金額', '服務未遇拆帳', '服務所得總額',
     '跨區補助', '服務獎金', '額度開發', '丙證獎金', '介紹費', '帶新人津貼', '節日獎金',
     '其他補貼', '其他(1)', '其他(2)', '應領金額',
@@ -222,6 +226,7 @@ export const exportSummaryExcel = async (items, period) => {
   items.forEach((item, idx) => {
     const row = sheet.addRow([
       item.empId, item.name,
+      num(item.rawA), num(item.rawB), num(item.rawG), num(item.rawS), num(item.rawMissed),
       num(item.splitA), num(item.splitB), num(item.splitG), num(item.splitS), num(item.splitMissed), num(item.serviceIncome),
       num(item.crossArea), num(item.serviceBonus), num(item.quotaDev), num(item.certBonus),
       num(item.referral), num(item.mentoring), num(item.holidayBonus),
@@ -238,8 +243,8 @@ export const exportSummaryExcel = async (items, period) => {
         cell.alignment = { horizontal: 'right' };
       }
     });
-    // pension rate col = 28 (1-based, after adding 其他(2) column)
-    const pensionCell = row.getCell(28);
+    // pension rate col = 33 (1-based)
+    const pensionCell = row.getCell(33);
     pensionCell.numFmt = '0.00%';
     pensionCell.alignment = { horizontal: 'right' };
   });
@@ -247,6 +252,11 @@ export const exportSummaryExcel = async (items, period) => {
   if (items.length > 0) {
     const totalsRow = sheet.addRow([
       '合計', '',
+      items.reduce((s, r) => s + num(r.rawA), 0),
+      items.reduce((s, r) => s + num(r.rawB), 0),
+      items.reduce((s, r) => s + num(r.rawG), 0),
+      items.reduce((s, r) => s + num(r.rawS), 0),
+      items.reduce((s, r) => s + num(r.rawMissed), 0),
       items.reduce((s, r) => s + num(r.splitA), 0),
       items.reduce((s, r) => s + num(r.splitB), 0),
       items.reduce((s, r) => s + num(r.splitG), 0),
