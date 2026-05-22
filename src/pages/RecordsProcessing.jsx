@@ -6,22 +6,24 @@ import { getEmployees } from '../data/employeeStore';
 import { saveRecords } from '../data/recordsStore';
 import { getPeriod, subscribePeriod } from '../data/periodStore';
 import { saveCaseQuantity } from '../data/caseQuantityStore';
+import { useInstitution } from '../context/InstitutionContext';
 
 const fmt = (val, decimals = 1) =>
   val.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
-const bgsKey = (period) => `bgs_calc_state_${period}`;
+const bgsKey = (institution, period) => `bgs_calc_state_${institution}_${period}`;
 
 const RecordsProcessing = () => {
+  const { currentInstitution } = useInstitution();
   const [results, setResults] = useState([]);
   const [warnings, setWarnings] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const fileInputRef = useRef(null);
 
-  const loadFromStorage = (period) => {
+  const loadFromStorage = (institution, period) => {
     try {
-      const savedState = localStorage.getItem(bgsKey(period));
+      const savedState = localStorage.getItem(bgsKey(institution, period));
       if (savedState) {
         const parsed = JSON.parse(savedState);
         if (parsed.results && parsed.results.length > 0) {
@@ -38,14 +40,14 @@ const RecordsProcessing = () => {
   };
 
   useEffect(() => {
-    loadFromStorage(getPeriod());
-    return subscribePeriod((period) => loadFromStorage(period));
-  }, []);
+    loadFromStorage(currentInstitution, getPeriod());
+    return subscribePeriod((period) => loadFromStorage(currentInstitution, period));
+  }, [currentInstitution]);
 
   React.useEffect(() => {
     if (results.length > 0) {
       try {
-        localStorage.setItem(bgsKey(getPeriod()), JSON.stringify({ results, warnings }));
+        localStorage.setItem(bgsKey(currentInstitution, getPeriod()), JSON.stringify({ results, warnings }));
       } catch (e) {
         if (e.name === 'QuotaExceededError' || e.message.includes('quota')) {
           setWarnings(prev => [...prev, '系統警告：資料量過大超出瀏覽器限制 (5MB)，本次計算結果將無法於關閉後自動還原。']);
@@ -69,7 +71,7 @@ const RecordsProcessing = () => {
         // 同步快取「個案服務數量」工作表，供「總表核對」頁使用
         try {
           const caseQty = await parseCaseQuantityExcel(file);
-          if (caseQty.length > 0) saveCaseQuantity(getPeriod(), caseQty);
+          if (caseQty.length > 0) saveCaseQuantity(currentInstitution, getPeriod(), caseQty);
         } catch (e) {
           console.warn('parseCaseQuantityExcel failed (non-blocking):', e);
         }

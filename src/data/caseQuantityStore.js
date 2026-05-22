@@ -1,19 +1,19 @@
-const key = (period) => `case_quantity_${period}`;
+const key = (institution, period) => `case_quantity_${institution}_${period}`;
 
-export const saveCaseQuantity = (period, rows) => {
+export const saveCaseQuantity = (institution, period, rows) => {
   try {
-    localStorage.setItem(key(period), JSON.stringify(rows));
+    localStorage.setItem(key(institution, period), JSON.stringify(rows));
   } catch (e) {
     console.warn('Failed to cache case quantity:', e);
   }
 };
 
-export const getCaseQuantity = (period) => {
+export const getCaseQuantity = (institution, period) => {
   try {
-    return JSON.parse(localStorage.getItem(key(period)) ?? 'null');
+    return JSON.parse(localStorage.getItem(key(institution, period)) ?? 'null');
   } catch {
     return null;
   }
 };
 
-export const clearCaseQuantity = (period) => localStorage.removeItem(key(period));
+export const clearCaseQuantity = (institution, period) => localStorage.removeItem(key(institution, period));

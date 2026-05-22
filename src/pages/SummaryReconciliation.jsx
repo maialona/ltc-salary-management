@@ -5,6 +5,7 @@ import { reconcileSummaries } from '../utils/summaryReconcile';
 import { getCaseQuantity } from '../data/caseQuantityStore';
 import { getWelfare, saveWelfare } from '../data/welfareStore';
 import { getPeriod, subscribePeriod } from '../data/periodStore';
+import { useInstitution } from '../context/InstitutionContext';
 
 const fmt = (n) => Number(n).toLocaleString();
 
@@ -47,6 +48,7 @@ const TotalCell = ({ value, isRight, dim }) => (
 );
 
 export default function SummaryReconciliation() {
+  const { currentInstitution } = useInstitution();
   const [period, setPeriod] = useState(getPeriod());
   const [caseQuantity, setCaseQuantity] = useState(null);
   const [rows, setRows] = useState([]);
@@ -55,9 +57,9 @@ export default function SummaryReconciliation() {
   const [filter, setFilter] = useState('all');
   const fileInputRef = useRef(null);
 
-  const loadPeriod = (p) => {
-    const cq = getCaseQuantity(p);
-    const welfare = getWelfare(p);
+  const loadPeriod = (institution, p) => {
+    const cq = getCaseQuantity(institution, p);
+    const welfare = getWelfare(institution, p);
     setCaseQuantity(cq);
     setWarnings([]);
     if (cq && welfare) {
@@ -70,12 +72,12 @@ export default function SummaryReconciliation() {
   useEffect(() => {
     const p = getPeriod();
     setPeriod(p);
-    loadPeriod(p);
+    loadPeriod(currentInstitution, p);
     return subscribePeriod((p2) => {
       setPeriod(p2);
-      loadPeriod(p2);
+      loadPeriod(currentInstitution, p2);
     });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentInstitution]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -91,7 +93,7 @@ export default function SummaryReconciliation() {
         if (!welfareData || welfareData.length === 0) {
           throw new Error('衛福部清冊解析失敗：找不到資料，請確認 header 在第 5 列');
         }
-        saveWelfare(period, welfareData);
+        saveWelfare(currentInstitution, period, welfareData);
         const reconciledRows = reconcileSummaries(caseQuantity, welfareData, period);
         setRows(reconciledRows);
       } catch (err) {
