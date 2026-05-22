@@ -272,7 +272,7 @@ const SalarySummary = () => {
 
       return {
         id: emp.id, empId: emp.empId, name: emp.name,
-        paymentMethod: emp.paymentMethod || '-',
+        paymentMethod: '領現',
         splitA, serviceIncome,
         crossArea, serviceBonus, quotaDev, certBonus,
         referral, mentoring, holidayBonus, otherSubsidy, other1, other2,
