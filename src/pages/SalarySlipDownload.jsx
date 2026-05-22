@@ -307,7 +307,7 @@ const AcodeTemplate = ({ data, isBulk }) => {
               {bonusItems.map((b, i) => <AlwaysAmountRow key={i} label={b.label} value={b.value} note={b.note || undefined} />)}
               <AlwaysAmountRow label="其他補貼" value={otherSubsidy} note={otherSubsidyNote || undefined} />
               <AlwaysAmountRow label="油資補助" value={fuel} note={fuelNote || undefined} />
-              {other2 > 0 && <AlwaysAmountRow label="其他(2)" value={other2} note={other2Note || undefined} />}
+              <AlwaysAmountRow label="其他(2)" value={other2} note={other2Note || undefined} />
               <SubtotalRow label="應領小計" value={totalIncome} />
             </div>
           </section>
@@ -403,8 +403,7 @@ const SummaryTemplate = ({ data, isBulk }) => {
             <AlwaysAmountRow label="健保費" value={healthFee} negative />
             <AlwaysAmountRow label={`自繳勞退金${emp.voluntaryPensionRate ? ` (${emp.voluntaryPensionRate}%)` : ''}`} value={pensionFee} negative />
             <AlwaysAmountRow label={`扣繳稅額${emp.dependentsCount != null && emp.dependentsCount !== '' ? ` (扶養 ${emp.dependentsCount} 人)` : ''}`} value={withholdingTax} negative />
-            <AlwaysAmountRow label="應扣費用(1)" value={otherDeduction1} negative />
-            <AlwaysAmountRow label="應扣費用(2)" value={otherDeduction2} negative />
+            <AmountRow label="應扣費用" value={(otherDeduction1 || 0) + (otherDeduction2 || 0)} negative />
             <SubtotalRow label="應扣小計" value={totalDeduction} negative />
           </div>
         </section>
