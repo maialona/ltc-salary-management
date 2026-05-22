@@ -126,7 +126,7 @@ export const exportBgsExcel = async (items, period) => {
 
 export const exportAcodeExcel = async (items, period) => {
   const workbook = new ExcelJS.Workbook();
-  const sheet = workbook.addWorksheet('A碼及獎金薪資');
+  const sheet = workbook.addWorksheet('A碼及其他獎金');
 
   const headers = [
     '員編', '姓名', '領款方式',
@@ -194,7 +194,7 @@ export const exportAcodeExcel = async (items, period) => {
   }
 
   const buffer = await workbook.xlsx.writeBuffer();
-  triggerDownload(buffer, `A碼及獎金薪資_${period}.xlsx`);
+  triggerDownload(buffer, `A碼及其他獎金_${period}.xlsx`);
 };
 
 export const exportSummaryExcel = async (items, period) => {

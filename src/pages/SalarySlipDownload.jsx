@@ -120,6 +120,17 @@ const AmountRow = ({ label, value, negative = false, className = '' }) => (
   ) : null
 );
 
+// ─── Always-visible amount row (shows even when value is 0, with optional note) ─
+const AlwaysAmountRow = ({ label, value, note, className = '' }) => (
+  <div className={`flex justify-between items-start py-0.5 text-[10px] ${className}`}>
+    <div>
+      <span className="text-gray-700">{label}</span>
+      {note && <div className="text-[9px] text-gray-400 mt-0.5 italic">{note}</div>}
+    </div>
+    <span className="font-mono font-semibold">{money(value)}</span>
+  </div>
+);
+
 const SubtotalRow = ({ label, value, negative = false }) => (
   <div className="flex justify-between items-center py-1 border-t border-gray-300 mt-1 text-[10px]">
     <span className="font-bold">{label}</span>
@@ -160,7 +171,9 @@ const NetFooter = ({ income, deduction, net }) => (
 // ════════════════════════════════════════════════════════════════════════════
 const BgsTemplate = ({ data, isBulk }) => {
   const { emp, institutionName, serviceItems, totalSplit,
-          otherSubsidy, other, laborFee, healthFee, pensionFee, otherDeduction, net } = data;
+          splitB, splitG, splitS, splitMissed,
+          otherSubsidy, otherSubsidyNote, other, otherNote,
+          laborFee, healthFee, pensionFee, otherDeduction, net } = data;
   const sp = emp.splits || {};
   const splitRate = sp.b || sp.g || sp.s || sp.missed;
   const splitDesc = splitRate ? `${splitRate}%` : null;
@@ -199,19 +212,19 @@ const BgsTemplate = ({ data, isBulk }) => {
             ]} />
           </section>
 
-          {/* 其他收入 */}
-          {(otherSubsidy > 0 || other > 0) && (
-            <section>
-              <SectionLabel>其他收入</SectionLabel>
-              <div className="bg-gray-50 rounded px-3 py-2">
-                <AmountRow label="其他補貼" value={otherSubsidy} />
-                <AmountRow label="其他" value={other} />
-                {(otherSubsidy > 0 || other > 0) && (
-                  <SubtotalRow label="其他收入小計" value={otherSubsidy + other} />
-                )}
-              </div>
-            </section>
-          )}
+          {/* 應領費用明細 */}
+          <section>
+            <SectionLabel>應領費用明細</SectionLabel>
+            <div className="bg-gray-50 rounded px-3 py-2">
+              <AlwaysAmountRow label="B碼拆帳" value={splitB} />
+              <AlwaysAmountRow label="G碼拆帳" value={splitG} />
+              <AlwaysAmountRow label="S碼拆帳" value={splitS} />
+              <AlwaysAmountRow label="服務未遇" value={splitMissed} />
+              <AlwaysAmountRow label="其他補貼" value={otherSubsidy} note={otherSubsidyNote || undefined} />
+              <AlwaysAmountRow label="其他" value={other} note={otherNote || undefined} />
+              <SubtotalRow label="應領小計" value={totalIncome} />
+            </div>
+          </section>
 
           {/* 應扣費用 */}
           <section>
@@ -244,11 +257,11 @@ const BgsTemplate = ({ data, isBulk }) => {
 };
 
 // ════════════════════════════════════════════════════════════════════════════
-// A碼及獎金薪資 Template
+// A碼及其他獎金 Template
 // ════════════════════════════════════════════════════════════════════════════
 const AcodeTemplate = ({ data, isBulk }) => {
   const { emp, institutionName, serviceItems, totalSplit,
-          fuel, otherSubsidy, other, bonusItems,
+          fuel, fuelNote, otherSubsidy, otherSubsidyNote, other, otherNote, bonusItems,
           withholdingTax, otherDeduction, net } = data;
   const acodeRate = emp.splits?.aa09;
   const otherAcodeRate = emp.splits?.otherAcode;
@@ -256,6 +269,7 @@ const AcodeTemplate = ({ data, isBulk }) => {
   const allSubsidyBonus = (fuel || 0) + (otherSubsidy || 0) + (other || 0)
     + bonusItems.reduce((s, b) => s + b.value, 0);
   const totalDed = (withholdingTax || 0) + (otherDeduction || 0);
+  const totalIncome = totalSplit + allSubsidyBonus;
 
   // A-code items: details have { client, code, qty, subtotal, amount }
   const rows = serviceItems.map(it => ({
@@ -271,7 +285,7 @@ const AcodeTemplate = ({ data, isBulk }) => {
       {/* 第一頁：薪資單 */}
       <SlipPage isBulk={isBulk} breakAfter>
         <div className="p-8 space-y-4">
-          <SlipHeader title="A碼及獎金薪資明細表" period={getPeriod()} emp={emp} institutionName={institutionName} />
+          <SlipHeader title="A碼及其他獎金明細表" period={getPeriod()} emp={emp} institutionName={institutionName} />
 
           {/* 人員基本資料 */}
           <section>
@@ -283,19 +297,18 @@ const AcodeTemplate = ({ data, isBulk }) => {
             ]} />
           </section>
 
-          {/* 獎金及補貼 */}
-          {allSubsidyBonus > 0 && (
-            <section>
-              <SectionLabel>獎金及補貼</SectionLabel>
-              <div className="bg-gray-50 rounded px-3 py-2">
-                <AmountRow label="油資補貼" value={fuel} />
-                <AmountRow label="其他補貼" value={otherSubsidy} />
-                {bonusItems.map((b, i) => <AmountRow key={i} label={b.label} value={b.value} />)}
-                <AmountRow label="其他" value={other} />
-                <SubtotalRow label="獎金補貼小計" value={allSubsidyBonus} />
-              </div>
-            </section>
-          )}
+          {/* 應領費用明細 */}
+          <section>
+            <SectionLabel>應領費用明細</SectionLabel>
+            <div className="bg-gray-50 rounded px-3 py-2">
+              <AlwaysAmountRow label="A碼拆帳" value={totalSplit} />
+              {bonusItems.map((b, i) => <AlwaysAmountRow key={i} label={b.label} value={b.value} note={b.note || undefined} />)}
+              <AlwaysAmountRow label="其他補貼" value={otherSubsidy} note={otherSubsidyNote || undefined} />
+              <AlwaysAmountRow label="油資補助" value={fuel} note={fuelNote || undefined} />
+              {other > 0 && <AlwaysAmountRow label="其他" value={other} note={otherNote || undefined} />}
+              <SubtotalRow label="應領小計" value={totalIncome} />
+            </div>
+          </section>
 
           {/* 應扣費用（不含勞健保，已在 BGS 薪資中扣除） */}
           <section>
@@ -307,7 +320,7 @@ const AcodeTemplate = ({ data, isBulk }) => {
             </div>
           </section>
 
-          <NetFooter income={totalSplit + allSubsidyBonus} deduction={totalDed} net={net} />
+          <NetFooter income={totalIncome} deduction={totalDed} net={net} />
         </div>
       </SlipPage>
 
@@ -341,8 +354,8 @@ const SummaryTemplate = ({ data, isBulk }) => {
   const hasAcode = splitA > 0;
 
   const acodeSupplements = [
-    { label: '油資補貼',   value: fuel },
-    { label: '跨區獎金',   value: crossArea },
+    { label: '油資補助',   value: fuel },
+    { label: '跨區補助',   value: crossArea },
     { label: '服務獎金',   value: serviceBonus },
     { label: '開發獎金',   value: quotaDev },
     { label: '丙證獎金',   value: certBonus },
@@ -401,7 +414,7 @@ const SummaryTemplate = ({ data, isBulk }) => {
 
           {/* A碼 欄 */}
           <section>
-            <SectionLabel>A碼及獎金薪資</SectionLabel>
+            <SectionLabel>A碼及其他獎金</SectionLabel>
             <div className="space-y-0 text-[10px]">
               {splitA > 0 && <AmountRow label="A碼拆帳" value={splitA} />}
               {acodeSupplements.map((s, i) => <AmountRow key={i} label={s.label} value={s.value} />)}
@@ -451,17 +464,24 @@ const SummaryTemplate = ({ data, isBulk }) => {
 
 function buildBgsData(emp, bonus, deduction, record) {
   const bd = record.breakdown || {};
+  const splitB      = bd['B']?.splitSum      || 0;
+  const splitG      = bd['G']?.splitSum      || 0;
+  const splitS      = bd['S']?.splitSum      || 0;
+  const splitMissed = bd['Missed']?.splitSum || 0;
   const serviceItems = ['B', 'G', 'S', 'Missed'].flatMap(t => bd[t]?.items || []);
-  const totalSplit = ['B', 'G', 'S', 'Missed'].reduce((s, t) => s + (bd[t]?.splitSum || 0), 0);
-  const otherSubsidy  = bonus.bgsOtherSubsidy || 0;
-  const other         = bonus.other || 0;
+  const totalSplit = splitB + splitG + splitS + splitMissed;
+  const otherSubsidy     = bonus.bgsOtherSubsidy   || 0;
+  const otherSubsidyNote = bonus.bgsOtherSubsidyNote || '';
+  const other            = bonus.other              || 0;
+  const otherNote        = bonus.bgsOtherNote       || '';
   const laborFee      = deduction.laborFee  ?? emp.laborInsuranceSelfPay  ?? 0;
   const healthFee     = deduction.healthFee ?? emp.healthInsuranceSelfPay ?? 0;
   const pensionFee    = deduction.pensionFee ?? emp.voluntaryPensionDeduction ?? 0;
   const otherDeduction = deduction.otherDeduction || 0;
   const net = Math.round(totalSplit + otherSubsidy + other - laborFee - healthFee - pensionFee - otherDeduction);
   return { type: 'bgs', emp, institutionName: getInstitutionFullName(emp.organization),
-           serviceItems, totalSplit, otherSubsidy, other,
+           serviceItems, totalSplit, splitB, splitG, splitS, splitMissed,
+           otherSubsidy, otherSubsidyNote, other, otherNote,
            laborFee, healthFee, pensionFee, otherDeduction, net };
 }
 
@@ -469,23 +489,26 @@ function buildAcodeData(emp, bonus, deduction, aCodeResult) {
   const serviceItems  = aCodeResult?.details || [];
   const totalSplit    = aCodeResult?.totalCommission || 0;
   const fuel          = bonus.fuel || 0;
+  const fuelNote      = bonus.fuelNote || '';
   const otherSubsidy  = bonus.otherSubsidy || 0;
+  const otherSubsidyNote = bonus.otherSubsidyNote || '';
   const other         = bonus.other || 0;
+  const otherNote     = bonus.otherNote || '';
   const bonusItems = [
-    { label: '跨區獎金',   value: bonus.bonusCross   || 0 },
-    { label: '服務獎金',   value: bonus.bonusOpen    || 0 },
-    { label: '開發獎金',   value: bonus.bonusDev     || 0 },
-    { label: '丙證獎金',   value: bonus.bonusC       || 0 },
-    { label: '介紹費',     value: bonus.referral     || 0 },
-    { label: '帶新人津貼', value: bonus.mentoring    || 0 },
-    { label: '節日獎金',   value: bonus.holidayBonus || 0 },
-  ].filter(b => b.value > 0);
+    { label: '跨區補助',   value: bonus.bonusCross   || 0, note: bonus.crossAreaNote    || '' },
+    { label: '服務獎金',   value: bonus.bonusOpen    || 0, note: bonus.serviceBonusNote || '' },
+    { label: '開發獎金',   value: bonus.bonusDev     || 0, note: bonus.quotaDevNote     || '' },
+    { label: '丙證獎金',   value: bonus.bonusC       || 0, note: bonus.certBonusNote    || '' },
+    { label: '介紹費',     value: bonus.referral     || 0, note: bonus.referralNote     || '' },
+    { label: '帶新人津貼', value: bonus.mentoring    || 0, note: bonus.mentoringNote    || '' },
+    { label: '節日獎金',   value: bonus.holidayBonus || 0, note: bonus.holidayBonusNote || '' },
+  ];
   const withholdingTax  = deduction.withholdingTax || 0;
   const otherDeduction  = deduction.otherDeduction || 0;
   const allSubsidy = fuel + otherSubsidy + other + bonusItems.reduce((s, b) => s + b.value, 0);
   const net = Math.round(totalSplit + allSubsidy - withholdingTax - otherDeduction);
   return { type: 'acode', emp, institutionName: getInstitutionFullName(emp.organization),
-           serviceItems, totalSplit, fuel, otherSubsidy, other, bonusItems,
+           serviceItems, totalSplit, fuel, fuelNote, otherSubsidy, otherSubsidyNote, other, otherNote, bonusItems,
            withholdingTax, otherDeduction, net };
 }
 
@@ -529,7 +552,7 @@ function buildSummaryData(emp, bonus, deduction, record, aCodeResult) {
 // ─── Template dispatcher ──────────────────────────────────────────────────────
 const SLIP_TYPES = [
   { key: 'bgs',     label: 'BGS碼薪資' },
-  { key: 'acode',   label: 'A碼及獎金薪資' },
+  { key: 'acode',   label: 'A碼及其他獎金' },
   { key: 'summary', label: '薪資總表' },
 ];
 

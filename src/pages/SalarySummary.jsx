@@ -226,7 +226,7 @@ const SalarySummary = () => {
       };
     });
 
-    // A碼及獎金薪資
+    // A碼及其他獎金
     const aCode = employees.map(emp => {
       const bonus       = bonuses.find(b => b.empId === emp.empId) || {};
       const deduction   = deductions.find(d => d.empId === emp.empId) || {};
@@ -593,7 +593,7 @@ const SalarySummary = () => {
   // ── Shared helpers ──────────────────────────────────────────────────────────
   const tabs = [
     { id: 'bgs',     label: 'BGS碼薪資' },
-    { id: 'acode',   label: 'A碼及獎金薪資' },
+    { id: 'acode',   label: 'A碼及其他獎金' },
     { id: 'summary', label: '薪資總表' },
   ];
 
@@ -636,7 +636,7 @@ const SalarySummary = () => {
     </td>
   );
 
-  const tabLabel = (type) => type === 'bgs' ? 'BGS碼薪資' : type === 'acode' ? 'A碼及獎金薪資' : '薪資總表';
+  const tabLabel = (type) => type === 'bgs' ? 'BGS碼薪資' : type === 'acode' ? 'A碼及其他獎金' : '薪資總表';
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -758,7 +758,7 @@ const SalarySummary = () => {
         </div>
       )}
 
-      {/* ── A碼及獎金薪資 ──────────────────────────────────────────────────── */}
+      {/* ── A碼及其他獎金 ──────────────────────────────────────────────────── */}
       {subTab === 'acode' && (
         <div className="overflow-hidden rounded-md border glass-panel" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
           <div className="overflow-x-auto">
