@@ -63,9 +63,13 @@ const EmployeeManagement = () => {
       title,
       message,
       type,
-      onConfirm: () => {
-        onConfirm();
+      onConfirm: async () => {
         setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        try {
+          await onConfirm();
+        } catch (err) {
+          showAlert('操作失敗', err.message || '發生錯誤，請稍後再試', 'danger');
+        }
       },
       isAlert: false
     });
@@ -269,6 +273,46 @@ const EmployeeManagement = () => {
     }
   };
 
+  const handleDownloadOvertimeTemplate = async () => {
+    const ExcelJS = (await import('exceljs')).default;
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('加班時數統計');
+
+    sheet.columns = [
+      { header: '姓名',     key: 'name',        width: 12 },
+      { header: '實際工時', key: 'actualHours',  width: 12 },
+      { header: '轉場',     key: 'transfer',     width: 10 },
+      { header: '1.34',     key: 'h134',         width: 10 },
+      { header: '1.67',     key: 'h167',         width: 10 },
+      { header: '2.67',     key: 'h267',         width: 10 },
+      { header: '1',        key: 'h1',           width: 10 },
+      { header: '2',        key: 'h2',           width: 10 },
+    ];
+
+    sheet.getRow(1).eachCell((cell) => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF374151' } };
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.alignment = { horizontal: 'center' };
+    });
+
+    sheet.addRow({ name: '王小明', actualHours: 160, transfer: 2, h134: 4, h167: 2, h267: 0, h1: 0, h2: 0 });
+    sheet.addRow({ name: '李小花', actualHours: 80,  transfer: 0, h134: 0, h167: 0, h267: 0, h1: 2, h2: 1 });
+
+    const note = sheet.getCell('A4');
+    note.value = '※ 轉場費以每組 $196 計算；加班費倍率欄（1.34/1.67/2.67/1/2）填入組數，每組 $200';
+    note.font = { color: { argb: 'FF6B7280' }, italic: true, size: 10 };
+    sheet.mergeCells('A4:H4');
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '加班時數統計範本.xlsx';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleOvertimeUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -334,12 +378,15 @@ const EmployeeManagement = () => {
                 <Plus size={14} strokeWidth={2.5} /><span>新增員工</span>
               </button>
             </>)}
-            {subTab === 'overtime' && (
+            {subTab === 'overtime' && (<>
+              <button onClick={handleDownloadOvertimeTemplate} className="px-4 py-2 rounded-md border cursor-pointer transition-all text-sm font-medium flex items-center gap-2 glass-panel" style={{ color: 'var(--text-secondary)' }}>
+                <Download size={14} /><span>下載範本</span>
+              </button>
               <label className="px-4 py-2 rounded-md border cursor-pointer transition-all text-sm font-medium flex items-center gap-2 glass-panel" style={{ color: 'var(--text-secondary)' }}>
                 <Upload size={14} /><span>匯入 Excel</span>
                 <input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleOvertimeUpload} />
               </label>
-            )}
+            </>)}
           </div>
       </div>
 

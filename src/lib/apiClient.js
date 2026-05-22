@@ -27,12 +27,11 @@ function buildUrl(path, params = {}) {
 
 async function request(method, path, { params, body } = {}) {
   const token = await getToken();
+  const headers = { Authorization: `Bearer ${token}` };
+  if (body != null) headers['Content-Type'] = 'application/json';
   const res = await fetch(buildUrl(path, params), {
     method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
+    headers,
     body: body != null ? JSON.stringify(body) : undefined,
   });
 
