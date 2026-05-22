@@ -7,6 +7,7 @@ import { getAcodeResults } from '../data/acodeStore';
 import { subscribePeriod, getPeriod } from '../data/periodStore';
 import { useInstitution } from '../context/InstitutionContext';
 import { getInstitutionFullName } from '../constants/institutions';
+import { computeLaborCapAdjustments } from '../utils/laborCap';
 import { FileText, Printer } from 'lucide-react';
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
@@ -416,7 +417,7 @@ const SummaryTemplate = ({ data, isBulk }) => {
 
 // ─── Data processors ──────────────────────────────────────────────────────────
 
-function buildBgsData(emp, bonus, deduction, record) {
+function buildBgsData(emp, bonus, deduction, record, laborAdj) {
   const bd = record.breakdown || {};
   const splitB      = bd['B']?.splitSum      || 0;
   const splitG      = bd['G']?.splitSum      || 0;
@@ -424,10 +425,10 @@ function buildBgsData(emp, bonus, deduction, record) {
   const splitMissed = bd['Missed']?.splitSum || 0;
   const serviceItems = ['B', 'G', 'S', 'Missed'].flatMap(t => bd[t]?.items || []);
   const totalSplit = splitB + splitG + splitS + splitMissed;
-  const otherSubsidy     = bonus.bgsOtherSubsidy   || 0;
+  const otherSubsidy     = bonus.bgsOtherSubsidy    || 0;
   const otherSubsidyNote = bonus.bgsOtherSubsidyNote || '';
-  const other1           = bonus.other1             || 0;
-  const other1Note       = bonus.bgsOtherNote       || '';
+  const other1           = laborAdj?.bgsOther1       ?? 0;
+  const other1Note       = bonus.bgsOtherNote        || '';
   const laborFee       = deduction.laborFee  ?? emp.laborInsuranceSelfPay  ?? 0;
   const healthFee      = deduction.healthFee ?? emp.healthInsuranceSelfPay ?? 0;
   const pensionFee     = deduction.pensionFee ?? emp.voluntaryPensionDeduction ?? 0;
@@ -439,14 +440,14 @@ function buildBgsData(emp, bonus, deduction, record) {
            laborFee, healthFee, pensionFee, otherDeduction1, net };
 }
 
-function buildAcodeData(emp, bonus, deduction, aCodeResult) {
+function buildAcodeData(emp, bonus, deduction, aCodeResult, laborAdj) {
   const serviceItems  = aCodeResult?.details || [];
   const totalSplit    = aCodeResult?.totalCommission || 0;
   const fuel          = bonus.fuel || 0;
   const fuelNote      = bonus.fuelNote || '';
   const otherSubsidy  = bonus.otherSubsidy || 0;
   const otherSubsidyNote = bonus.otherSubsidyNote || '';
-  const other2        = bonus.other2 || 0;
+  const other2        = laborAdj?.acodeOther2 ?? 0;
   const other2Note    = bonus.otherNote || '';
   const bonusItems = [
     { label: '跨區補助',   value: bonus.bonusCross   || 0, note: bonus.crossAreaNote    || '' },
@@ -466,7 +467,7 @@ function buildAcodeData(emp, bonus, deduction, aCodeResult) {
            withholdingTax, otherDeduction2, net };
 }
 
-function buildSummaryData(emp, bonus, deduction, record, aCodeResult) {
+function buildSummaryData(emp, bonus, deduction, record, aCodeResult, laborAdj) {
   const bd         = record.breakdown || {};
   const splitB     = bd['B']?.splitSum   || record.b      || 0;
   const splitG     = bd['G']?.splitSum   || record.g      || 0;
@@ -483,8 +484,8 @@ function buildSummaryData(emp, bonus, deduction, record, aCodeResult) {
   const mentoring        = bonus.mentoring    || 0;
   const holidayBonus     = bonus.holidayBonus || 0;
   const acodeOtherSubsidy = bonus.otherSubsidy || 0;
-  const other1           = bonus.other1       || 0;
-  const other2           = bonus.other2       || 0;
+  const other1           = laborAdj?.bgsOther1  ?? 0;
+  const other2           = laborAdj?.acodeOther2 ?? 0;
   const fuel             = bonus.fuel         || 0;
   const laborFee         = deduction.laborFee  ?? emp.laborInsuranceSelfPay  ?? 0;
   const healthFee        = deduction.healthFee ?? emp.healthInsuranceSelfPay ?? 0;
@@ -537,17 +538,20 @@ const SalarySlipDownload = () => {
   const deductionsRef   = useRef([]);
   const recordsRef      = useRef([]);
   const acodeResultsRef = useRef(null);
+  const laborAdjRef     = useRef({});
 
   const loadAllData = async () => {
     const [emps, bonuses, deductions, records, acodeData] = await Promise.all([
       getEmployees(), getBonuses(), getDeductions(), getRecords(), getAcodeResults(),
     ]);
+    const aCodeResults = acodeData?.finalSummary ?? [];
     setEmployees(emps);
     employeesRef.current    = emps;
     bonusesRef.current      = bonuses;
     deductionsRef.current   = deductions;
     recordsRef.current      = records;
     acodeResultsRef.current = acodeData;
+    laborAdjRef.current     = computeLaborCapAdjustments(emps, bonuses, records, aCodeResults);
   };
 
   useEffect(() => { loadAllData(); }, [currentInstitution]);
@@ -560,10 +564,11 @@ const SalarySlipDownload = () => {
     const record    = recordsRef.current.find(r => r.empId === empId) || {};
     const summary   = acodeResultsRef.current?.finalSummary ?? [];
     const aCodeResult = summary.find(r => r.id === empId || r.name === emp.name) || null;
+    const laborAdj  = laborAdjRef.current[empId] || { bgsOther1: 0, acodeOther2: 0 };
 
-    if (type === 'bgs')     return buildBgsData(emp, bonus, deduction, record);
-    if (type === 'acode')   return buildAcodeData(emp, bonus, deduction, aCodeResult);
-    if (type === 'summary') return buildSummaryData(emp, bonus, deduction, record, aCodeResult);
+    if (type === 'bgs')     return buildBgsData(emp, bonus, deduction, record, laborAdj);
+    if (type === 'acode')   return buildAcodeData(emp, bonus, deduction, aCodeResult, laborAdj);
+    if (type === 'summary') return buildSummaryData(emp, bonus, deduction, record, aCodeResult, laborAdj);
     return null;
   };
 

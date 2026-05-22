@@ -10,6 +10,7 @@ import { subscribePeriod, getPeriod } from '../data/periodStore';
 import { useInstitution } from '../context/InstitutionContext';
 import { lookupWithholdingTax } from '../data/withholdingTaxTable';
 import { exportBgsExcel, exportAcodeExcel, exportSummaryExcel } from '../utils/salary-excel';
+import { computeLaborCapAdjustments } from '../utils/laborCap';
 
 const money = (val) => (val && val !== 0) ? `$${val.toLocaleString()}` : '-';
 const pct   = (val) => (val && val !== 0) ? `${val}%` : '-';
@@ -178,6 +179,7 @@ const SalarySummary = () => {
     ]);
 
     const aCodeResults = acodeData?.finalSummary ?? [];
+    const laborAdj = computeLaborCapAdjustments(employees, bonuses, records, aCodeResults);
 
     // BGS碼薪資
     const bgs = employees.map(emp => {
@@ -195,8 +197,9 @@ const SalarySummary = () => {
       const rawS          = record.breakdown?.['S']?.rawSum      || 0;
       const rawMissed     = record.breakdown?.['Missed']?.rawSum || 0;
       const otherSubsidy  = bonus.bgsOtherSubsidy || 0;
-      const other1        = bonus.other1 || 0;
-      const other2        = bonus.other2 || 0;
+      const { bgsOther1, acodeOther2 } = laborAdj[emp.empId] || { bgsOther1: 0, acodeOther2: 0 };
+      const other1        = bgsOther1;
+      const other2        = acodeOther2;
       const payable       = serviceIncome + otherSubsidy + other1;
 
       const laborFee        = deduction.laborFee  ?? emp.laborInsuranceSelfPay  ?? 0;
@@ -251,8 +254,8 @@ const SalarySummary = () => {
       const mentoring     = bonus.mentoring    || 0;
       const holidayBonus  = bonus.holidayBonus || 0;
       const otherSubsidy  = bonus.otherSubsidy || 0;
-      const other1        = bonus.other1       || 0;
-      const other2        = bonus.other2       || 0;
+      const { bgsOther1: aOther1, acodeOther2: other2 } = laborAdj[emp.empId] || { bgsOther1: 0, acodeOther2: 0 };
+      const other1        = aOther1;
 
       const payable = serviceIncome + crossArea + serviceBonus + quotaDev + certBonus
                     + referral + mentoring + holidayBonus + otherSubsidy + other2;
@@ -329,8 +332,7 @@ const SalarySummary = () => {
       const bgsOtherSubsidy  = bonus.bgsOtherSubsidy || 0;
       const acodeOtherSubsidy = bonus.otherSubsidy  || 0;
       const otherSubsidy     = bgsOtherSubsidy + acodeOtherSubsidy;
-      const other1           = bonus.other1 || 0;
-      const other2           = bonus.other2 || 0;
+      const { bgsOther1: other1, acodeOther2: other2 } = laborAdj[emp.empId] || { bgsOther1: 0, acodeOther2: 0 };
       const other            = other1 + other2;
 
       const payable = serviceIncome + crossArea + serviceBonus + quotaDev + certBonus
@@ -410,7 +412,7 @@ const SalarySummary = () => {
       await Promise.all([
         saveBonus({
           empId: raw.empId, name: raw.name,
-          bgsOtherSubsidy: form.otherSubsidy, other1: form.other1, other2: raw.other2,
+          bgsOtherSubsidy: form.otherSubsidy,
           bgsOtherSubsidyNote: raw.bgsOtherSubsidyNote, bgsOtherNote: raw.bgsOtherNote,
         }),
         saveDeduction({
@@ -427,7 +429,7 @@ const SalarySummary = () => {
           bonusCross: form.crossArea, bonusOpen: form.serviceBonus, bonusDev: form.quotaDev,
           bonusC: form.certBonus, referral: form.referral, mentoring: form.mentoring,
           holidayBonus: form.holidayBonus, otherSubsidy: form.otherSubsidy,
-          other1: raw.other1, other2: form.other2, fuel: form.fuel,
+          fuel: form.fuel,
           crossAreaNote: raw.crossAreaNote, serviceBonusNote: raw.serviceBonusNote,
           quotaDevNote: raw.quotaDevNote, certBonusNote: raw.certBonusNote,
           referralNote: raw.referralNote, mentoringNote: raw.mentoringNote,
@@ -455,8 +457,6 @@ const SalarySummary = () => {
           holidayBonus:    form.holidayBonus,
           bgsOtherSubsidy: form.bgsOtherSubsidy,
           otherSubsidy:    form.acodeOtherSubsidy,
-          other1:          form.other1,
-          other2:          form.other2,
           fuel:            form.fuel,
           bgsOtherSubsidyNote: raw.bgsOtherSubsidyNote, bgsOtherNote:     raw.bgsOtherNote,
           crossAreaNote:       raw.crossAreaNote,        serviceBonusNote: raw.serviceBonusNote,
@@ -501,7 +501,7 @@ const SalarySummary = () => {
       await Promise.all([
         saveBonus({
           empId: raw.empId, name: raw.name,
-          bgsOtherSubsidy: raw.otherSubsidy, other1: raw.other1, other2: raw.other2,
+          bgsOtherSubsidy: raw.otherSubsidy,
           bgsOtherSubsidyNote: form.bgsOtherSubsidyNote, bgsOtherNote: form.bgsOtherNote,
         }),
         saveDeduction({
@@ -518,7 +518,7 @@ const SalarySummary = () => {
           bonusCross: raw.crossArea, bonusOpen: raw.serviceBonus, bonusDev: raw.quotaDev,
           bonusC: raw.certBonus, referral: raw.referral, mentoring: raw.mentoring,
           holidayBonus: raw.holidayBonus, otherSubsidy: raw.otherSubsidy,
-          other1: raw.other1, other2: raw.other2, fuel: raw.fuel,
+          fuel: raw.fuel,
           crossAreaNote: form.crossAreaNote, serviceBonusNote: form.serviceBonusNote,
           quotaDevNote: form.quotaDevNote, certBonusNote: form.certBonusNote,
           referralNote: form.referralNote, mentoringNote: form.mentoringNote,
@@ -546,8 +546,6 @@ const SalarySummary = () => {
           holidayBonus:    raw.holidayBonus,
           bgsOtherSubsidy: raw.bgsOtherSubsidy,
           otherSubsidy:    raw.acodeOtherSubsidy,
-          other1:          raw.other1,
-          other2:          raw.other2,
           fuel:            raw.fuel,
           bgsOtherSubsidyNote: form.bgsOtherSubsidyNote, bgsOtherNote:     form.bgsOtherNote,
           crossAreaNote:       form.crossAreaNote,        serviceBonusNote: form.serviceBonusNote,
@@ -1172,7 +1170,7 @@ const SalarySummary = () => {
             <div className="grid grid-cols-2 gap-6">
               <Divider label="額外項目" />
               <ModalField label="其他補貼"    fieldKey="otherSubsidy"    formData={modal.form} onChange={handleChange} />
-              <ModalField label="其他(1)"    fieldKey="other1"           formData={modal.form} onChange={handleChange} />
+              <ModalField label="其他(1) [自動計算]" fieldKey="other1" formData={modal.form} onChange={handleChange} disabled={true} />
               <Divider label="應扣項目" />
               <ModalField label="勞保費用"    fieldKey="laborFee"        formData={modal.form} onChange={handleChange} />
               <ModalField label="健保費用"    fieldKey="healthFee"       formData={modal.form} onChange={handleChange} />
@@ -1190,7 +1188,7 @@ const SalarySummary = () => {
               <ModalField label="帶新人津貼"  fieldKey="mentoring"       formData={modal.form} onChange={handleChange} />
               <ModalField label="節日獎金"   fieldKey="holidayBonus"    formData={modal.form} onChange={handleChange} />
               <ModalField label="其他補貼"   fieldKey="otherSubsidy"    formData={modal.form} onChange={handleChange} />
-              <ModalField label="其他(2)"   fieldKey="other2"           formData={modal.form} onChange={handleChange} />
+              <ModalField label="其他(2) [自動計算]" fieldKey="other2" formData={modal.form} onChange={handleChange} disabled={true} />
               <Divider label="應扣 / 補貼項目" />
               <ModalField label="扣繳稅額"   fieldKey="withholdingTax"  formData={modal.form} onChange={handleChange} />
               <ModalField label="油資補貼"   fieldKey="fuel"            formData={modal.form} onChange={handleChange} />
@@ -1208,8 +1206,8 @@ const SalarySummary = () => {
               <ModalField label="節日獎金"        fieldKey="holidayBonus"      formData={modal.form} onChange={handleChange} />
               <ModalField label="其他補貼(BGS)"   fieldKey="bgsOtherSubsidy"   formData={modal.form} onChange={handleChange} />
               <ModalField label="其他補貼(A碼)"   fieldKey="acodeOtherSubsidy" formData={modal.form} onChange={handleChange} />
-              <ModalField label="其他(1)"        fieldKey="other1"            formData={modal.form} onChange={handleChange} />
-              <ModalField label="其他(2)"        fieldKey="other2"            formData={modal.form} onChange={handleChange} />
+              <ModalField label="其他(1) [自動計算]" fieldKey="other1" formData={modal.form} onChange={handleChange} disabled={true} />
+              <ModalField label="其他(2) [自動計算]" fieldKey="other2" formData={modal.form} onChange={handleChange} disabled={true} />
               <Divider label="應扣 / 補貼項目" />
               <ModalField label="扣繳稅額"        fieldKey="withholdingTax"    formData={modal.form} onChange={handleChange} />
               <ModalField label="油資補貼"        fieldKey="fuel"              formData={modal.form} onChange={handleChange} />
