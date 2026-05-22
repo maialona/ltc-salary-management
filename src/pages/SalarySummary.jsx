@@ -190,6 +190,10 @@ const SalarySummary = () => {
       const splitS        = record.s || 0;
       const splitMissed   = record.missed || 0;
       const serviceIncome = splitB + splitG + splitS + splitMissed;
+      const rawB          = record.breakdown?.['B']?.rawSum      || 0;
+      const rawG          = record.breakdown?.['G']?.rawSum      || 0;
+      const rawS          = record.breakdown?.['S']?.rawSum      || 0;
+      const rawMissed     = record.breakdown?.['Missed']?.rawSum || 0;
       const otherSubsidy  = bonus.bgsOtherSubsidy || 0;
       const other1        = bonus.other1 || 0;
       const other2        = bonus.other2 || 0;
@@ -207,6 +211,7 @@ const SalarySummary = () => {
       return {
         id: emp.id, empId: emp.empId, name: emp.name,
         paymentMethod: emp.paymentMethod || '-',
+        rawB, rawG, rawS, rawMissed,
         splitB, splitG, splitS, splitMissed,
         serviceIncome, otherSubsidy, other1, other2, payable,
         laborBracket:    emp.laborInsuranceBracket || 0,
@@ -236,6 +241,7 @@ const SalarySummary = () => {
       const aCodeResult = aCodeResults.find(r => r.id === emp.empId || r.name === emp.name);
 
       const splitA        = aCodeResult ? aCodeResult.totalCommission : (bonus.bonusA || 0);
+      const rawA          = (aCodeResult?.details || []).reduce((s, d) => s + (d.subtotal || 0), 0);
       const serviceIncome = splitA;
       const crossArea     = bonus.bonusCross   || 0;
       const serviceBonus  = bonus.bonusOpen    || 0;
@@ -273,7 +279,7 @@ const SalarySummary = () => {
       return {
         id: emp.id, empId: emp.empId, name: emp.name,
         paymentMethod: '領現',
-        splitA, serviceIncome,
+        rawA, splitA, serviceIncome,
         crossArea, serviceBonus, quotaDev, certBonus,
         referral, mentoring, holidayBonus, otherSubsidy, other1, other2,
         payable, withholdingTax, fuel, otherDeduction1, otherDeduction2,
@@ -702,7 +708,7 @@ const SalarySummary = () => {
                   <th className={thCls()}     style={{ color: 'var(--table-header-text)' }}>員編</th>
                   <th className={thCls()}     style={{ color: 'var(--table-header-text)' }}>姓名</th>
                   <th className={thCls()}     style={{ color: 'var(--table-header-text)' }}>領款方式</th>
-                  {['B碼拆帳金額','G碼拆帳金額','S碼拆帳金額','服務未遇拆帳','服務所得總額',
+                  {['B碼申請金額','G碼申請金額','S碼申請金額','服務未遇','B碼拆帳金額','G碼拆帳金額','S碼拆帳金額','服務未遇拆帳','服務所得總額',
                     '其他補貼','其他(1)','應領金額',
                     '勞保級距','勞保費用','健保級距','健保眷屬人數','健保費用',
                     '勞退自提%','應扣勞退自提','應扣費用(1)','總額','實領金額',
@@ -716,7 +722,7 @@ const SalarySummary = () => {
               <tbody>
                 {bgsItems.length === 0 ? (
                   <tr>
-                    <td colSpan="23" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>
+                    <td colSpan="27" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>
                       尚無數據，請先建立員工名單並上傳計算
                     </td>
                   </tr>
@@ -725,6 +731,10 @@ const SalarySummary = () => {
                     <td className="px-4 py-3 font-mono text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{item.empId}</td>
                     <td className="px-4 py-3 text-sm font-medium"           style={{ color: 'var(--text-primary)' }}>{item.name}</td>
                     <td className="px-4 py-3 text-sm"                       style={{ color: 'var(--text-secondary)' }}>{item.paymentMethod}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-right"  style={{ color: 'var(--text-secondary)' }}>{money(item.rawB)}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-right"  style={{ color: 'var(--text-secondary)' }}>{money(item.rawG)}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-right"  style={{ color: 'var(--text-secondary)' }}>{money(item.rawS)}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-right"  style={{ color: 'var(--text-secondary)' }}>{money(item.rawMissed)}</td>
                     <td className="px-4 py-3 font-mono text-sm text-right"  style={{ color: 'var(--text-secondary)' }}>{money(item.splitB)}</td>
                     <td className="px-4 py-3 font-mono text-sm text-right"  style={{ color: 'var(--text-secondary)' }}>{money(item.splitG)}</td>
                     <td className="px-4 py-3 font-mono text-sm text-right"  style={{ color: 'var(--text-secondary)' }}>{money(item.splitS)}</td>
@@ -787,7 +797,7 @@ const SalarySummary = () => {
                   <th className={thCls()}     style={{ color: 'var(--table-header-text)' }}>員編</th>
                   <th className={thCls()}     style={{ color: 'var(--table-header-text)' }}>姓名</th>
                   <th className={thCls()}     style={{ color: 'var(--table-header-text)' }}>領款方式</th>
-                  {['A碼拆帳金額','服務所得總額','跨區補助','服務獎金','額度開發','丙證獎金',
+                  {['A碼申請金額','A碼拆帳金額','服務所得總額','跨區補助','服務獎金','額度開發','丙證獎金',
                     '介紹費','帶新人津貼','節日獎金','其他補貼','其他(2)',
                     '應領金額','扣繳稅額','油資補貼','應扣費用(2)','總額','實領金額',
                   ].map(h => (
@@ -800,7 +810,7 @@ const SalarySummary = () => {
               <tbody>
                 {aItems.length === 0 ? (
                   <tr>
-                    <td colSpan="22" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>
+                    <td colSpan="23" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>
                       尚無數據，請先建立員工名單並上傳計算
                     </td>
                   </tr>
@@ -809,6 +819,7 @@ const SalarySummary = () => {
                     <td className="px-4 py-3 font-mono text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{item.empId}</td>
                     <td className="px-4 py-3 text-sm font-medium"           style={{ color: 'var(--text-primary)' }}>{item.name}</td>
                     <td className="px-4 py-3 text-sm"                       style={{ color: 'var(--text-secondary)' }}>{item.paymentMethod}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-right"  style={{ color: 'var(--text-secondary)' }}>{money(item.rawA)}</td>
                     <td className="px-4 py-3 font-mono text-sm text-right"  style={{ color: 'var(--text-secondary)' }}>{money(item.splitA)}</td>
                     <td className="px-4 py-3 font-mono text-sm text-right font-semibold" style={{ color: 'var(--text-primary)' }}>{money(item.serviceIncome)}</td>
                     <td className="px-4 py-3 font-mono text-sm text-right text-blue-400">
