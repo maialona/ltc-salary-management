@@ -308,6 +308,7 @@ const SalarySummary = () => {
       const aCodeResult = aCodeResults.find(r => r.id === emp.empId || r.name === emp.name);
 
       const splitA      = aCodeResult ? aCodeResult.totalCommission : (bonus.bonusA || 0);
+      const rawA        = (aCodeResult?.details || []).reduce((s, d) => s + (d.subtotal || 0), 0);
       const splitB      = record.b || 0;
       const splitG      = record.g || 0;
       const splitS      = record.s || 0;
@@ -358,7 +359,7 @@ const SalarySummary = () => {
 
       return {
         id: emp.id, empId: emp.empId, name: emp.name,
-        rawB, rawG, rawS, rawMissed,
+        rawA, rawB, rawG, rawS, rawMissed,
         splitA, splitB, splitG, splitS, splitMissed, serviceIncome,
         crossArea, serviceBonus, quotaDev, certBonus,
         referral, mentoring, holidayBonus, otherSubsidy, other1, other2, other, payable,
@@ -995,7 +996,7 @@ const SalarySummary = () => {
                 <tr className="border-b" style={{ borderColor: 'var(--glass-border)' }}>
                   <th className={thCls()} style={{ color: 'var(--table-header-text)' }}>員編</th>
                   <th className={thCls()} style={{ color: 'var(--table-header-text)' }}>姓名</th>
-                  {['B碼申請金額','G碼申請金額','S碼申請金額','服務未遇',
+                  {['A碼申請金額','B碼申請金額','G碼申請金額','S碼申請金額','服務未遇',
                     'A碼拆帳金額','B碼拆帳金額','G碼拆帳金額','S碼拆帳金額','服務未遇拆帳','服務所得總額',
                     '跨區補助','服務獎金','額度開發','丙證獎金','介紹費','帶新人津貼','節日獎金',
                     '其他補貼','其他(1)','其他(2)','應領金額',
@@ -1012,7 +1013,7 @@ const SalarySummary = () => {
               <tbody>
                 {summaryItems.length === 0 ? (
                   <tr>
-                    <td colSpan="39" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>
+                    <td colSpan="40" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>
                       尚無數據，請先建立員工名單並上傳計算
                     </td>
                   </tr>
@@ -1020,7 +1021,8 @@ const SalarySummary = () => {
                   <tr key={item.id} className="group transition-colors border-b hover:bg-white/[0.05]" style={{ borderColor: 'var(--glass-border)' }}>
                     <td className="px-4 py-3 font-mono text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{item.empId}</td>
                     <td className="px-4 py-3 text-sm font-medium"           style={{ color: 'var(--text-primary)' }}>{item.name}</td>
-                    {/* BGS 申請金額 */}
+                    {/* 申請金額 */}
+                    <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>{money(item.rawA)}</td>
                     <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>{money(item.rawB)}</td>
                     <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>{money(item.rawG)}</td>
                     <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>{money(item.rawS)}</td>
@@ -1113,6 +1115,7 @@ const SalarySummary = () => {
                   <tr className="border-t" style={{ borderColor: 'var(--glass-border)' }}>
                     <td className="px-4 py-2.5 text-xs font-bold" style={{ color: 'var(--text-primary)' }}>小計</td>
                     <EC />
+                    <SumCell items={summaryItems} field="rawA" />
                     <SumCell items={summaryItems} field="rawB" />
                     <SumCell items={summaryItems} field="rawG" />
                     <SumCell items={summaryItems} field="rawS" />
