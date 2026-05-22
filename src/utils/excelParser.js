@@ -293,10 +293,15 @@ export const parseWelfareSummaryExcel = async (file) => {
       const codeFullName = String(row['服務項目\r\n類別'] || row['服務項目類別'] || row['服務項目\n類別'] || '').trim();
       const code = codeFullName.split(/\s+/)[0];
       if (!code || code.toUpperCase().startsWith('AA')) return null;
+      const dateRaw = String(row['服務日期'] ?? '').trim();
+      const serviceMonth = dateRaw
+        ? dateRaw.split(',')[0].trim().split('/').slice(0, 2).join('/')
+        : '';
       return {
         case: caseName,
         code,
         codeFullName,
+        serviceMonth,
         quantity: safeNum(row['次數']),
         govAmount: safeNum(row['申報費用']),
         selfPayRatio: String(row['部分負擔比率'] ?? '').trim(),

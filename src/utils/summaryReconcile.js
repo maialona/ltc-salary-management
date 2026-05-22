@@ -13,6 +13,7 @@ const groupRows = (rows) => {
         selfPayAmount: 0,
         selfPayQuantity: 0,
         selfPaySubtotal: 0,
+        serviceMonths: new Set(),
       });
     }
     const entry = map.get(k);
@@ -21,6 +22,7 @@ const groupRows = (rows) => {
     entry.selfPayAmount += row.selfPayAmount ?? 0;
     entry.selfPayQuantity += row.selfPayQuantity ?? 0;
     entry.selfPaySubtotal += row.selfPaySubtotal ?? 0;
+    if (row.serviceMonth) entry.serviceMonths.add(row.serviceMonth);
     if (!entry.selfPayRatio && row.selfPayRatio) entry.selfPayRatio = row.selfPayRatio;
     if (!entry.codeFullName || entry.codeFullName === entry.code) {
       entry.codeFullName = row.codeFullName ?? row.code;
@@ -70,6 +72,7 @@ export const reconcileSummaries = (caseQuantityRows, welfareRows) => {
         selfPaySubtotal: rec.selfPaySubtotal,
       } : null,
       welfare: wel ? {
+        serviceMonths: [...wel.serviceMonths].sort(),
         quantity: wel.quantity,
         govAmount: wel.govAmount,
         selfPayRatio: wel.selfPayRatio,
