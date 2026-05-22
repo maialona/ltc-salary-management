@@ -312,6 +312,10 @@ const SalarySummary = () => {
       const splitG      = record.g || 0;
       const splitS      = record.s || 0;
       const splitMissed = record.missed || 0;
+      const rawB        = record.breakdown?.['B']?.rawSum      || 0;
+      const rawG        = record.breakdown?.['G']?.rawSum      || 0;
+      const rawS        = record.breakdown?.['S']?.rawSum      || 0;
+      const rawMissed   = record.breakdown?.['Missed']?.rawSum || 0;
       const serviceIncome = splitA + splitB + splitG + splitS + splitMissed;
 
       const crossArea        = bonus.bonusCross   || 0;
@@ -354,6 +358,7 @@ const SalarySummary = () => {
 
       return {
         id: emp.id, empId: emp.empId, name: emp.name,
+        rawB, rawG, rawS, rawMissed,
         splitA, splitB, splitG, splitS, splitMissed, serviceIncome,
         crossArea, serviceBonus, quotaDev, certBonus,
         referral, mentoring, holidayBonus, otherSubsidy, other1, other2, other, payable,
@@ -762,13 +767,13 @@ const SalarySummary = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3 font-mono text-sm text-right font-semibold" style={{ color: 'var(--text-primary)' }}>{money(item.payable)}</td>
-                    <td className="px-4 py-3 font-mono text-sm text-right"  style={{ color: 'var(--text-secondary)' }}>{money(item.laborBracket)}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-right"  style={{ color: 'var(--text-secondary)' }}>{item.laborBracket ? item.laborBracket.toLocaleString() : '–'}</td>
                     <td className="px-4 py-3 font-mono text-sm text-right text-red-400">
                       <span className="inline-flex items-center justify-end">
                         {money(item.laborFee)}<NoteTooltip note={item.laborFeeNote} />
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-mono text-sm text-right"  style={{ color: 'var(--text-secondary)' }}>{money(item.healthBracket)}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-right"  style={{ color: 'var(--text-secondary)' }}>{item.healthBracket ? item.healthBracket.toLocaleString() : '–'}</td>
                     <td className="px-4 py-3 font-mono text-sm text-right"  style={{ color: 'var(--text-secondary)' }}>{item.healthDependents}</td>
                     <td className="px-4 py-3 font-mono text-sm text-right text-red-400">
                       <span className="inline-flex items-center justify-end">
@@ -990,7 +995,8 @@ const SalarySummary = () => {
                 <tr className="border-b" style={{ borderColor: 'var(--glass-border)' }}>
                   <th className={thCls()} style={{ color: 'var(--table-header-text)' }}>員編</th>
                   <th className={thCls()} style={{ color: 'var(--table-header-text)' }}>姓名</th>
-                  {['A碼拆帳金額','B碼拆帳金額','G碼拆帳金額','S碼拆帳金額','服務未遇拆帳','服務所得總額',
+                  {['B碼申請金額','G碼申請金額','S碼申請金額','服務未遇',
+                    'A碼拆帳金額','B碼拆帳金額','G碼拆帳金額','S碼拆帳金額','服務未遇拆帳','服務所得總額',
                     '跨區補助','服務獎金','額度開發','丙證獎金','介紹費','帶新人津貼','節日獎金',
                     '其他補貼','其他(1)','其他(2)','應領金額',
                     '扣繳稅額','扶養親屬人數','油資補貼',
@@ -1006,7 +1012,7 @@ const SalarySummary = () => {
               <tbody>
                 {summaryItems.length === 0 ? (
                   <tr>
-                    <td colSpan="35" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>
+                    <td colSpan="39" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>
                       尚無數據，請先建立員工名單並上傳計算
                     </td>
                   </tr>
@@ -1014,7 +1020,12 @@ const SalarySummary = () => {
                   <tr key={item.id} className="group transition-colors border-b hover:bg-white/[0.05]" style={{ borderColor: 'var(--glass-border)' }}>
                     <td className="px-4 py-3 font-mono text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{item.empId}</td>
                     <td className="px-4 py-3 text-sm font-medium"           style={{ color: 'var(--text-primary)' }}>{item.name}</td>
-                    {/* A/B/G/S + 未遇 */}
+                    {/* BGS 申請金額 */}
+                    <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>{money(item.rawB)}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>{money(item.rawG)}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>{money(item.rawS)}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>{money(item.rawMissed)}</td>
+                    {/* A/B/G/S 拆帳 + 未遇 */}
                     <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>{money(item.splitA)}</td>
                     <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>{money(item.splitB)}</td>
                     <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>{money(item.splitG)}</td>
@@ -1071,11 +1082,11 @@ const SalarySummary = () => {
                     <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>
                       <span className="inline-flex items-center justify-end">{money(item.fuel)}<NoteTooltip note={item.fuelNote} /></span>
                     </td>
-                    <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>{money(item.laborBracket)}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>{item.laborBracket ? item.laborBracket.toLocaleString() : '–'}</td>
                     <td className="px-4 py-3 font-mono text-sm text-right text-red-400">
                       <span className="inline-flex items-center justify-end">{money(item.laborFee)}<NoteTooltip note={item.laborFeeNote} /></span>
                     </td>
-                    <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>{money(item.healthBracket)}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>{item.healthBracket ? item.healthBracket.toLocaleString() : '–'}</td>
                     <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>{item.healthDependents}</td>
                     <td className="px-4 py-3 font-mono text-sm text-right text-red-400">
                       <span className="inline-flex items-center justify-end">{money(item.healthFee)}<NoteTooltip note={item.healthFeeNote} /></span>
@@ -1102,6 +1113,10 @@ const SalarySummary = () => {
                   <tr className="border-t" style={{ borderColor: 'var(--glass-border)' }}>
                     <td className="px-4 py-2.5 text-xs font-bold" style={{ color: 'var(--text-primary)' }}>小計</td>
                     <EC />
+                    <SumCell items={summaryItems} field="rawB" />
+                    <SumCell items={summaryItems} field="rawG" />
+                    <SumCell items={summaryItems} field="rawS" />
+                    <SumCell items={summaryItems} field="rawMissed" />
                     <SumCell items={summaryItems} field="splitA" />
                     <SumCell items={summaryItems} field="splitB" />
                     <SumCell items={summaryItems} field="splitG" />
