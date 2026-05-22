@@ -61,7 +61,7 @@ export default function SummaryReconciliation() {
     setCaseQuantity(cq);
     setWarnings([]);
     if (cq && welfare) {
-      setRows(reconcileSummaries(cq, welfare));
+      setRows(reconcileSummaries(cq, welfare, p));
     } else {
       setRows([]);
     }
@@ -92,7 +92,7 @@ export default function SummaryReconciliation() {
           throw new Error('衛福部清冊解析失敗：找不到資料，請確認 header 在第 5 列');
         }
         saveWelfare(period, welfareData);
-        const reconciledRows = reconcileSummaries(caseQuantity, welfareData);
+        const reconciledRows = reconcileSummaries(caseQuantity, welfareData, period);
         setRows(reconciledRows);
       } catch (err) {
         console.error(err);
@@ -295,10 +295,11 @@ export default function SummaryReconciliation() {
                     <tr className="border-b" style={{ borderColor: 'var(--glass-border)' }}>
                       <th rowSpan={2} className="px-4 py-3 text-left text-xs font-medium border-r" style={{ color: 'var(--table-header-text)', borderColor: 'var(--glass-border)' }}>個案</th>
                       <th rowSpan={2} className="px-4 py-3 text-left text-xs font-medium border-r" style={{ color: 'var(--table-header-text)', borderColor: 'var(--glass-border)' }}>服務項目</th>
-                      <th colSpan={6} className="px-4 py-2 text-center text-xs font-medium border-r" style={{ color: '#60a5fa', borderColor: 'var(--glass-border)' }}>服務紀錄表</th>
+                      <th colSpan={7} className="px-4 py-2 text-center text-xs font-medium border-r" style={{ color: '#60a5fa', borderColor: 'var(--glass-border)' }}>服務紀錄表</th>
                       <th colSpan={5} className="px-4 py-2 text-center text-xs font-medium" style={{ color: '#34d399' }}>衛福部清冊</th>
                     </tr>
                     <tr className="border-b" style={{ borderColor: 'var(--glass-border)', background: 'var(--table-header-bg)' }}>
+                      <th className="px-4 py-2 text-left text-xs font-medium" style={{ color: '#60a5fa' }}>服務月份</th>
                       {['次數', '申報費用', '部負比率', '部負費用', '自費數量', '自費小計'].map((h) => (
                         <th key={`rec-${h}`} className="px-4 py-2 text-right text-xs font-medium" style={{ color: '#60a5fa' }}>{h}</th>
                       ))}
@@ -311,7 +312,7 @@ export default function SummaryReconciliation() {
                   <tbody>
                     {filteredRows.length === 0 ? (
                       <tr>
-                        <td colSpan={13} className="p-12 text-center text-sm" style={{ color: 'var(--text-secondary)' }}>
+                        <td colSpan={14} className="p-12 text-center text-sm" style={{ color: 'var(--text-secondary)' }}>
                           {filter === 'all' ? '無資料' : '此類別無資料'}
                         </td>
                       </tr>
@@ -337,11 +338,15 @@ export default function SummaryReconciliation() {
 
                           {/* Record side */}
                           {isMissR ? (
-                            <td colSpan={6} className="px-4 py-3 text-center text-sm border-r" style={{ color: 'var(--text-secondary)', borderColor: 'var(--glass-border)', opacity: 0.45 }}>
+                            <td colSpan={7} className="px-4 py-3 text-center text-sm border-r" style={{ color: 'var(--text-secondary)', borderColor: 'var(--glass-border)', opacity: 0.45 }}>
                               — 無資料 —
                             </td>
                           ) : (
                             <>
+                              <td className={`px-4 py-3 text-sm font-mono ${d.includes('serviceMonth') ? 'bg-red-500/10' : ''}`}
+                                style={{ color: d.includes('serviceMonth') ? '#f87171' : 'var(--text-secondary)' }}>
+                                {row.record.serviceMonth}
+                              </td>
                               <Cell value={row.record.quantity} isDiff={d.includes('quantity')} />
                               <Cell value={fmt(row.record.govAmount)} isDiff={d.includes('govAmount')} />
                               <Cell value={row.record.selfPayRatio} isDiff={d.includes('selfPayRatio')} />
@@ -358,7 +363,8 @@ export default function SummaryReconciliation() {
                             </td>
                           ) : (
                             <>
-                              <td className="px-4 py-3 text-sm font-mono border-l" style={{ borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>
+                              <td className={`px-4 py-3 text-sm font-mono border-l ${d.includes('serviceMonth') ? 'bg-red-500/10' : ''}`}
+                                style={{ borderColor: 'var(--glass-border)', color: d.includes('serviceMonth') ? '#f87171' : 'var(--text-secondary)' }}>
                                 {row.welfare.serviceMonths.map((m, i) => (
                                   <span key={m} className={i > 0 ? 'ml-1.5' : ''}>{m}</span>
                                 ))}
@@ -378,6 +384,7 @@ export default function SummaryReconciliation() {
                       <td colSpan={2} className="px-4 py-2.5 text-xs font-semibold border-r" style={{ color: 'var(--table-header-text)', borderColor: 'var(--glass-border)' }}>
                         合計（全部 {rows.length} 筆）
                       </td>
+                      <td className="px-4 py-2.5" />
                       <TotalCell value={totals.recQuantity} />
                       <TotalCell value={fmt(totals.recGovAmount)} />
                       <TotalCell value="—" dim />

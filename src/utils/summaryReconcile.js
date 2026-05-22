@@ -34,9 +34,17 @@ const groupRows = (rows) => {
 const numEq = (a, b) => Math.round(a ?? 0) === Math.round(b ?? 0);
 const ratioEq = (a, b) => String(a ?? '').trim() === String(b ?? '').trim();
 
-export const reconcileSummaries = (caseQuantityRows, welfareRows) => {
+export const periodToServiceMonth = (period) => {
+  if (!period || period.length < 6) return '';
+  const year = parseInt(period.slice(0, 4), 10) - 1911;
+  const month = period.slice(4, 6);
+  return `${year}/${month}`;
+};
+
+export const reconcileSummaries = (caseQuantityRows, welfareRows, period) => {
   const recMap = groupRows(caseQuantityRows);
   const welMap = groupRows(welfareRows);
+  const recServiceMonth = periodToServiceMonth(period);
 
   const allKeys = new Set([...recMap.keys(), ...welMap.keys()]);
 
@@ -44,6 +52,7 @@ export const reconcileSummaries = (caseQuantityRows, welfareRows) => {
   for (const k of allKeys) {
     const rec = recMap.get(k) ?? null;
     const wel = welMap.get(k) ?? null;
+    const welMonths = wel ? [...wel.serviceMonths].sort() : [];
 
     const diffs = [];
     if (rec && wel) {
@@ -51,6 +60,9 @@ export const reconcileSummaries = (caseQuantityRows, welfareRows) => {
       if (!numEq(rec.govAmount, wel.govAmount)) diffs.push('govAmount');
       if (!ratioEq(rec.selfPayRatio, wel.selfPayRatio)) diffs.push('selfPayRatio');
       if (!numEq(rec.selfPayAmount, wel.selfPayAmount)) diffs.push('selfPayAmount');
+      if (welMonths.length > 0 && !welMonths.every((m) => m === recServiceMonth)) {
+        diffs.push('serviceMonth');
+      }
     }
 
     let status;
@@ -64,6 +76,7 @@ export const reconcileSummaries = (caseQuantityRows, welfareRows) => {
       code: rec?.code ?? wel?.code,
       codeFullName: wel?.codeFullName ?? rec?.codeFullName ?? rec?.code ?? wel?.code,
       record: rec ? {
+        serviceMonth: recServiceMonth,
         quantity: rec.quantity,
         govAmount: rec.govAmount,
         selfPayRatio: rec.selfPayRatio,
@@ -72,7 +85,7 @@ export const reconcileSummaries = (caseQuantityRows, welfareRows) => {
         selfPaySubtotal: rec.selfPaySubtotal,
       } : null,
       welfare: wel ? {
-        serviceMonths: [...wel.serviceMonths].sort(),
+        serviceMonths: welMonths,
         quantity: wel.quantity,
         govAmount: wel.govAmount,
         selfPayRatio: wel.selfPayRatio,
