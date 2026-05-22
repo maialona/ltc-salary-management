@@ -625,6 +625,17 @@ const SalarySummary = () => {
   const thCls = (right = false) =>
     `px-4 py-3 text-xs font-medium${right ? ' text-right' : ''}`;
 
+  const SumCell = ({ items, field, bold = false, accent = false }) => {
+    const total = items.reduce((s, i) => s + (Number(i[field]) || 0), 0);
+    return (
+      <td className="px-4 py-2.5 font-mono text-xs text-right font-semibold"
+        style={{ color: accent ? 'var(--text-accent)' : bold ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+        {total !== 0 ? money(total) : '–'}
+      </td>
+    );
+  };
+  const EC = () => <td className="px-4 py-2.5" />;
+
   const NoteBtn = ({ item, type }) => {
     const keys = type === 'bgs' ? BGS_NOTE_KEYS : type === 'acode' ? ACODE_NOTE_KEYS : SUMMARY_NOTE_KEYS;
     const hasNotes = keys.some(k => item[k]);
@@ -701,10 +712,10 @@ const SalarySummary = () => {
       {/* ── BGS碼薪資 ─────────────────────────────────────────────────────── */}
       {subTab === 'bgs' && (
         <div className="overflow-hidden rounded-md border glass-panel" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
             <table className="w-full text-left border-collapse whitespace-nowrap">
-              <thead>
-                <tr className="border-b" style={{ borderColor: 'var(--glass-border)', background: 'var(--table-header-bg)' }}>
+              <thead className="sticky top-0 z-10" style={{ background: 'var(--table-header-bg)' }}>
+                <tr className="border-b" style={{ borderColor: 'var(--glass-border)' }}>
                   <th className={thCls()}     style={{ color: 'var(--table-header-text)' }}>員編</th>
                   <th className={thCls()}     style={{ color: 'var(--table-header-text)' }}>姓名</th>
                   <th className={thCls()}     style={{ color: 'var(--table-header-text)' }}>領款方式</th>
@@ -782,6 +793,36 @@ const SalarySummary = () => {
                   </tr>
                 ))}
               </tbody>
+              {bgsItems.length > 0 && (
+                <tfoot className="sticky bottom-0 z-10" style={{ background: 'var(--table-header-bg)' }}>
+                  <tr className="border-t" style={{ borderColor: 'var(--glass-border)' }}>
+                    <td className="px-4 py-2.5 text-xs font-bold" style={{ color: 'var(--text-primary)' }}>小計</td>
+                    <EC /><EC />
+                    <SumCell items={bgsItems} field="rawB" />
+                    <SumCell items={bgsItems} field="rawG" />
+                    <SumCell items={bgsItems} field="rawS" />
+                    <SumCell items={bgsItems} field="rawMissed" />
+                    <SumCell items={bgsItems} field="splitB" />
+                    <SumCell items={bgsItems} field="splitG" />
+                    <SumCell items={bgsItems} field="splitS" />
+                    <SumCell items={bgsItems} field="splitMissed" />
+                    <SumCell items={bgsItems} field="serviceIncome" bold />
+                    <SumCell items={bgsItems} field="otherSubsidy" />
+                    <SumCell items={bgsItems} field="other1" />
+                    <SumCell items={bgsItems} field="payable" bold />
+                    <EC />
+                    <SumCell items={bgsItems} field="laborFee" />
+                    <EC /><EC />
+                    <SumCell items={bgsItems} field="healthFee" />
+                    <EC />
+                    <SumCell items={bgsItems} field="pensionFee" />
+                    <SumCell items={bgsItems} field="otherDeduction1" />
+                    <SumCell items={bgsItems} field="total" bold />
+                    <SumCell items={bgsItems} field="netSalary" accent />
+                    <EC /><EC />
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
         </div>
@@ -790,10 +831,10 @@ const SalarySummary = () => {
       {/* ── A碼及其他獎金 ──────────────────────────────────────────────────── */}
       {subTab === 'acode' && (
         <div className="overflow-hidden rounded-md border glass-panel" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
             <table className="w-full text-left border-collapse whitespace-nowrap">
-              <thead>
-                <tr className="border-b" style={{ borderColor: 'var(--glass-border)', background: 'var(--table-header-bg)' }}>
+              <thead className="sticky top-0 z-10" style={{ background: 'var(--table-header-bg)' }}>
+                <tr className="border-b" style={{ borderColor: 'var(--glass-border)' }}>
                   <th className={thCls()}     style={{ color: 'var(--table-header-text)' }}>員編</th>
                   <th className={thCls()}     style={{ color: 'var(--table-header-text)' }}>姓名</th>
                   <th className={thCls()}     style={{ color: 'var(--table-header-text)' }}>領款方式</th>
@@ -890,6 +931,33 @@ const SalarySummary = () => {
                   </tr>
                 ))}
               </tbody>
+              {aItems.length > 0 && (
+                <tfoot className="sticky bottom-0 z-10" style={{ background: 'var(--table-header-bg)' }}>
+                  <tr className="border-t" style={{ borderColor: 'var(--glass-border)' }}>
+                    <td className="px-4 py-2.5 text-xs font-bold" style={{ color: 'var(--text-primary)' }}>小計</td>
+                    <EC /><EC />
+                    <SumCell items={aItems} field="rawA" />
+                    <SumCell items={aItems} field="splitA" />
+                    <SumCell items={aItems} field="serviceIncome" bold />
+                    <SumCell items={aItems} field="crossArea" />
+                    <SumCell items={aItems} field="serviceBonus" />
+                    <SumCell items={aItems} field="quotaDev" />
+                    <SumCell items={aItems} field="certBonus" />
+                    <SumCell items={aItems} field="referral" />
+                    <SumCell items={aItems} field="mentoring" />
+                    <SumCell items={aItems} field="holidayBonus" />
+                    <SumCell items={aItems} field="otherSubsidy" />
+                    <SumCell items={aItems} field="other2" />
+                    <SumCell items={aItems} field="payable" bold />
+                    <SumCell items={aItems} field="withholdingTax" />
+                    <SumCell items={aItems} field="fuel" />
+                    <SumCell items={aItems} field="otherDeduction2" />
+                    <SumCell items={aItems} field="total" bold />
+                    <SumCell items={aItems} field="netSalary" accent />
+                    <EC /><EC />
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
         </div>
@@ -916,10 +984,10 @@ const SalarySummary = () => {
           </button>
         </div>
         <div className="overflow-hidden rounded-md border glass-panel" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
             <table className="w-full text-left border-collapse whitespace-nowrap">
-              <thead>
-                <tr className="border-b" style={{ borderColor: 'var(--glass-border)', background: 'var(--table-header-bg)' }}>
+              <thead className="sticky top-0 z-10" style={{ background: 'var(--table-header-bg)' }}>
+                <tr className="border-b" style={{ borderColor: 'var(--glass-border)' }}>
                   <th className={thCls()} style={{ color: 'var(--table-header-text)' }}>員編</th>
                   <th className={thCls()} style={{ color: 'var(--table-header-text)' }}>姓名</th>
                   {['A碼拆帳金額','B碼拆帳金額','G碼拆帳金額','S碼拆帳金額','服務未遇拆帳','服務所得總額',
@@ -1029,6 +1097,45 @@ const SalarySummary = () => {
                   </tr>
                 ))}
               </tbody>
+              {summaryItems.length > 0 && (
+                <tfoot className="sticky bottom-0 z-10" style={{ background: 'var(--table-header-bg)' }}>
+                  <tr className="border-t" style={{ borderColor: 'var(--glass-border)' }}>
+                    <td className="px-4 py-2.5 text-xs font-bold" style={{ color: 'var(--text-primary)' }}>小計</td>
+                    <EC />
+                    <SumCell items={summaryItems} field="splitA" />
+                    <SumCell items={summaryItems} field="splitB" />
+                    <SumCell items={summaryItems} field="splitG" />
+                    <SumCell items={summaryItems} field="splitS" />
+                    <SumCell items={summaryItems} field="splitMissed" />
+                    <SumCell items={summaryItems} field="serviceIncome" bold />
+                    <SumCell items={summaryItems} field="crossArea" />
+                    <SumCell items={summaryItems} field="serviceBonus" />
+                    <SumCell items={summaryItems} field="quotaDev" />
+                    <SumCell items={summaryItems} field="certBonus" />
+                    <SumCell items={summaryItems} field="referral" />
+                    <SumCell items={summaryItems} field="mentoring" />
+                    <SumCell items={summaryItems} field="holidayBonus" />
+                    <SumCell items={summaryItems} field="otherSubsidy" />
+                    <SumCell items={summaryItems} field="other1" />
+                    <SumCell items={summaryItems} field="other2" />
+                    <SumCell items={summaryItems} field="payable" bold />
+                    <SumCell items={summaryItems} field="autoTax" />
+                    <EC />
+                    <SumCell items={summaryItems} field="fuel" />
+                    <EC />
+                    <SumCell items={summaryItems} field="laborFee" />
+                    <EC /><EC />
+                    <SumCell items={summaryItems} field="healthFee" />
+                    <EC />
+                    <SumCell items={summaryItems} field="pensionFee" />
+                    <SumCell items={summaryItems} field="otherDeduction1" />
+                    <SumCell items={summaryItems} field="otherDeduction2" />
+                    <SumCell items={summaryItems} field="total" bold />
+                    <SumCell items={summaryItems} field="netSalary" accent />
+                    <EC /><EC />
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
         </div>
