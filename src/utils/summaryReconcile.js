@@ -35,9 +35,9 @@ const numEq = (a, b) => Math.round(a ?? 0) === Math.round(b ?? 0);
 const ratioEq = (a, b) => String(a ?? '').trim() === String(b ?? '').trim();
 
 export const periodToServiceMonth = (period) => {
-  if (!period || period.length < 6) return '';
-  const year = parseInt(period.slice(0, 4), 10) - 1911;
-  const month = period.slice(4, 6);
+  if (!period) return '';
+  const [yearStr, month] = period.split('-');
+  const year = parseInt(yearStr, 10) - 1911;
   return `${year}/${month}`;
 };
 
