@@ -263,8 +263,13 @@ export const parseDeductionExcel = async (file) => {
       const pensionFee = parseFloat(
         row[findKey(['自提金額', 'pension fee', 'pension amount'])] || 0
       );
-      const otherDeduction = parseFloat(
-        row[findKey(['應扣費用', 'other deduction', 'deduction fee'])] || 0
+      const otherDeduction1 = parseFloat(
+        row[findKey(['應扣費用(1)', 'other deduction 1', 'other deduction(1)'])]
+        ?? row[findKey(['應扣費用', 'other deduction', 'deduction fee'])]
+        ?? 0
+      );
+      const otherDeduction2 = parseFloat(
+        row[findKey(['應扣費用(2)', 'other deduction 2', 'other deduction(2)'])] || 0
       );
 
       if (!empId && !name) return null;
@@ -279,7 +284,8 @@ export const parseDeductionExcel = async (file) => {
         healthFee,
         pensionRate,
         pensionFee,
-        otherDeduction,
+        otherDeduction1,
+        otherDeduction2,
       };
     })
     .filter(Boolean);
@@ -314,7 +320,14 @@ export const parseBonusExcel = async (file) => {
         row[findKey(['帶新人津貼', 'mentoring', 'mentor'])] || 0
       );
       const fuel = parseFloat(row[findKey(['油資補助', 'fuel subsidy', 'fuel'])] || 0);
-      const other = parseFloat(row[findKey(['其他', 'other', 'others'])] || 0);
+      const other1 = parseFloat(
+        row[findKey(['其他(1)', 'other1', 'other (1)'])]
+        ?? row[findKey(['其他', 'other', 'others'])]
+        ?? 0
+      );
+      const other2 = parseFloat(
+        row[findKey(['其他(2)', 'other2', 'other (2)'])] || 0
+      );
 
       if (!empId && !name) return null;
 
@@ -329,7 +342,8 @@ export const parseBonusExcel = async (file) => {
         referral,
         mentoring,
         fuel,
-        other,
+        other1,
+        other2,
       };
     })
     .filter(Boolean);

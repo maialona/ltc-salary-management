@@ -121,13 +121,15 @@ const AmountRow = ({ label, value, negative = false, className = '' }) => (
 );
 
 // ─── Always-visible amount row (shows even when value is 0, with optional note) ─
-const AlwaysAmountRow = ({ label, value, note, className = '' }) => (
+const AlwaysAmountRow = ({ label, value, note, negative = false, className = '' }) => (
   <div className={`flex justify-between items-start py-0.5 text-[10px] ${className}`}>
     <div>
       <span className="text-gray-700">{label}</span>
       {note && <div className="text-[9px] text-gray-400 mt-0.5 italic">{note}</div>}
     </div>
-    <span className="font-mono font-semibold">{money(value)}</span>
+    <span className={`font-mono font-semibold ${negative ? 'text-red-600' : ''}`}>
+      {negative ? `–${money(value).replace('$', '')}` : money(value)}
+    </span>
   </div>
 );
 
@@ -172,14 +174,14 @@ const NetFooter = ({ income, deduction, net }) => (
 const BgsTemplate = ({ data, isBulk }) => {
   const { emp, institutionName, serviceItems, totalSplit,
           splitB, splitG, splitS, splitMissed,
-          otherSubsidy, otherSubsidyNote, other, otherNote,
-          laborFee, healthFee, pensionFee, otherDeduction, net } = data;
+          otherSubsidy, otherSubsidyNote, other1, other1Note,
+          laborFee, healthFee, pensionFee, otherDeduction1, net } = data;
   const sp = emp.splits || {};
   const splitRate = sp.b || sp.g || sp.s || sp.missed;
   const splitDesc = splitRate ? `${splitRate}%` : null;
 
-  const totalIncome = totalSplit + (otherSubsidy || 0) + (other || 0);
-  const totalDed = (laborFee || 0) + (healthFee || 0) + (pensionFee || 0) + (otherDeduction || 0);
+  const totalIncome = totalSplit + (otherSubsidy || 0) + (other1 || 0);
+  const totalDed = (laborFee || 0) + (healthFee || 0) + (pensionFee || 0) + (otherDeduction1 || 0);
 
   // Map calculator items to table row shape
   const rows = serviceItems.map(it => ({
@@ -221,7 +223,7 @@ const BgsTemplate = ({ data, isBulk }) => {
               <AlwaysAmountRow label="S碼拆帳" value={splitS} />
               <AlwaysAmountRow label="服務未遇" value={splitMissed} />
               <AlwaysAmountRow label="其他補貼" value={otherSubsidy} note={otherSubsidyNote || undefined} />
-              <AlwaysAmountRow label="其他" value={other} note={otherNote || undefined} />
+              <AlwaysAmountRow label="其他(1)" value={other1} note={other1Note || undefined} />
               <SubtotalRow label="應領小計" value={totalIncome} />
             </div>
           </section>
@@ -233,7 +235,7 @@ const BgsTemplate = ({ data, isBulk }) => {
               <AmountRow label="勞保費" value={laborFee} negative />
               <AmountRow label="健保費" value={healthFee} negative />
               <AmountRow label={`勞退自提${emp.voluntaryPensionRate ? ` (${emp.voluntaryPensionRate}%)` : ''}`} value={pensionFee} negative />
-              <AmountRow label="其他扣款" value={otherDeduction} negative />
+              <AmountRow label="應扣費用(1)" value={otherDeduction1} negative />
               <SubtotalRow label="應扣小計" value={totalDed} negative />
             </div>
           </section>
@@ -261,14 +263,14 @@ const BgsTemplate = ({ data, isBulk }) => {
 // ════════════════════════════════════════════════════════════════════════════
 const AcodeTemplate = ({ data, isBulk }) => {
   const { emp, institutionName, serviceItems, totalSplit,
-          fuel, fuelNote, otherSubsidy, otherSubsidyNote, other, otherNote, bonusItems,
-          withholdingTax, otherDeduction, net } = data;
+          fuel, fuelNote, otherSubsidy, otherSubsidyNote, other2, other2Note, bonusItems,
+          withholdingTax, otherDeduction2, net } = data;
   const acodeRate = emp.splits?.aa09;
   const otherAcodeRate = emp.splits?.otherAcode;
 
-  const allSubsidyBonus = (fuel || 0) + (otherSubsidy || 0) + (other || 0)
+  const allSubsidyBonus = (fuel || 0) + (otherSubsidy || 0) + (other2 || 0)
     + bonusItems.reduce((s, b) => s + b.value, 0);
-  const totalDed = (withholdingTax || 0) + (otherDeduction || 0);
+  const totalDed = (withholdingTax || 0) + (otherDeduction2 || 0);
   const totalIncome = totalSplit + allSubsidyBonus;
 
   // A-code items: details have { client, code, qty, subtotal, amount }
@@ -305,7 +307,7 @@ const AcodeTemplate = ({ data, isBulk }) => {
               {bonusItems.map((b, i) => <AlwaysAmountRow key={i} label={b.label} value={b.value} note={b.note || undefined} />)}
               <AlwaysAmountRow label="其他補貼" value={otherSubsidy} note={otherSubsidyNote || undefined} />
               <AlwaysAmountRow label="油資補助" value={fuel} note={fuelNote || undefined} />
-              {other > 0 && <AlwaysAmountRow label="其他" value={other} note={otherNote || undefined} />}
+              {other2 > 0 && <AlwaysAmountRow label="其他(2)" value={other2} note={other2Note || undefined} />}
               <SubtotalRow label="應領小計" value={totalIncome} />
             </div>
           </section>
@@ -315,7 +317,7 @@ const AcodeTemplate = ({ data, isBulk }) => {
             <SectionLabel>應扣費用明細</SectionLabel>
             <div className="bg-gray-50 rounded px-3 py-2">
               <AmountRow label={`扣繳稅額${emp.dependentsCount != null ? ` (扶養 ${emp.dependentsCount} 人)` : ''}`} value={withholdingTax} negative />
-              <AmountRow label="其他扣款" value={otherDeduction} negative />
+              <AmountRow label="應扣費用(2)" value={otherDeduction2} negative />
               {totalDed > 0 && <SubtotalRow label="應扣小計" value={totalDed} negative />}
             </div>
           </section>
@@ -346,115 +348,68 @@ const SummaryTemplate = ({ data, isBulk }) => {
           splitB, splitG, splitS, splitMissed, bgsServiceIncome, bgsOtherSubsidy,
           laborFee, healthFee, pensionFee,
           splitA, crossArea, serviceBonus, quotaDev, certBonus, referral, mentoring, holidayBonus,
-          acodeOtherSubsidy, other, fuel,
-          withholdingTax, otherDeduction,
+          acodeOtherSubsidy, other1, other2, fuel,
+          withholdingTax, otherDeduction1, otherDeduction2,
           totalIncome, totalDeduction, net } = data;
 
-  const hasBgs = bgsServiceIncome > 0 || bgsOtherSubsidy > 0;
-  const hasAcode = splitA > 0;
+  const sp = emp.splits || {};
+  const bgsRate = sp.b || sp.g || sp.s || sp.missed;
 
-  const acodeSupplements = [
-    { label: '油資補助',   value: fuel },
-    { label: '跨區補助',   value: crossArea },
-    { label: '服務獎金',   value: serviceBonus },
-    { label: '開發獎金',   value: quotaDev },
-    { label: '丙證獎金',   value: certBonus },
-    { label: '介紹費',     value: referral },
-    { label: '帶新人津貼', value: mentoring },
-    { label: '節日獎金',   value: holidayBonus },
-    { label: '其他補貼',   value: acodeOtherSubsidy },
-    { label: '其他',       value: other },
-  ].filter(i => i.value > 0);
-
-  const bgsIncome = bgsServiceIncome + bgsOtherSubsidy;
-  const bgsDed = (laborFee || 0) + (healthFee || 0) + (pensionFee || 0);
-  const acodeIncome = splitA + acodeSupplements.reduce((s, i) => s + i.value, 0);
-  const acodeDed = (withholdingTax || 0) + (otherDeduction || 0);
+  // 本薪 = BGS服務拆帳 + BGS其他補貼 + 其他(1)
+  const basePay = bgsServiceIncome + (bgsOtherSubsidy || 0) + (other1 || 0);
+  // 獎金 = A碼拆帳 + 各項獎金 + A碼其他補貼 + 其他(2)
+  const bonusTotal = (splitA || 0) + (crossArea || 0) + (serviceBonus || 0) + (quotaDev || 0)
+                   + (certBonus || 0) + (referral || 0) + (mentoring || 0) + (holidayBonus || 0)
+                   + (acodeOtherSubsidy || 0) + (other2 || 0);
 
   return (
     <SlipPage isBulk={isBulk}>
       <div className="p-8 space-y-4">
         <SlipHeader title="薪資總表" period={getPeriod()} emp={emp} institutionName={institutionName} />
 
-        <div className="grid grid-cols-2 gap-6">
-          {/* BGS 欄 */}
-          <section>
-            <SectionLabel>BGS碼薪資</SectionLabel>
-            <div className="space-y-0 text-[10px]">
-              {splitB > 0 && <AmountRow label="B碼拆帳" value={splitB} />}
-              {splitG > 0 && <AmountRow label="G碼拆帳" value={splitG} />}
-              {splitS > 0 && <AmountRow label="S碼拆帳" value={splitS} />}
-              {splitMissed > 0 && <AmountRow label="未遇拆帳" value={splitMissed} />}
-              {bgsServiceIncome > 0 && (
-                <div className="flex justify-between py-0.5 border-t border-dashed border-gray-300 mt-1">
-                  <span className="font-bold">服務拆帳小計</span>
-                  <span className="font-mono font-bold">{money(bgsServiceIncome)}</span>
-                </div>
-              )}
-              {bgsOtherSubsidy > 0 && <AmountRow label="其他補貼" value={bgsOtherSubsidy} className="mt-1" />}
-            </div>
-            {hasBgs && (
-              <div className="mt-2 pt-1 border-t border-gray-200 space-y-0 text-[10px]">
-                <SectionLabel>BGS 應扣費用</SectionLabel>
-                <AmountRow label="勞保費" value={laborFee} negative />
-                <AmountRow label="健保費" value={healthFee} negative />
-                <AmountRow label={`勞退${emp.voluntaryPensionRate ? ` (${emp.voluntaryPensionRate}%)` : ''}`} value={pensionFee} negative />
-                {bgsDed > 0 && <SubtotalRow label="BGS應扣小計" value={bgsDed} negative />}
-              </div>
-            )}
-            {hasBgs && (
-              <div className="mt-2 pt-1 border-t-2 border-gray-400">
-                <div className="flex justify-between text-[10px]">
-                  <span className="font-black">BGS實領小計</span>
-                  <span className="font-black font-mono">{money(bgsIncome - bgsDed)}</span>
-                </div>
-              </div>
-            )}
-          </section>
+        {/* 人員基本資料 */}
+        <section>
+          <SectionLabel>人員基本資料</SectionLabel>
+          <InfoGrid cells={[
+            { label: '姓名',       value: emp.name },
+            { label: '匯款帳號',   value: emp.bankAccount ? `${emp.bankCode || ''} ${emp.bankAccount}`.trim() : null },
+            { label: 'AA09抽成',   value: emp.splits?.aa09 ? `${emp.splits.aa09}%` : null },
+            { label: '其餘A碼抽成', value: emp.splits?.otherAcode ? `${emp.splits.otherAcode}%` : null },
+            { label: 'BGS碼抽成',  value: bgsRate ? `${bgsRate}%` : null },
+            { label: '勞保費 (級距)', value: emp.laborInsuranceBracket ? emp.laborInsuranceBracket.toLocaleString() : null },
+            { label: '健保費 (級距)', value: emp.healthInsuranceBracket ? emp.healthInsuranceBracket.toLocaleString() : null },
+            { label: '健保眷屬人數', value: emp.healthDependents != null && emp.healthDependents !== '' ? `${emp.healthDependents}` : null },
+            { label: '勞退自提率',  value: emp.voluntaryPensionRate ? `${emp.voluntaryPensionRate}%` : null },
+            { label: '扶養親屬人數', value: emp.dependentsCount != null && emp.dependentsCount !== '' ? `${emp.dependentsCount}` : null },
+          ]} />
+        </section>
 
-          {/* A碼 欄 */}
-          <section>
-            <SectionLabel>A碼及其他獎金</SectionLabel>
-            <div className="space-y-0 text-[10px]">
-              {splitA > 0 && <AmountRow label="A碼拆帳" value={splitA} />}
-              {acodeSupplements.map((s, i) => <AmountRow key={i} label={s.label} value={s.value} />)}
-              {acodeIncome > 0 && (
-                <div className="flex justify-between py-0.5 border-t border-dashed border-gray-300 mt-1">
-                  <span className="font-bold">A碼收入小計</span>
-                  <span className="font-mono font-bold">{money(acodeIncome)}</span>
-                </div>
-              )}
-            </div>
-            {hasAcode && (
-              <div className="mt-2 pt-1 border-t border-gray-200 space-y-0 text-[10px]">
-                <SectionLabel>A碼 應扣費用</SectionLabel>
-                <AmountRow label={`扣繳稅額${emp.dependentsCount != null ? ` (扶養 ${emp.dependentsCount} 人)` : ''}`} value={withholdingTax} negative />
-                <AmountRow label="其他扣款" value={otherDeduction} negative />
-                {acodeDed > 0 && <SubtotalRow label="A碼應扣小計" value={acodeDed} negative />}
-              </div>
-            )}
-            {hasAcode && (
-              <div className="mt-2 pt-1 border-t-2 border-gray-400">
-                <div className="flex justify-between text-[10px]">
-                  <span className="font-black">A碼實領小計</span>
-                  <span className="font-black font-mono">{money(acodeIncome - acodeDed)}</span>
-                </div>
-              </div>
-            )}
-          </section>
-        </div>
+        {/* 應領費用明細 */}
+        <section>
+          <SectionLabel>應領費用明細</SectionLabel>
+          <div className="bg-gray-50 rounded px-3 py-2">
+            <AlwaysAmountRow label="本薪" value={basePay} />
+            <AlwaysAmountRow label="獎金" value={bonusTotal} />
+            <AmountRow label="油資補助" value={fuel} />
+            <SubtotalRow label="應領小計" value={totalIncome} />
+          </div>
+        </section>
 
-        {/* Combined net */}
-        <div className="border-t-4 border-black pt-3 flex justify-between items-center bg-gray-50 px-4 py-3 rounded">
-          <div className="text-[10px] text-gray-600 space-y-0.5">
-            <div>應領合計 <span className="font-mono font-bold text-black">{money(totalIncome)}</span></div>
-            <div>應扣合計 <span className="font-mono font-bold text-red-600">–{money(totalDeduction).replace('$','')}</span></div>
+        {/* 應扣費用明細 */}
+        <section>
+          <SectionLabel>應扣費用明細</SectionLabel>
+          <div className="bg-gray-50 rounded px-3 py-2">
+            <AlwaysAmountRow label="勞保費" value={laborFee} negative />
+            <AlwaysAmountRow label="健保費" value={healthFee} negative />
+            <AlwaysAmountRow label={`自繳勞退金${emp.voluntaryPensionRate ? ` (${emp.voluntaryPensionRate}%)` : ''}`} value={pensionFee} negative />
+            <AlwaysAmountRow label={`扣繳稅額${emp.dependentsCount != null && emp.dependentsCount !== '' ? ` (扶養 ${emp.dependentsCount} 人)` : ''}`} value={withholdingTax} negative />
+            <AlwaysAmountRow label="應扣費用(1)" value={otherDeduction1} negative />
+            <AlwaysAmountRow label="應扣費用(2)" value={otherDeduction2} negative />
+            <SubtotalRow label="應扣小計" value={totalDeduction} negative />
           </div>
-          <div className="text-right">
-            <div className="text-[9px] text-gray-500 uppercase tracking-wider mb-0.5">本月合計實領</div>
-            <div className="text-3xl font-black font-mono">{money(net)}</div>
-          </div>
-        </div>
+        </section>
+
+        <NetFooter income={totalIncome} deduction={totalDeduction} net={net} />
       </div>
     </SlipPage>
   );
@@ -472,17 +427,17 @@ function buildBgsData(emp, bonus, deduction, record) {
   const totalSplit = splitB + splitG + splitS + splitMissed;
   const otherSubsidy     = bonus.bgsOtherSubsidy   || 0;
   const otherSubsidyNote = bonus.bgsOtherSubsidyNote || '';
-  const other            = bonus.other              || 0;
-  const otherNote        = bonus.bgsOtherNote       || '';
-  const laborFee      = deduction.laborFee  ?? emp.laborInsuranceSelfPay  ?? 0;
-  const healthFee     = deduction.healthFee ?? emp.healthInsuranceSelfPay ?? 0;
-  const pensionFee    = deduction.pensionFee ?? emp.voluntaryPensionDeduction ?? 0;
-  const otherDeduction = deduction.otherDeduction || 0;
-  const net = Math.round(totalSplit + otherSubsidy + other - laborFee - healthFee - pensionFee - otherDeduction);
+  const other1           = bonus.other1             || 0;
+  const other1Note       = bonus.bgsOtherNote       || '';
+  const laborFee       = deduction.laborFee  ?? emp.laborInsuranceSelfPay  ?? 0;
+  const healthFee      = deduction.healthFee ?? emp.healthInsuranceSelfPay ?? 0;
+  const pensionFee     = deduction.pensionFee ?? emp.voluntaryPensionDeduction ?? 0;
+  const otherDeduction1 = deduction.otherDeduction1 || 0;
+  const net = Math.round(totalSplit + otherSubsidy + other1 - laborFee - healthFee - pensionFee - otherDeduction1);
   return { type: 'bgs', emp, institutionName: getInstitutionFullName(emp.organization),
            serviceItems, totalSplit, splitB, splitG, splitS, splitMissed,
-           otherSubsidy, otherSubsidyNote, other, otherNote,
-           laborFee, healthFee, pensionFee, otherDeduction, net };
+           otherSubsidy, otherSubsidyNote, other1, other1Note,
+           laborFee, healthFee, pensionFee, otherDeduction1, net };
 }
 
 function buildAcodeData(emp, bonus, deduction, aCodeResult) {
@@ -492,8 +447,8 @@ function buildAcodeData(emp, bonus, deduction, aCodeResult) {
   const fuelNote      = bonus.fuelNote || '';
   const otherSubsidy  = bonus.otherSubsidy || 0;
   const otherSubsidyNote = bonus.otherSubsidyNote || '';
-  const other         = bonus.other || 0;
-  const otherNote     = bonus.otherNote || '';
+  const other2        = bonus.other2 || 0;
+  const other2Note    = bonus.otherNote || '';
   const bonusItems = [
     { label: '跨區補助',   value: bonus.bonusCross   || 0, note: bonus.crossAreaNote    || '' },
     { label: '服務獎金',   value: bonus.bonusOpen    || 0, note: bonus.serviceBonusNote || '' },
@@ -504,12 +459,12 @@ function buildAcodeData(emp, bonus, deduction, aCodeResult) {
     { label: '節日獎金',   value: bonus.holidayBonus || 0, note: bonus.holidayBonusNote || '' },
   ];
   const withholdingTax  = deduction.withholdingTax || 0;
-  const otherDeduction  = deduction.otherDeduction || 0;
-  const allSubsidy = fuel + otherSubsidy + other + bonusItems.reduce((s, b) => s + b.value, 0);
-  const net = Math.round(totalSplit + allSubsidy - withholdingTax - otherDeduction);
+  const otherDeduction2 = deduction.otherDeduction2 || 0;
+  const allSubsidy = fuel + otherSubsidy + other2 + bonusItems.reduce((s, b) => s + b.value, 0);
+  const net = Math.round(totalSplit + allSubsidy - withholdingTax - otherDeduction2);
   return { type: 'acode', emp, institutionName: getInstitutionFullName(emp.organization),
-           serviceItems, totalSplit, fuel, fuelNote, otherSubsidy, otherSubsidyNote, other, otherNote, bonusItems,
-           withholdingTax, otherDeduction, net };
+           serviceItems, totalSplit, fuel, fuelNote, otherSubsidy, otherSubsidyNote, other2, other2Note, bonusItems,
+           withholdingTax, otherDeduction2, net };
 }
 
 function buildSummaryData(emp, bonus, deduction, record, aCodeResult) {
@@ -529,23 +484,25 @@ function buildSummaryData(emp, bonus, deduction, record, aCodeResult) {
   const mentoring        = bonus.mentoring    || 0;
   const holidayBonus     = bonus.holidayBonus || 0;
   const acodeOtherSubsidy = bonus.otherSubsidy || 0;
-  const other            = bonus.other        || 0;
+  const other1           = bonus.other1       || 0;
+  const other2           = bonus.other2       || 0;
   const fuel             = bonus.fuel         || 0;
   const laborFee         = deduction.laborFee  ?? emp.laborInsuranceSelfPay  ?? 0;
   const healthFee        = deduction.healthFee ?? emp.healthInsuranceSelfPay ?? 0;
   const pensionFee       = deduction.pensionFee ?? emp.voluntaryPensionDeduction ?? 0;
-  const withholdingTax   = deduction.withholdingTax  || 0;
-  const otherDeduction   = deduction.otherDeduction  || 0;
+  const withholdingTax   = deduction.withholdingTax   || 0;
+  const otherDeduction1  = deduction.otherDeduction1  || 0;
+  const otherDeduction2  = deduction.otherDeduction2  || 0;
   const totalIncome = bgsServiceIncome + bgsOtherSubsidy + splitA
                     + crossArea + serviceBonus + quotaDev + certBonus
-                    + referral + mentoring + holidayBonus + acodeOtherSubsidy + other + fuel;
-  const totalDeduction = laborFee + healthFee + pensionFee + withholdingTax + otherDeduction;
+                    + referral + mentoring + holidayBonus + acodeOtherSubsidy + other1 + other2 + fuel;
+  const totalDeduction = laborFee + healthFee + pensionFee + withholdingTax + otherDeduction1 + otherDeduction2;
   const net = Math.round(totalIncome - totalDeduction);
   return { type: 'summary', emp, institutionName: getInstitutionFullName(emp.organization),
            splitB, splitG, splitS, splitMissed, bgsServiceIncome, bgsOtherSubsidy,
            laborFee, healthFee, pensionFee,
            splitA, crossArea, serviceBonus, quotaDev, certBonus, referral, mentoring, holidayBonus,
-           acodeOtherSubsidy, other, fuel, withholdingTax, otherDeduction,
+           acodeOtherSubsidy, other1, other2, fuel, withholdingTax, otherDeduction1, otherDeduction2,
            totalIncome, totalDeduction, net };
 }
 

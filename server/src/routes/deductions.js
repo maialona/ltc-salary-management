@@ -16,7 +16,8 @@ function dbToClient(row) {
     healthFee: parseFloat(row.health_fee) || 0,
     pensionRate: parseFloat(row.pension_rate) || 0,
     pensionFee: parseFloat(row.pension_fee) || 0,
-    otherDeduction: parseFloat(row.other_deduction) || 0,
+    otherDeduction1: parseFloat(row.other_deduction1) || 0,
+    otherDeduction2: parseFloat(row.other_deduction2) || 0,
     // notes
     laborFeeNote:           row.labor_fee_note            || '',
     healthFeeNote:          row.health_fee_note           || '',
@@ -32,18 +33,20 @@ async function upsertDeduction(client, institutionCode, period, ded) {
     `INSERT INTO deductions (
        institution_code, period, emp_id, name,
        withholding_tax, labor_level, labor_fee,
-       health_level, health_fee, pension_rate, pension_fee, other_deduction,
+       health_level, health_fee, pension_rate, pension_fee,
+       other_deduction1, other_deduction2,
        labor_fee_note, health_fee_note, pension_fee_note,
        bgs_other_deduction_note, withholding_tax_note, other_deduction_note
      )
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
      ON CONFLICT (institution_code, period, emp_id) DO UPDATE SET
        name = EXCLUDED.name,
        withholding_tax = EXCLUDED.withholding_tax,
        labor_level = EXCLUDED.labor_level, labor_fee = EXCLUDED.labor_fee,
        health_level = EXCLUDED.health_level, health_fee = EXCLUDED.health_fee,
        pension_rate = EXCLUDED.pension_rate, pension_fee = EXCLUDED.pension_fee,
-       other_deduction = EXCLUDED.other_deduction,
+       other_deduction1 = EXCLUDED.other_deduction1,
+       other_deduction2 = EXCLUDED.other_deduction2,
        labor_fee_note           = EXCLUDED.labor_fee_note,
        health_fee_note          = EXCLUDED.health_fee_note,
        pension_fee_note         = EXCLUDED.pension_fee_note,
@@ -56,7 +59,8 @@ async function upsertDeduction(client, institutionCode, period, ded) {
       institutionCode, period, ded.empId, ded.name || '',
       ded.withholdingTax || 0, ded.laborLevel || 0, ded.laborFee || 0,
       ded.healthLevel || 0, ded.healthFee || 0,
-      ded.pensionRate || 0, ded.pensionFee || 0, ded.otherDeduction || 0,
+      ded.pensionRate || 0, ded.pensionFee || 0,
+      ded.otherDeduction1 || 0, ded.otherDeduction2 || 0,
       ded.laborFeeNote          || '', ded.healthFeeNote       || '', ded.pensionFeeNote        || '',
       ded.bgsOtherDeductionNote || '', ded.withholdingTaxNote  || '', ded.otherDeductionNote    || '',
     ]

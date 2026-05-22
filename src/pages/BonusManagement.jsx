@@ -80,7 +80,8 @@ const BonusManagement = () => {
             referral: bonus.referral || 0,
             mentoring: bonus.mentoring || 0,
             fuel: bonus.fuel || 0,
-            other: bonus.other || 0
+            other1: bonus.other1 || 0,
+            other2: bonus.other2 || 0,
         };
     });
 
@@ -111,7 +112,8 @@ const BonusManagement = () => {
           referral: formData.referral,
           mentoring: formData.mentoring,
           fuel: formData.fuel,
-          other: formData.other,
+          other1: formData.other1,
+          other2: formData.other2,
       };
       await saveBonus(bonusData);
       setIsModalOpen(false);
@@ -129,7 +131,7 @@ const BonusManagement = () => {
   };
 
   const handleDownloadTemplate = () => {
-    const headers = ['員編', '姓名', 'A碼獎金', '丙證獎金', '服務獎金', '開發獎金', '跨區獎金', '介紹費', '帶新人津貼', '油資補助', '其他'];
+    const headers = ['員編', '姓名', 'A碼獎金', '丙證獎金', '服務獎金', '開發獎金', '跨區獎金', '介紹費', '帶新人津貼', '油資補助', '其他(1)', '其他(2)'];
     const ws = XLSX.utils.aoa_to_sheet([headers]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '額外獎金');
@@ -162,7 +164,8 @@ const BonusManagement = () => {
       { key: 'referral', label: '介紹費', color: 'text-purple-400', border: 'focus:border-purple-500/50', ring: 'focus:ring-purple-500/50' },
       { key: 'mentoring', label: '帶新人津貼', color: 'text-purple-400', border: 'focus:border-purple-500/50', ring: 'focus:ring-purple-500/50' },
       { key: 'fuel', label: '油資補助', color: 'text-slate-300', border: 'focus:border-slate-500/50', ring: 'focus:ring-slate-500/50' },
-      { key: 'other', label: '其他', color: 'text-slate-300', border: 'focus:border-slate-500/50', ring: 'focus:ring-slate-500/50' },
+      { key: 'other1', label: '其他(1)', color: 'text-slate-300', border: 'focus:border-slate-500/50', ring: 'focus:ring-slate-500/50' },
+      { key: 'other2', label: '其他(2)', color: 'text-slate-300', border: 'focus:border-slate-500/50', ring: 'focus:ring-slate-500/50' },
   ];
 
   return (
@@ -228,7 +231,7 @@ const BonusManagement = () => {
                         </tr>
                     ) : (
                         items.map((item) => {
-                            const total = (item.bonusA || 0) + (item.bonusC || 0) + (item.bonusOpen || 0) + (item.bonusDev || 0) + (item.bonusCross || 0) + (item.referral || 0) + (item.mentoring || 0) + (item.fuel || 0) + (item.other || 0);
+                            const total = (item.bonusA || 0) + (item.bonusC || 0) + (item.bonusOpen || 0) + (item.bonusDev || 0) + (item.bonusCross || 0) + (item.referral || 0) + (item.mentoring || 0) + (item.fuel || 0) + (item.other1 || 0) + (item.other2 || 0);
                             return (
                             <tr key={item.id} className="transition-colors border-b group hover:bg-white/[0.05]" style={{ borderColor: 'var(--glass-border)' }}>
                                 <td className="px-4 py-3 font-mono text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{item.empId}</td>

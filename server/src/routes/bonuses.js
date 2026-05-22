@@ -17,7 +17,8 @@ function dbToClient(row) {
     referral: parseFloat(row.referral) || 0,
     mentoring: parseFloat(row.mentoring) || 0,
     fuel: parseFloat(row.fuel) || 0,
-    other: parseFloat(row.other) || 0,
+    other1: parseFloat(row.other1) || 0,
+    other2: parseFloat(row.other2) || 0,
     bgsOtherSubsidy: parseFloat(row.bgs_other_subsidy) || 0,
     otherSubsidy: parseFloat(row.other_subsidy) || 0,
     holidayBonus: parseFloat(row.holiday_bonus) || 0,
@@ -42,20 +43,21 @@ async function upsertBonus(client, institutionCode, period, bonus) {
     `INSERT INTO bonuses (
        institution_code, period, emp_id, name,
        bonus_a, bonus_c, bonus_open, bonus_dev, bonus_cross,
-       referral, mentoring, fuel, other,
+       referral, mentoring, fuel, other1, other2,
        bgs_other_subsidy, other_subsidy, holiday_bonus,
        bgs_other_subsidy_note, bgs_other_note,
        cross_area_note, service_bonus_note, quota_dev_note, cert_bonus_note,
        referral_note, mentoring_note, holiday_bonus_note,
        other_subsidy_note, other_note, fuel_note
      )
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29)
      ON CONFLICT (institution_code, period, emp_id) DO UPDATE SET
        name = EXCLUDED.name,
        bonus_a = EXCLUDED.bonus_a, bonus_c = EXCLUDED.bonus_c,
        bonus_open = EXCLUDED.bonus_open, bonus_dev = EXCLUDED.bonus_dev,
        bonus_cross = EXCLUDED.bonus_cross, referral = EXCLUDED.referral,
-       mentoring = EXCLUDED.mentoring, fuel = EXCLUDED.fuel, other = EXCLUDED.other,
+       mentoring = EXCLUDED.mentoring, fuel = EXCLUDED.fuel,
+       other1 = EXCLUDED.other1, other2 = EXCLUDED.other2,
        bgs_other_subsidy = EXCLUDED.bgs_other_subsidy,
        other_subsidy = EXCLUDED.other_subsidy,
        holiday_bonus = EXCLUDED.holiday_bonus,
@@ -77,7 +79,7 @@ async function upsertBonus(client, institutionCode, period, bonus) {
       institutionCode, period, bonus.empId, bonus.name || '',
       bonus.bonusA || 0, bonus.bonusC || 0, bonus.bonusOpen || 0, bonus.bonusDev || 0,
       bonus.bonusCross || 0, bonus.referral || 0, bonus.mentoring || 0,
-      bonus.fuel || 0, bonus.other || 0,
+      bonus.fuel || 0, bonus.other1 || 0, bonus.other2 || 0,
       bonus.bgsOtherSubsidy || 0, bonus.otherSubsidy || 0, bonus.holidayBonus || 0,
       bonus.bgsOtherSubsidyNote || '', bonus.bgsOtherNote     || '',
       bonus.crossAreaNote    || '', bonus.serviceBonusNote || '', bonus.quotaDevNote    || '', bonus.certBonusNote   || '',

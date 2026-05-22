@@ -191,22 +191,24 @@ const SalarySummary = () => {
       const splitMissed   = record.missed || 0;
       const serviceIncome = splitB + splitG + splitS + splitMissed;
       const otherSubsidy  = bonus.bgsOtherSubsidy || 0;
-      const other         = bonus.other || 0;
-      const payable       = serviceIncome + otherSubsidy + other;
+      const other1        = bonus.other1 || 0;
+      const other2        = bonus.other2 || 0;
+      const payable       = serviceIncome + otherSubsidy + other1;
 
-      const laborFee       = deduction.laborFee  ?? emp.laborInsuranceSelfPay  ?? 0;
-      const healthFee      = deduction.healthFee ?? emp.healthInsuranceSelfPay ?? 0;
-      const pensionFee     = deduction.pensionFee ?? emp.voluntaryPensionDeduction ?? 0;
-      const otherDeduction = deduction.otherDeduction || 0;
+      const laborFee        = deduction.laborFee  ?? emp.laborInsuranceSelfPay  ?? 0;
+      const healthFee       = deduction.healthFee ?? emp.healthInsuranceSelfPay ?? 0;
+      const pensionFee      = deduction.pensionFee ?? emp.voluntaryPensionDeduction ?? 0;
+      const otherDeduction1 = deduction.otherDeduction1 || 0;
+      const otherDeduction2 = deduction.otherDeduction2 || 0;
 
-      const total     = payable - laborFee - healthFee - pensionFee - otherDeduction;
+      const total     = payable - laborFee - healthFee - pensionFee - otherDeduction1;
       const netSalary = Math.round(total);
 
       return {
         id: emp.id, empId: emp.empId, name: emp.name,
         paymentMethod: emp.paymentMethod || '-',
         splitB, splitG, splitS, splitMissed,
-        serviceIncome, otherSubsidy, other, payable,
+        serviceIncome, otherSubsidy, other1, other2, payable,
         laborBracket:    emp.laborInsuranceBracket || 0,
         laborFee,
         healthBracket:   emp.healthInsuranceBracket || 0,
@@ -214,7 +216,7 @@ const SalarySummary = () => {
         healthFee,
         pensionRate:     emp.voluntaryPensionRate || 0,
         pensionFee,
-        otherDeduction,
+        otherDeduction1, otherDeduction2,
         total, netSalary,
         _bonusId: bonus.id, _deductionId: deduction.id,
         bgsOtherSubsidyNote:   bonus.bgsOtherSubsidyNote        || '',
@@ -243,10 +245,11 @@ const SalarySummary = () => {
       const mentoring     = bonus.mentoring    || 0;
       const holidayBonus  = bonus.holidayBonus || 0;
       const otherSubsidy  = bonus.otherSubsidy || 0;
-      const other         = bonus.other        || 0;
+      const other1        = bonus.other1       || 0;
+      const other2        = bonus.other2       || 0;
 
       const payable = serviceIncome + crossArea + serviceBonus + quotaDev + certBonus
-                    + referral + mentoring + holidayBonus + otherSubsidy + other;
+                    + referral + mentoring + holidayBonus + otherSubsidy + other2;
 
       // 應收金額 = 全部來源合計（A+B+G+S+未遇+所有獎金補貼），查115年度扣繳稅額表
       const bgsOtherSubsidy = bonus.bgsOtherSubsidy || 0;
@@ -257,13 +260,14 @@ const SalarySummary = () => {
       const fullPayable = splitA + splitB + splitG + splitS + splitMissed
                         + crossArea + serviceBonus + quotaDev + certBonus
                         + referral + mentoring + holidayBonus
-                        + bgsOtherSubsidy + otherSubsidy + other;
+                        + bgsOtherSubsidy + otherSubsidy + other1 + other2;
       const acDepCount = emp.dependentsCount ?? 0;
-      const withholdingTax = lookupWithholdingTax(fullPayable, acDepCount);
-      const fuel           = bonus.fuel || 0;
-      const otherDeduction = deduction.otherDeduction || 0;
+      const withholdingTax  = lookupWithholdingTax(fullPayable, acDepCount);
+      const fuel            = bonus.fuel || 0;
+      const otherDeduction1 = deduction.otherDeduction1 || 0;
+      const otherDeduction2 = deduction.otherDeduction2 || 0;
 
-      const total     = payable - withholdingTax + fuel - otherDeduction;
+      const total     = payable - withholdingTax + fuel - otherDeduction2;
       const netSalary = Math.round(total);
 
       return {
@@ -271,8 +275,8 @@ const SalarySummary = () => {
         paymentMethod: emp.paymentMethod || '-',
         splitA, serviceIncome,
         crossArea, serviceBonus, quotaDev, certBonus,
-        referral, mentoring, holidayBonus, otherSubsidy, other,
-        payable, withholdingTax, fuel, otherDeduction,
+        referral, mentoring, holidayBonus, otherSubsidy, other1, other2,
+        payable, withholdingTax, fuel, otherDeduction1, otherDeduction2,
         total, netSalary,
         _bonusId: bonus.id, _deductionId: deduction.id,
         crossAreaNote:      bonus.crossAreaNote           || '',
@@ -314,7 +318,9 @@ const SalarySummary = () => {
       const bgsOtherSubsidy  = bonus.bgsOtherSubsidy || 0;
       const acodeOtherSubsidy = bonus.otherSubsidy  || 0;
       const otherSubsidy     = bgsOtherSubsidy + acodeOtherSubsidy;
-      const other            = bonus.other || 0;
+      const other1           = bonus.other1 || 0;
+      const other2           = bonus.other2 || 0;
+      const other            = other1 + other2;
 
       const payable = serviceIncome + crossArea + serviceBonus + quotaDev + certBonus
                     + referral + mentoring + holidayBonus + otherSubsidy + other;
@@ -329,7 +335,9 @@ const SalarySummary = () => {
       const healthFee       = deduction.healthFee ?? emp.healthInsuranceSelfPay ?? 0;
       const pensionRate     = emp.voluntaryPensionRate || 0;
       const pensionFee      = deduction.pensionFee ?? emp.voluntaryPensionDeduction ?? 0;
-      const otherDeduction  = deduction.otherDeduction || 0;
+      const otherDeduction1 = deduction.otherDeduction1 || 0;
+      const otherDeduction2 = deduction.otherDeduction2 || 0;
+      const otherDeduction  = otherDeduction1 + otherDeduction2;
 
       // 依115年度扣繳稅額表自動計算，以應收金額(=payable)及扶養人數查表
       const autoTax = lookupWithholdingTax(payable, dependentsCount);
@@ -342,10 +350,10 @@ const SalarySummary = () => {
         id: emp.id, empId: emp.empId, name: emp.name,
         splitA, splitB, splitG, splitS, splitMissed, serviceIncome,
         crossArea, serviceBonus, quotaDev, certBonus,
-        referral, mentoring, holidayBonus, otherSubsidy, other, payable,
+        referral, mentoring, holidayBonus, otherSubsidy, other1, other2, other, payable,
         withholdingTax, autoTax, storedWithholdingTax, dependentsCount, fuel,
         laborBracket, laborFee, healthBracket, healthDependents, healthFee,
-        pensionRate, pensionFee, otherDeduction, total, netSalary,
+        pensionRate, pensionFee, otherDeduction1, otherDeduction2, otherDeduction, total, netSalary,
         _bonusId: bonus.id, _deductionId: deduction.id,
         bgsOtherSubsidy, acodeOtherSubsidy,
         // all notes
@@ -390,12 +398,13 @@ const SalarySummary = () => {
       await Promise.all([
         saveBonus({
           empId: raw.empId, name: raw.name,
-          bgsOtherSubsidy: form.otherSubsidy, other: form.other,
+          bgsOtherSubsidy: form.otherSubsidy, other1: form.other1, other2: raw.other2,
           bgsOtherSubsidyNote: raw.bgsOtherSubsidyNote, bgsOtherNote: raw.bgsOtherNote,
         }),
         saveDeduction({
           empId: raw.empId,
-          laborFee: form.laborFee, healthFee: form.healthFee, pensionFee: form.pensionFee, otherDeduction: form.otherDeduction,
+          laborFee: form.laborFee, healthFee: form.healthFee, pensionFee: form.pensionFee,
+          otherDeduction1: form.otherDeduction1, otherDeduction2: raw.otherDeduction2,
           laborFeeNote: raw.laborFeeNote, healthFeeNote: raw.healthFeeNote, pensionFeeNote: raw.pensionFeeNote, bgsOtherDeductionNote: raw.bgsOtherDeductionNote,
         }),
       ]);
@@ -405,7 +414,8 @@ const SalarySummary = () => {
           empId: raw.empId, name: raw.name,
           bonusCross: form.crossArea, bonusOpen: form.serviceBonus, bonusDev: form.quotaDev,
           bonusC: form.certBonus, referral: form.referral, mentoring: form.mentoring,
-          holidayBonus: form.holidayBonus, otherSubsidy: form.otherSubsidy, other: form.other, fuel: form.fuel,
+          holidayBonus: form.holidayBonus, otherSubsidy: form.otherSubsidy,
+          other1: raw.other1, other2: form.other2, fuel: form.fuel,
           crossAreaNote: raw.crossAreaNote, serviceBonusNote: raw.serviceBonusNote,
           quotaDevNote: raw.quotaDevNote, certBonusNote: raw.certBonusNote,
           referralNote: raw.referralNote, mentoringNote: raw.mentoringNote,
@@ -414,7 +424,8 @@ const SalarySummary = () => {
         }),
         saveDeduction({
           empId: raw.empId,
-          withholdingTax: form.withholdingTax, otherDeduction: form.otherDeduction,
+          withholdingTax: form.withholdingTax,
+          otherDeduction1: raw.otherDeduction1, otherDeduction2: form.otherDeduction2,
           withholdingTaxNote: raw.withholdingTaxNote, otherDeductionNote: raw.otherDeductionNote,
         }),
       ]);
@@ -432,7 +443,8 @@ const SalarySummary = () => {
           holidayBonus:    form.holidayBonus,
           bgsOtherSubsidy: form.bgsOtherSubsidy,
           otherSubsidy:    form.acodeOtherSubsidy,
-          other:           form.other,
+          other1:          form.other1,
+          other2:          form.other2,
           fuel:            form.fuel,
           bgsOtherSubsidyNote: raw.bgsOtherSubsidyNote, bgsOtherNote:     raw.bgsOtherNote,
           crossAreaNote:       raw.crossAreaNote,        serviceBonusNote: raw.serviceBonusNote,
@@ -447,7 +459,8 @@ const SalarySummary = () => {
           laborFee:        form.laborFee,
           healthFee:       form.healthFee,
           pensionFee:      form.pensionFee,
-          otherDeduction:  form.otherDeduction,
+          otherDeduction1: form.otherDeduction1,
+          otherDeduction2: form.otherDeduction2,
           laborFeeNote:          raw.laborFeeNote,
           healthFeeNote:         raw.healthFeeNote,
           pensionFeeNote:        raw.pensionFeeNote,
@@ -476,12 +489,13 @@ const SalarySummary = () => {
       await Promise.all([
         saveBonus({
           empId: raw.empId, name: raw.name,
-          bgsOtherSubsidy: raw.otherSubsidy, other: raw.other,
+          bgsOtherSubsidy: raw.otherSubsidy, other1: raw.other1, other2: raw.other2,
           bgsOtherSubsidyNote: form.bgsOtherSubsidyNote, bgsOtherNote: form.bgsOtherNote,
         }),
         saveDeduction({
           empId: raw.empId,
-          laborFee: raw.laborFee, healthFee: raw.healthFee, pensionFee: raw.pensionFee, otherDeduction: raw.otherDeduction,
+          laborFee: raw.laborFee, healthFee: raw.healthFee, pensionFee: raw.pensionFee,
+          otherDeduction1: raw.otherDeduction1, otherDeduction2: raw.otherDeduction2,
           laborFeeNote: form.laborFeeNote, healthFeeNote: form.healthFeeNote, pensionFeeNote: form.pensionFeeNote, bgsOtherDeductionNote: form.bgsOtherDeductionNote,
         }),
       ]);
@@ -491,7 +505,8 @@ const SalarySummary = () => {
           empId: raw.empId, name: raw.name,
           bonusCross: raw.crossArea, bonusOpen: raw.serviceBonus, bonusDev: raw.quotaDev,
           bonusC: raw.certBonus, referral: raw.referral, mentoring: raw.mentoring,
-          holidayBonus: raw.holidayBonus, otherSubsidy: raw.otherSubsidy, other: raw.other, fuel: raw.fuel,
+          holidayBonus: raw.holidayBonus, otherSubsidy: raw.otherSubsidy,
+          other1: raw.other1, other2: raw.other2, fuel: raw.fuel,
           crossAreaNote: form.crossAreaNote, serviceBonusNote: form.serviceBonusNote,
           quotaDevNote: form.quotaDevNote, certBonusNote: form.certBonusNote,
           referralNote: form.referralNote, mentoringNote: form.mentoringNote,
@@ -500,7 +515,8 @@ const SalarySummary = () => {
         }),
         saveDeduction({
           empId: raw.empId,
-          withholdingTax: raw.withholdingTax, otherDeduction: raw.otherDeduction,
+          withholdingTax: raw.withholdingTax,
+          otherDeduction1: raw.otherDeduction1, otherDeduction2: raw.otherDeduction2,
           withholdingTaxNote: form.withholdingTaxNote, otherDeductionNote: form.otherDeductionNote,
         }),
       ]);
@@ -518,7 +534,8 @@ const SalarySummary = () => {
           holidayBonus:    raw.holidayBonus,
           bgsOtherSubsidy: raw.bgsOtherSubsidy,
           otherSubsidy:    raw.acodeOtherSubsidy,
-          other:           raw.other,
+          other1:          raw.other1,
+          other2:          raw.other2,
           fuel:            raw.fuel,
           bgsOtherSubsidyNote: form.bgsOtherSubsidyNote, bgsOtherNote:     form.bgsOtherNote,
           crossAreaNote:       form.crossAreaNote,        serviceBonusNote: form.serviceBonusNote,
@@ -533,7 +550,8 @@ const SalarySummary = () => {
           laborFee:        raw.laborFee,
           healthFee:       raw.healthFee,
           pensionFee:      raw.pensionFee,
-          otherDeduction:  raw.otherDeduction,
+          otherDeduction1: raw.otherDeduction1,
+          otherDeduction2: raw.otherDeduction2,
           laborFeeNote:          form.laborFeeNote,
           healthFeeNote:         form.healthFeeNote,
           pensionFeeNote:        form.pensionFeeNote,
@@ -574,7 +592,8 @@ const SalarySummary = () => {
             laborFee: item.laborFee,
             healthFee: item.healthFee,
             pensionFee: item.pensionFee,
-            otherDeduction: item.otherDeduction,
+            otherDeduction1: item.otherDeduction1,
+            otherDeduction2: item.otherDeduction2,
             laborFeeNote: item.laborFeeNote,
             healthFeeNote: item.healthFeeNote,
             pensionFeeNote: item.pensionFeeNote,
@@ -684,9 +703,9 @@ const SalarySummary = () => {
                   <th className={thCls()}     style={{ color: 'var(--table-header-text)' }}>姓名</th>
                   <th className={thCls()}     style={{ color: 'var(--table-header-text)' }}>領款方式</th>
                   {['B碼拆帳金額','G碼拆帳金額','S碼拆帳金額','服務未遇拆帳','服務所得總額',
-                    '其他補貼','其他','應領金額',
+                    '其他補貼','其他(1)','應領金額',
                     '勞保級距','勞保費用','健保級距','健保眷屬人數','健保費用',
-                    '勞退自提%','應扣勞退自提','應扣費用','總額','實領金額',
+                    '勞退自提%','應扣勞退自提','應扣費用(1)','總額','實領金額',
                   ].map(h => (
                     <th key={h} className={thCls(true)} style={{ color: 'var(--table-header-text)' }}>{h}</th>
                   ))}
@@ -718,7 +737,7 @@ const SalarySummary = () => {
                     </td>
                     <td className="px-4 py-3 font-mono text-sm text-right"  style={{ color: 'var(--text-secondary)' }}>
                       <span className="inline-flex items-center justify-end">
-                        {money(item.other)}<NoteTooltip note={item.bgsOtherNote} />
+                        {money(item.other1)}<NoteTooltip note={item.bgsOtherNote} />
                       </span>
                     </td>
                     <td className="px-4 py-3 font-mono text-sm text-right font-semibold" style={{ color: 'var(--text-primary)' }}>{money(item.payable)}</td>
@@ -743,7 +762,7 @@ const SalarySummary = () => {
                     </td>
                     <td className="px-4 py-3 font-mono text-sm text-right text-red-400">
                       <span className="inline-flex items-center justify-end">
-                        {money(item.otherDeduction)}<NoteTooltip note={item.bgsOtherDeductionNote} />
+                        {money(item.otherDeduction1)}<NoteTooltip note={item.bgsOtherDeductionNote} />
                       </span>
                     </td>
                     <td className="px-4 py-3 font-mono text-sm text-right font-semibold" style={{ color: 'var(--text-primary)' }}>{money(item.total)}</td>
@@ -769,8 +788,8 @@ const SalarySummary = () => {
                   <th className={thCls()}     style={{ color: 'var(--table-header-text)' }}>姓名</th>
                   <th className={thCls()}     style={{ color: 'var(--table-header-text)' }}>領款方式</th>
                   {['A碼拆帳金額','服務所得總額','跨區補助','服務獎金','額度開發','丙證獎金',
-                    '介紹費','帶新人津貼','節日獎金','其他補貼','其他',
-                    '應領金額','扣繳稅額','油資補貼','應扣費用','總額','實領金額',
+                    '介紹費','帶新人津貼','節日獎金','其他補貼','其他(2)',
+                    '應領金額','扣繳稅額','油資補貼','應扣費用(2)','總額','實領金額',
                   ].map(h => (
                     <th key={h} className={thCls(true)} style={{ color: 'var(--table-header-text)' }}>{h}</th>
                   ))}
@@ -834,7 +853,7 @@ const SalarySummary = () => {
                     </td>
                     <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>
                       <span className="inline-flex items-center justify-end">
-                        {money(item.other)}<NoteTooltip note={item.otherNote} />
+                        {money(item.other2)}<NoteTooltip note={item.otherNote} />
                       </span>
                     </td>
                     <td className="px-4 py-3 font-mono text-sm text-right font-semibold" style={{ color: 'var(--text-primary)' }}>{money(item.payable)}</td>
@@ -850,7 +869,7 @@ const SalarySummary = () => {
                     </td>
                     <td className="px-4 py-3 font-mono text-sm text-right text-red-400">
                       <span className="inline-flex items-center justify-end">
-                        {money(item.otherDeduction)}<NoteTooltip note={item.otherDeductionNote} />
+                        {money(item.otherDeduction2)}<NoteTooltip note={item.otherDeductionNote} />
                       </span>
                     </td>
                     <td className="px-4 py-3 font-mono text-sm text-right font-semibold" style={{ color: 'var(--text-primary)' }}>{money(item.total)}</td>
@@ -894,10 +913,10 @@ const SalarySummary = () => {
                   <th className={thCls()} style={{ color: 'var(--table-header-text)' }}>姓名</th>
                   {['A碼拆帳金額','B碼拆帳金額','G碼拆帳金額','S碼拆帳金額','服務未遇拆帳','服務所得總額',
                     '跨區補助','服務獎金','額度開發','丙證獎金','介紹費','帶新人津貼','節日獎金',
-                    '其他補貼','其他','應領金額',
+                    '其他補貼','其他(1)','其他(2)','應領金額',
                     '扣繳稅額','扶養親屬人數','油資補貼',
                     '勞保級距','勞保費用','健保級距','健保眷屬人數','健保費用',
-                    '勞退自提%','應扣勞退自提','應扣費用','總額','實領金額',
+                    '勞退自提%','應扣勞退自提','應扣費用(1)','應扣費用(2)','總額','實領金額',
                   ].map(h => (
                     <th key={h} className={thCls(true)} style={{ color: 'var(--table-header-text)' }}>{h}</th>
                   ))}
@@ -908,7 +927,7 @@ const SalarySummary = () => {
               <tbody>
                 {summaryItems.length === 0 ? (
                   <tr>
-                    <td colSpan="33" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>
+                    <td colSpan="35" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>
                       尚無數據，請先建立員工名單並上傳計算
                     </td>
                   </tr>
@@ -949,7 +968,10 @@ const SalarySummary = () => {
                       <span className="inline-flex items-center justify-end">{money(item.otherSubsidy)}<NoteTooltip note={item.otherSubsidyNote} /></span>
                     </td>
                     <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>
-                      <span className="inline-flex items-center justify-end">{money(item.other)}<NoteTooltip note={item.otherNote} /></span>
+                      <span className="inline-flex items-center justify-end">{money(item.other1)}<NoteTooltip note={item.bgsOtherNote} /></span>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>
+                      <span className="inline-flex items-center justify-end">{money(item.other2)}<NoteTooltip note={item.otherNote} /></span>
                     </td>
                     <td className="px-4 py-3 font-mono text-sm text-right font-semibold" style={{ color: 'var(--text-primary)' }}>{money(item.payable)}</td>
                     {/* 扣項 */}
@@ -984,7 +1006,10 @@ const SalarySummary = () => {
                       <span className="inline-flex items-center justify-end">{money(item.pensionFee)}<NoteTooltip note={item.pensionFeeNote} /></span>
                     </td>
                     <td className="px-4 py-3 font-mono text-sm text-right text-red-400">
-                      <span className="inline-flex items-center justify-end">{money(item.otherDeduction)}<NoteTooltip note={item.otherDeductionNote} /></span>
+                      <span className="inline-flex items-center justify-end">{money(item.otherDeduction1)}<NoteTooltip note={item.bgsOtherDeductionNote} /></span>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-sm text-right text-red-400">
+                      <span className="inline-flex items-center justify-end">{money(item.otherDeduction2)}<NoteTooltip note={item.otherDeductionNote} /></span>
                     </td>
                     <td className="px-4 py-3 font-mono text-sm text-right font-semibold" style={{ color: 'var(--text-primary)' }}>{money(item.total)}</td>
                     <td className="px-4 py-3 font-mono text-sm text-right font-bold text-emerald-400">${item.netSalary.toLocaleString()}</td>
@@ -1010,13 +1035,13 @@ const SalarySummary = () => {
           {modal.type === 'bgs' ? (
             <div className="grid grid-cols-2 gap-6">
               <Divider label="額外項目" />
-              <ModalField label="其他補貼"    fieldKey="otherSubsidy"   formData={modal.form} onChange={handleChange} />
-              <ModalField label="其他"        fieldKey="other"           formData={modal.form} onChange={handleChange} />
+              <ModalField label="其他補貼"    fieldKey="otherSubsidy"    formData={modal.form} onChange={handleChange} />
+              <ModalField label="其他(1)"    fieldKey="other1"           formData={modal.form} onChange={handleChange} />
               <Divider label="應扣項目" />
               <ModalField label="勞保費用"    fieldKey="laborFee"        formData={modal.form} onChange={handleChange} />
               <ModalField label="健保費用"    fieldKey="healthFee"       formData={modal.form} onChange={handleChange} />
               <ModalField label="應扣勞退自提" fieldKey="pensionFee"      formData={modal.form} onChange={handleChange} />
-              <ModalField label="應扣費用"    fieldKey="otherDeduction"   formData={modal.form} onChange={handleChange} />
+              <ModalField label="應扣費用(1)" fieldKey="otherDeduction1" formData={modal.form} onChange={handleChange} />
             </div>
           ) : modal.type === 'acode' ? (
             <div className="grid grid-cols-2 gap-6">
@@ -1026,14 +1051,14 @@ const SalarySummary = () => {
               <ModalField label="額度開發"   fieldKey="quotaDev"       formData={modal.form} onChange={handleChange} />
               <ModalField label="丙證獎金"   fieldKey="certBonus"      formData={modal.form} onChange={handleChange} />
               <ModalField label="介紹費"     fieldKey="referral"       formData={modal.form} onChange={handleChange} />
-              <ModalField label="帶新人津貼"  fieldKey="mentoring"      formData={modal.form} onChange={handleChange} />
-              <ModalField label="節日獎金"   fieldKey="holidayBonus"   formData={modal.form} onChange={handleChange} />
-              <ModalField label="其他補貼"   fieldKey="otherSubsidy"   formData={modal.form} onChange={handleChange} />
-              <ModalField label="其他"       fieldKey="other"           formData={modal.form} onChange={handleChange} />
+              <ModalField label="帶新人津貼"  fieldKey="mentoring"       formData={modal.form} onChange={handleChange} />
+              <ModalField label="節日獎金"   fieldKey="holidayBonus"    formData={modal.form} onChange={handleChange} />
+              <ModalField label="其他補貼"   fieldKey="otherSubsidy"    formData={modal.form} onChange={handleChange} />
+              <ModalField label="其他(2)"   fieldKey="other2"           formData={modal.form} onChange={handleChange} />
               <Divider label="應扣 / 補貼項目" />
               <ModalField label="扣繳稅額"   fieldKey="withholdingTax"  formData={modal.form} onChange={handleChange} />
               <ModalField label="油資補貼"   fieldKey="fuel"            formData={modal.form} onChange={handleChange} />
-              <ModalField label="應扣費用"   fieldKey="otherDeduction"  formData={modal.form} onChange={handleChange} />
+              <ModalField label="應扣費用(2)" fieldKey="otherDeduction2" formData={modal.form} onChange={handleChange} />
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-6">
@@ -1047,14 +1072,16 @@ const SalarySummary = () => {
               <ModalField label="節日獎金"        fieldKey="holidayBonus"      formData={modal.form} onChange={handleChange} />
               <ModalField label="其他補貼(BGS)"   fieldKey="bgsOtherSubsidy"   formData={modal.form} onChange={handleChange} />
               <ModalField label="其他補貼(A碼)"   fieldKey="acodeOtherSubsidy" formData={modal.form} onChange={handleChange} />
-              <ModalField label="其他"            fieldKey="other"             formData={modal.form} onChange={handleChange} />
+              <ModalField label="其他(1)"        fieldKey="other1"            formData={modal.form} onChange={handleChange} />
+              <ModalField label="其他(2)"        fieldKey="other2"            formData={modal.form} onChange={handleChange} />
               <Divider label="應扣 / 補貼項目" />
               <ModalField label="扣繳稅額"        fieldKey="withholdingTax"    formData={modal.form} onChange={handleChange} />
               <ModalField label="油資補貼"        fieldKey="fuel"              formData={modal.form} onChange={handleChange} />
               <ModalField label="勞保費用"        fieldKey="laborFee"          formData={modal.form} onChange={handleChange} />
               <ModalField label="健保費用"        fieldKey="healthFee"         formData={modal.form} onChange={handleChange} />
               <ModalField label="應扣勞退自提"     fieldKey="pensionFee"        formData={modal.form} onChange={handleChange} />
-              <ModalField label="應扣費用"        fieldKey="otherDeduction"    formData={modal.form} onChange={handleChange} />
+              <ModalField label="應扣費用(1)"     fieldKey="otherDeduction1"   formData={modal.form} onChange={handleChange} />
+              <ModalField label="應扣費用(2)"     fieldKey="otherDeduction2"   formData={modal.form} onChange={handleChange} />
             </div>
           )}
         </ModalShell>
@@ -1072,12 +1099,12 @@ const SalarySummary = () => {
             <div className="grid grid-cols-2 gap-5">
               <Divider label="額外項目" />
               <NoteField label="其他補貼"    amount={noteModal.raw.otherSubsidy}   fieldKey="bgsOtherSubsidyNote"   formData={noteModal.form} onChange={handleNoteChange} />
-              <NoteField label="其他"        amount={noteModal.raw.other}           fieldKey="bgsOtherNote"           formData={noteModal.form} onChange={handleNoteChange} />
+              <NoteField label="其他(1)"    amount={noteModal.raw.other1}          fieldKey="bgsOtherNote"           formData={noteModal.form} onChange={handleNoteChange} />
               <Divider label="應扣項目" />
               <NoteField label="勞保費用"    amount={noteModal.raw.laborFee}        fieldKey="laborFeeNote"           formData={noteModal.form} onChange={handleNoteChange} />
               <NoteField label="健保費用"    amount={noteModal.raw.healthFee}       fieldKey="healthFeeNote"          formData={noteModal.form} onChange={handleNoteChange} />
               <NoteField label="應扣勞退自提" amount={noteModal.raw.pensionFee}     fieldKey="pensionFeeNote"         formData={noteModal.form} onChange={handleNoteChange} />
-              <NoteField label="應扣費用"    amount={noteModal.raw.otherDeduction}  fieldKey="bgsOtherDeductionNote"  formData={noteModal.form} onChange={handleNoteChange} />
+              <NoteField label="應扣費用(1)" amount={noteModal.raw.otherDeduction1} fieldKey="bgsOtherDeductionNote"  formData={noteModal.form} onChange={handleNoteChange} />
             </div>
           ) : noteModal.type === 'acode' ? (
             <div className="grid grid-cols-2 gap-5">
@@ -1089,12 +1116,12 @@ const SalarySummary = () => {
               <NoteField label="介紹費"     amount={noteModal.raw.referral}      fieldKey="referralNote"     formData={noteModal.form} onChange={handleNoteChange} />
               <NoteField label="帶新人津貼"  amount={noteModal.raw.mentoring}    fieldKey="mentoringNote"    formData={noteModal.form} onChange={handleNoteChange} />
               <NoteField label="節日獎金"   amount={noteModal.raw.holidayBonus}  fieldKey="holidayBonusNote" formData={noteModal.form} onChange={handleNoteChange} />
-              <NoteField label="其他補貼"   amount={noteModal.raw.otherSubsidy}  fieldKey="otherSubsidyNote" formData={noteModal.form} onChange={handleNoteChange} />
-              <NoteField label="其他"       amount={noteModal.raw.other}          fieldKey="otherNote"        formData={noteModal.form} onChange={handleNoteChange} />
+              <NoteField label="其他補貼"    amount={noteModal.raw.otherSubsidy}    fieldKey="otherSubsidyNote"   formData={noteModal.form} onChange={handleNoteChange} />
+              <NoteField label="其他(2)"   amount={noteModal.raw.other2}           fieldKey="otherNote"          formData={noteModal.form} onChange={handleNoteChange} />
               <Divider label="應扣 / 補貼項目" />
-              <NoteField label="扣繳稅額"   amount={noteModal.raw.withholdingTax} fieldKey="withholdingTaxNote" formData={noteModal.form} onChange={handleNoteChange} />
-              <NoteField label="油資補貼"   amount={noteModal.raw.fuel}           fieldKey="fuelNote"           formData={noteModal.form} onChange={handleNoteChange} />
-              <NoteField label="應扣費用"   amount={noteModal.raw.otherDeduction} fieldKey="otherDeductionNote" formData={noteModal.form} onChange={handleNoteChange} />
+              <NoteField label="扣繳稅額"   amount={noteModal.raw.withholdingTax}  fieldKey="withholdingTaxNote"  formData={noteModal.form} onChange={handleNoteChange} />
+              <NoteField label="油資補貼"   amount={noteModal.raw.fuel}            fieldKey="fuelNote"            formData={noteModal.form} onChange={handleNoteChange} />
+              <NoteField label="應扣費用(2)" amount={noteModal.raw.otherDeduction2} fieldKey="otherDeductionNote"  formData={noteModal.form} onChange={handleNoteChange} />
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-5">
@@ -1106,16 +1133,18 @@ const SalarySummary = () => {
               <NoteField label="介紹費"         amount={noteModal.raw.referral}        fieldKey="referralNote"        formData={noteModal.form} onChange={handleNoteChange} />
               <NoteField label="帶新人津貼"      amount={noteModal.raw.mentoring}      fieldKey="mentoringNote"       formData={noteModal.form} onChange={handleNoteChange} />
               <NoteField label="節日獎金"       amount={noteModal.raw.holidayBonus}    fieldKey="holidayBonusNote"    formData={noteModal.form} onChange={handleNoteChange} />
-              <NoteField label="其他補貼(BGS)"  amount={noteModal.raw.bgsOtherSubsidy} fieldKey="bgsOtherSubsidyNote" formData={noteModal.form} onChange={handleNoteChange} />
-              <NoteField label="其他補貼(A碼)"  amount={noteModal.raw.acodeOtherSubsidy} fieldKey="otherSubsidyNote"  formData={noteModal.form} onChange={handleNoteChange} />
-              <NoteField label="其他"           amount={noteModal.raw.other}           fieldKey="otherNote"           formData={noteModal.form} onChange={handleNoteChange} />
+              <NoteField label="其他補貼(BGS)"  amount={noteModal.raw.bgsOtherSubsidy}   fieldKey="bgsOtherSubsidyNote"  formData={noteModal.form} onChange={handleNoteChange} />
+              <NoteField label="其他補貼(A碼)"  amount={noteModal.raw.acodeOtherSubsidy} fieldKey="otherSubsidyNote"     formData={noteModal.form} onChange={handleNoteChange} />
+              <NoteField label="其他(1)"        amount={noteModal.raw.other1}            fieldKey="bgsOtherNote"         formData={noteModal.form} onChange={handleNoteChange} />
+              <NoteField label="其他(2)"        amount={noteModal.raw.other2}            fieldKey="otherNote"            formData={noteModal.form} onChange={handleNoteChange} />
               <Divider label="應扣 / 補貼項目" />
-              <NoteField label="扣繳稅額"       amount={noteModal.raw.withholdingTax}  fieldKey="withholdingTaxNote"  formData={noteModal.form} onChange={handleNoteChange} />
-              <NoteField label="油資補貼"       amount={noteModal.raw.fuel}            fieldKey="fuelNote"            formData={noteModal.form} onChange={handleNoteChange} />
-              <NoteField label="勞保費用"       amount={noteModal.raw.laborFee}        fieldKey="laborFeeNote"        formData={noteModal.form} onChange={handleNoteChange} />
-              <NoteField label="健保費用"       amount={noteModal.raw.healthFee}       fieldKey="healthFeeNote"       formData={noteModal.form} onChange={handleNoteChange} />
-              <NoteField label="應扣勞退自提"    amount={noteModal.raw.pensionFee}     fieldKey="pensionFeeNote"      formData={noteModal.form} onChange={handleNoteChange} />
-              <NoteField label="應扣費用"       amount={noteModal.raw.otherDeduction}  fieldKey="bgsOtherDeductionNote" formData={noteModal.form} onChange={handleNoteChange} />
+              <NoteField label="扣繳稅額"        amount={noteModal.raw.withholdingTax}  fieldKey="withholdingTaxNote"   formData={noteModal.form} onChange={handleNoteChange} />
+              <NoteField label="油資補貼"        amount={noteModal.raw.fuel}            fieldKey="fuelNote"             formData={noteModal.form} onChange={handleNoteChange} />
+              <NoteField label="勞保費用"        amount={noteModal.raw.laborFee}        fieldKey="laborFeeNote"         formData={noteModal.form} onChange={handleNoteChange} />
+              <NoteField label="健保費用"        amount={noteModal.raw.healthFee}       fieldKey="healthFeeNote"        formData={noteModal.form} onChange={handleNoteChange} />
+              <NoteField label="應扣勞退自提"    amount={noteModal.raw.pensionFee}      fieldKey="pensionFeeNote"       formData={noteModal.form} onChange={handleNoteChange} />
+              <NoteField label="應扣費用(1)"     amount={noteModal.raw.otherDeduction1} fieldKey="bgsOtherDeductionNote" formData={noteModal.form} onChange={handleNoteChange} />
+              <NoteField label="應扣費用(2)"     amount={noteModal.raw.otherDeduction2} fieldKey="otherDeductionNote"   formData={noteModal.form} onChange={handleNoteChange} />
             </div>
           )}
         </ModalShell>
