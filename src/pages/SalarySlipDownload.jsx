@@ -587,9 +587,9 @@ function buildSummary2Data(emp, bonus, deduction, record, aCodeResult, laborAdj,
   const mentoring    = bonus.mentoring    || 0;
   const holidayBonus = bonus.holidayBonus || 0;
   const fuel         = bonus.fuel         || 0;
-  const crossArea    = bonus.bonusCross   || 0;
 
   const ot = overtimeData.find(o => o.name === emp.name) || {};
+  const crossArea    = ot.transferFee || 0;
   const ot134 = Math.round((ot.h134 || 0) * 200);
   const ot167 = Math.round((ot.h167 || 0) * 200);
   const ot267 = Math.round((ot.h267 || 0) * 200);

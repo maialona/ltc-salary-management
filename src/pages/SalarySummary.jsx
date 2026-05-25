@@ -426,7 +426,7 @@ const SalarySummary = () => {
       const mentoring    = bonus.mentoring  || 0;
       const holidayBonus = bonus.holidayBonus || 0;
       const fuel         = bonus.fuel || 0;
-      const crossArea    = bonus.bonusCross || 0;
+      const crossArea    = ot.transferFee || 0;
 
       const h134 = ot.h134 || 0;
       const h167 = ot.h167 || 0;
