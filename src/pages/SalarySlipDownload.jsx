@@ -8,6 +8,7 @@ import { subscribePeriod, getPeriod } from '../data/periodStore';
 import { useInstitution } from '../context/InstitutionContext';
 import { getInstitutionFullName } from '../constants/institutions';
 import { computeLaborCapAdjustments } from '../utils/laborCap';
+import { lookupWithholdingTax } from '../data/withholdingTaxTable';
 import { FileText, Printer } from 'lucide-react';
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
@@ -415,6 +416,68 @@ const SummaryTemplate = ({ data, isBulk }) => {
   );
 };
 
+// ════════════════════════════════════════════════════════════════════════════
+// 薪資總表(2) Template — 外帳
+// ════════════════════════════════════════════════════════════════════════════
+const Summary2Template = ({ data, isBulk }) => {
+  const { emp, institutionName,
+          baseSalary, crossArea, ot134, ot167, ot267, ot1, ot2,
+          withholdingTax, laborFee, healthFee, pensionFee, otherDeduction,
+          totalIncome, totalDeduction, net } = data;
+
+  return (
+    <SlipPage isBulk={isBulk}>
+      <div className="p-8 space-y-4">
+        <SlipHeader title="薪資總表(2)" period={getPeriod()} emp={emp} institutionName={institutionName} />
+
+        {/* 人員基本資料 */}
+        <section>
+          <SectionLabel>人員基本資料</SectionLabel>
+          <InfoGrid cells={[
+            { label: '姓名',       value: emp.name },
+            { label: '匯款帳號',   value: emp.bankAccount ? `${emp.bankCode || ''} ${emp.bankAccount}`.trim() : null },
+            { label: '勞保費 (級距)', value: emp.laborInsuranceBracket ? emp.laborInsuranceBracket.toLocaleString() : null },
+            { label: '健保費 (級距)', value: emp.healthInsuranceBracket ? emp.healthInsuranceBracket.toLocaleString() : null },
+            { label: '健保眷屬人數', value: emp.healthDependents != null && emp.healthDependents !== '' ? `${emp.healthDependents}` : null },
+            { label: '勞退自提率',  value: emp.voluntaryPensionRate ? `${emp.voluntaryPensionRate}%` : null },
+            { label: '扶養親屬人數', value: emp.dependentsCount != null && emp.dependentsCount !== '' ? `${emp.dependentsCount}` : null },
+          ]} />
+        </section>
+
+        {/* 應領費用明細 */}
+        <section>
+          <SectionLabel>應領費用明細</SectionLabel>
+          <div className="bg-gray-50 rounded px-3 py-2">
+            <AlwaysAmountRow label="本薪" value={baseSalary} />
+            <AmountRow label="轉場費" value={crossArea} />
+            <AmountRow label="加班費 (×1.34)" value={ot134} />
+            <AmountRow label="加班費 (×1.67)" value={ot167} />
+            <AmountRow label="加班費 (×2.67)" value={ot267} />
+            <AmountRow label="加班費 (×1)" value={ot1} />
+            <AmountRow label="加班費 (×2)" value={ot2} />
+            <SubtotalRow label="應領小計" value={totalIncome} />
+          </div>
+        </section>
+
+        {/* 應扣費用明細 */}
+        <section>
+          <SectionLabel>應扣費用明細</SectionLabel>
+          <div className="bg-gray-50 rounded px-3 py-2">
+            <AlwaysAmountRow label={`扣繳稅額${emp.dependentsCount != null && emp.dependentsCount !== '' ? ` (扶養 ${emp.dependentsCount} 人)` : ''}`} value={withholdingTax} negative />
+            <AlwaysAmountRow label="勞保費" value={laborFee} negative />
+            <AlwaysAmountRow label="健保費" value={healthFee} negative />
+            <AlwaysAmountRow label={`自繳勞退金${emp.voluntaryPensionRate ? ` (${emp.voluntaryPensionRate}%)` : ''}`} value={pensionFee} negative />
+            <AmountRow label="應扣費用" value={otherDeduction} negative />
+            <SubtotalRow label="應扣小計" value={totalDeduction} negative />
+          </div>
+        </section>
+
+        <NetFooter income={totalIncome} deduction={totalDeduction} net={net} />
+      </div>
+    </SlipPage>
+  );
+};
+
 // ─── Data processors ──────────────────────────────────────────────────────────
 
 function buildBgsData(emp, bonus, deduction, record, laborAdj) {
@@ -506,18 +569,73 @@ function buildSummaryData(emp, bonus, deduction, record, aCodeResult, laborAdj) 
            totalIncome, totalDeduction, net };
 }
 
+function buildSummary2Data(emp, bonus, deduction, record, aCodeResult, laborAdj, overtimeData) {
+  const bd          = record.breakdown || {};
+  const splitA      = aCodeResult?.totalCommission || 0;
+  const splitB      = bd['B']?.splitSum      || record.b      || 0;
+  const splitG      = bd['G']?.splitSum      || record.g      || 0;
+  const splitS      = bd['S']?.splitSum      || record.s      || 0;
+  const splitMissed = bd['Missed']?.splitSum || record.missed || 0;
+  const bgsOtherSubsidy   = bonus.bgsOtherSubsidy || 0;
+  const acodeOtherSubsidy = bonus.otherSubsidy    || 0;
+  const other1       = laborAdj?.bgsOther1   ?? 0;
+  const other2       = laborAdj?.acodeOther2 ?? 0;
+  const serviceBonus = bonus.bonusOpen    || 0;
+  const quotaDev     = bonus.bonusDev     || 0;
+  const certBonus    = bonus.bonusC       || 0;
+  const referral     = bonus.referral     || 0;
+  const mentoring    = bonus.mentoring    || 0;
+  const holidayBonus = bonus.holidayBonus || 0;
+  const fuel         = bonus.fuel         || 0;
+  const crossArea    = bonus.bonusCross   || 0;
+
+  const ot = overtimeData.find(o => o.name === emp.name) || {};
+  const ot134 = Math.round((ot.h134 || 0) * 200);
+  const ot167 = Math.round((ot.h167 || 0) * 200);
+  const ot267 = Math.round((ot.h267 || 0) * 200);
+  const ot1   = Math.round((ot.h1   || 0) * 200);
+  const ot2   = Math.round((ot.h2   || 0) * 200);
+  const overtimeFee = ot134 + ot167 + ot267 + ot1 + ot2;
+
+  const baseSalary = splitA + splitB + splitG + splitS + splitMissed
+    + bgsOtherSubsidy + other1 + serviceBonus + quotaDev + certBonus
+    + referral + mentoring + holidayBonus + acodeOtherSubsidy + other2 + fuel
+    - overtimeFee;
+
+  const laborFee    = deduction.laborFee  ?? emp.laborInsuranceSelfPay  ?? 0;
+  const healthFee   = deduction.healthFee ?? emp.healthInsuranceSelfPay ?? 0;
+  const pensionFee  = deduction.pensionFee ?? emp.voluntaryPensionDeduction ?? 0;
+  const otherDeduction = (deduction.otherDeduction1 || 0) + (deduction.otherDeduction2 || 0);
+
+  const fullPayable = splitA + splitB + splitG + splitS + splitMissed + crossArea
+    + serviceBonus + quotaDev + certBonus + referral + mentoring + holidayBonus
+    + bgsOtherSubsidy + acodeOtherSubsidy + other1 + other2;
+  const withholdingTax = lookupWithholdingTax(fullPayable, emp.dependentsCount ?? 0);
+
+  const totalIncome    = baseSalary + crossArea + overtimeFee;
+  const totalDeduction = withholdingTax + laborFee + healthFee + pensionFee + otherDeduction;
+  const net = Math.round(totalIncome - totalDeduction);
+
+  return { type: 'summary2', emp, institutionName: getInstitutionFullName(emp.organization),
+           baseSalary, crossArea, ot134, ot167, ot267, ot1, ot2,
+           withholdingTax, laborFee, healthFee, pensionFee, otherDeduction,
+           totalIncome, totalDeduction, net };
+}
+
 // ─── Template dispatcher ──────────────────────────────────────────────────────
 const SLIP_TYPES = [
-  { key: 'bgs',     label: 'BGS碼薪資' },
-  { key: 'acode',   label: 'A碼及其他獎金' },
-  { key: 'summary', label: '薪資總表' },
+  { key: 'bgs',      label: 'BGS碼薪資' },
+  { key: 'acode',    label: 'A碼及其他獎金' },
+  { key: 'summary',  label: '薪資總表' },
+  { key: 'summary2', label: '薪資總表(2)' },
 ];
 
 const SlipRenderer = ({ slipType, data, isBulk }) => {
   if (!data || data.type !== slipType) return null;
-  if (slipType === 'bgs')     return <BgsTemplate     data={data} isBulk={isBulk} />;
-  if (slipType === 'acode')   return <AcodeTemplate   data={data} isBulk={isBulk} />;
-  if (slipType === 'summary') return <SummaryTemplate data={data} isBulk={isBulk} />;
+  if (slipType === 'bgs')      return <BgsTemplate      data={data} isBulk={isBulk} />;
+  if (slipType === 'acode')    return <AcodeTemplate     data={data} isBulk={isBulk} />;
+  if (slipType === 'summary')  return <SummaryTemplate   data={data} isBulk={isBulk} />;
+  if (slipType === 'summary2') return <Summary2Template  data={data} isBulk={isBulk} />;
   return null;
 };
 
@@ -539,6 +657,7 @@ const SalarySlipDownload = () => {
   const recordsRef      = useRef([]);
   const acodeResultsRef = useRef(null);
   const laborAdjRef     = useRef({});
+  const overtimeDataRef = useRef([]);
 
   const loadAllData = async () => {
     const [emps, bonuses, deductions, records, acodeData] = await Promise.all([
@@ -552,6 +671,12 @@ const SalarySlipDownload = () => {
     recordsRef.current      = records;
     acodeResultsRef.current = acodeData;
     laborAdjRef.current     = computeLaborCapAdjustments(emps, bonuses, records, aCodeResults);
+    try {
+      const s = localStorage.getItem(`overtime_rows_${currentInstitution}_${getPeriod()}`);
+      overtimeDataRef.current = s ? JSON.parse(s) : [];
+    } catch {
+      overtimeDataRef.current = [];
+    }
   };
 
   useEffect(() => { loadAllData(); }, [currentInstitution]);
@@ -566,9 +691,10 @@ const SalarySlipDownload = () => {
     const aCodeResult = summary.find(r => r.id === empId || r.name === emp.name) || null;
     const laborAdj  = laborAdjRef.current[empId] || { bgsOther1: 0, acodeOther2: 0 };
 
-    if (type === 'bgs')     return buildBgsData(emp, bonus, deduction, record, laborAdj);
-    if (type === 'acode')   return buildAcodeData(emp, bonus, deduction, aCodeResult, laborAdj);
-    if (type === 'summary') return buildSummaryData(emp, bonus, deduction, record, aCodeResult, laborAdj);
+    if (type === 'bgs')      return buildBgsData(emp, bonus, deduction, record, laborAdj);
+    if (type === 'acode')    return buildAcodeData(emp, bonus, deduction, aCodeResult, laborAdj);
+    if (type === 'summary')  return buildSummaryData(emp, bonus, deduction, record, aCodeResult, laborAdj);
+    if (type === 'summary2') return buildSummary2Data(emp, bonus, deduction, record, aCodeResult, laborAdj, overtimeDataRef.current);
     return null;
   };
 

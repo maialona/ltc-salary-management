@@ -301,3 +301,69 @@ export const exportSummaryExcel = async (items, period) => {
   const buffer = await workbook.xlsx.writeBuffer();
   triggerDownload(buffer, `薪資總表_${period}.xlsx`);
 };
+
+export const exportSummary2Excel = async (items, period) => {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('薪資總表(2)');
+
+  const headers = [
+    '員編', '姓名',
+    '本薪', '轉場費', '加班費(x1.34)', '加班費(x1.67)', '加班費(x2.67)', '加班費(x1)', '加班費(x2)',
+    '扣繳稅額', '勞保費', '健保費', '自繳勞退金', '應扣費用',
+    '實領金額',
+  ];
+
+  sheet.columns = headers.map((h, i) => ({
+    header: h,
+    key: `c${i}`,
+    width: i < 2 ? 12 : 14,
+  }));
+
+  styleHeader(sheet.getRow(1));
+
+  items.forEach((item, idx) => {
+    const row = sheet.addRow([
+      item.empId, item.name,
+      num(item.baseSalary), num(item.crossArea),
+      num(item.ot134), num(item.ot167), num(item.ot267), num(item.ot1), num(item.ot2),
+      num(item.withholdingTax), num(item.laborFee), num(item.healthFee), num(item.pensionFee), num(item.otherDeduction),
+      item.netSalary,
+    ]);
+    styleDataRow(row, idx % 2 === 1);
+    row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+      if (colNum >= 3) {
+        cell.numFmt = '#,##0';
+        cell.alignment = { horizontal: 'right' };
+      }
+    });
+  });
+
+  if (items.length > 0) {
+    const totalsRow = sheet.addRow([
+      '合計', '',
+      items.reduce((s, r) => s + num(r.baseSalary), 0),
+      items.reduce((s, r) => s + num(r.crossArea), 0),
+      items.reduce((s, r) => s + num(r.ot134), 0),
+      items.reduce((s, r) => s + num(r.ot167), 0),
+      items.reduce((s, r) => s + num(r.ot267), 0),
+      items.reduce((s, r) => s + num(r.ot1), 0),
+      items.reduce((s, r) => s + num(r.ot2), 0),
+      items.reduce((s, r) => s + num(r.withholdingTax), 0),
+      items.reduce((s, r) => s + num(r.laborFee), 0),
+      items.reduce((s, r) => s + num(r.healthFee), 0),
+      items.reduce((s, r) => s + num(r.pensionFee), 0),
+      items.reduce((s, r) => s + num(r.otherDeduction), 0),
+      items.reduce((s, r) => s + r.netSalary, 0),
+    ]);
+    totalsRow.eachCell(cell => {
+      cell.font = { bold: true };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDBEAFE' } };
+      cell.numFmt = '#,##0';
+      cell.alignment = { horizontal: 'right' };
+    });
+    totalsRow.getCell(1).alignment = { horizontal: 'left' };
+  }
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  triggerDownload(buffer, `薪資總表2_${period}.xlsx`);
+};

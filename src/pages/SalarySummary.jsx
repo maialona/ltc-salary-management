@@ -9,7 +9,7 @@ import { getAcodeResults } from '../data/acodeStore';
 import { subscribePeriod, getPeriod } from '../data/periodStore';
 import { useInstitution } from '../context/InstitutionContext';
 import { lookupWithholdingTax } from '../data/withholdingTaxTable';
-import { exportBgsExcel, exportAcodeExcel, exportSummaryExcel } from '../utils/salary-excel';
+import { exportBgsExcel, exportAcodeExcel, exportSummaryExcel, exportSummary2Excel } from '../utils/salary-excel';
 import { computeLaborCapAdjustments } from '../utils/laborCap';
 
 const money = (val) => (val && val !== 0) ? `$${val.toLocaleString()}` : '-';
@@ -166,6 +166,7 @@ const SalarySummary = () => {
   const [modal, setModal]               = useState({ open: false, type: null, form: {}, raw: {} });
   const [noteModal, setNoteModal]       = useState({ open: false, type: null, form: {}, raw: {} });
   const [detailModal, setDetailModal]   = useState({ open: false, empId: null, name: null });
+  const [salary2Items, setSalary2Items] = useState([]);
   const [rawRecords, setRawRecords]     = useState([]);
   const [rawACodeResults, setRawACodeResults] = useState([]);
 
@@ -395,9 +396,85 @@ const SalarySummary = () => {
       };
     });
 
+    // 薪資總表(2) — 外帳
+    let overtimeData = [];
+    try {
+      const period = getPeriod();
+      const s = localStorage.getItem(`overtime_rows_${currentInstitution}_${period}`);
+      overtimeData = s ? JSON.parse(s) : [];
+    } catch {}
+
+    const salary2 = employees.map(emp => {
+      const bonus     = bonuses.find(b => b.empId === emp.empId) || {};
+      const deduction = deductions.find(d => d.empId === emp.empId) || {};
+      const record    = records.find(r => r.empId === emp.empId) || {};
+      const aCodeResult = aCodeResults.find(r => r.id === emp.empId || r.name === emp.name);
+      const ot = overtimeData.find(o => o.name === emp.name) || {};
+
+      const splitA      = aCodeResult ? aCodeResult.totalCommission : (bonus.bonusA || 0);
+      const splitB      = record.b || 0;
+      const splitG      = record.g || 0;
+      const splitS      = record.s || 0;
+      const splitMissed = record.missed || 0;
+      const bgsOtherSubsidy  = bonus.bgsOtherSubsidy || 0;
+      const acodeOtherSubsidy = bonus.otherSubsidy   || 0;
+      const { bgsOther1: other1, acodeOther2: other2 } = laborAdj[emp.empId] || { bgsOther1: 0, acodeOther2: 0 };
+      const serviceBonus = bonus.bonusOpen  || 0;
+      const quotaDev     = bonus.bonusDev   || 0;
+      const certBonus    = bonus.bonusC     || 0;
+      const referral     = bonus.referral   || 0;
+      const mentoring    = bonus.mentoring  || 0;
+      const holidayBonus = bonus.holidayBonus || 0;
+      const fuel         = bonus.fuel || 0;
+      const crossArea    = bonus.bonusCross || 0;
+
+      const h134 = ot.h134 || 0;
+      const h167 = ot.h167 || 0;
+      const h267 = ot.h267 || 0;
+      const h1   = ot.h1   || 0;
+      const h2   = ot.h2   || 0;
+      const ot134 = Math.round(h134 * 200);
+      const ot167 = Math.round(h167 * 200);
+      const ot267 = Math.round(h267 * 200);
+      const ot1   = Math.round(h1   * 200);
+      const ot2   = Math.round(h2   * 200);
+      const overtimeFee = ot134 + ot167 + ot267 + ot1 + ot2;
+
+      // 本薪 = 所有薪資來源 + 油資 − 加班費 (不含轉場費，轉場費獨立列出)
+      const baseSalary = splitA + splitB + splitG + splitS + splitMissed
+        + bgsOtherSubsidy + other1 + serviceBonus + quotaDev + certBonus
+        + referral + mentoring + holidayBonus + acodeOtherSubsidy + other2 + fuel
+        - overtimeFee;
+
+      const laborFee    = deduction.laborFee  ?? emp.laborInsuranceSelfPay  ?? 0;
+      const healthFee   = deduction.healthFee ?? emp.healthInsuranceSelfPay ?? 0;
+      const pensionFee  = deduction.pensionFee ?? emp.voluntaryPensionDeduction ?? 0;
+      const otherDeduction1 = deduction.otherDeduction1 || 0;
+      const otherDeduction2 = deduction.otherDeduction2 || 0;
+      const otherDeduction  = otherDeduction1 + otherDeduction2;
+
+      const fullPayable = splitA + splitB + splitG + splitS + splitMissed + crossArea
+        + serviceBonus + quotaDev + certBonus + referral + mentoring + holidayBonus
+        + bgsOtherSubsidy + acodeOtherSubsidy + other1 + other2;
+      const dependentsCount = emp.dependentsCount ?? 0;
+      const withholdingTax = lookupWithholdingTax(fullPayable, dependentsCount);
+
+      // 驗算: 實領(2) = baseSalary + crossArea + overtimeFee − 扣繳 − 勞保 − 健保 − 勞退 − 應扣 = 實領(1)
+      const netSalary = Math.round(baseSalary + crossArea + overtimeFee - withholdingTax - laborFee - healthFee - pensionFee - otherDeduction);
+
+      return {
+        id: emp.id, empId: emp.empId, name: emp.name,
+        baseSalary, crossArea, overtimeFee,
+        ot134, ot167, ot267, ot1, ot2,
+        withholdingTax, laborFee, healthFee, pensionFee,
+        otherDeduction, netSalary,
+      };
+    });
+
     setBgsItems(bgs);
     setAItems(aCode);
     setSummaryItems(summary);
+    setSalary2Items(salary2);
     setRawRecords(records);
     setRawACodeResults(aCodeResults);
   };
@@ -589,9 +666,10 @@ const SalarySummary = () => {
     setExporting(true);
     try {
       const period = getPeriod();
-      if (subTab === 'bgs')     await exportBgsExcel(bgsItems, period);
-      if (subTab === 'acode')   await exportAcodeExcel(aItems, period);
-      if (subTab === 'summary') await exportSummaryExcel(summaryItems, period);
+      if (subTab === 'bgs')      await exportBgsExcel(bgsItems, period);
+      if (subTab === 'acode')    await exportAcodeExcel(aItems, period);
+      if (subTab === 'summary')  await exportSummaryExcel(summaryItems, period);
+      if (subTab === 'summary2') await exportSummary2Excel(salary2Items, period);
     } finally {
       setExporting(false);
     }
@@ -629,9 +707,10 @@ const SalarySummary = () => {
 
   // ── Shared helpers ──────────────────────────────────────────────────────────
   const tabs = [
-    { id: 'bgs',     label: 'BGS碼薪資' },
-    { id: 'acode',   label: 'A碼及其他獎金' },
-    { id: 'summary', label: '薪資總表' },
+    { id: 'bgs',      label: 'BGS碼薪資' },
+    { id: 'acode',    label: 'A碼及其他獎金' },
+    { id: 'summary',  label: '薪資總表' },
+    { id: 'summary2', label: '薪資總表(2)' },
   ];
 
   const thCls = (right = false) =>
@@ -684,7 +763,7 @@ const SalarySummary = () => {
     </td>
   );
 
-  const tabLabel = (type) => type === 'bgs' ? 'BGS碼薪資' : type === 'acode' ? 'A碼及其他獎金' : '薪資總表';
+  const tabLabel = (type) => type === 'bgs' ? 'BGS碼薪資' : type === 'acode' ? 'A碼及其他獎金' : type === 'summary2' ? '薪資總表(2)' : '薪資總表';
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -1154,6 +1233,82 @@ const SalarySummary = () => {
           </div>
         </div>
         </>
+      )}
+
+      {/* ── 薪資總表(2) 外帳 ──────────────────────────────────────────────── */}
+      {subTab === 'summary2' && (
+        <div className="overflow-hidden rounded-md border glass-panel" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
+          <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
+            <table className="w-full text-left border-collapse whitespace-nowrap">
+              <thead className="sticky top-0 z-10" style={{ background: 'var(--table-header-bg)' }}>
+                <tr className="border-b" style={{ borderColor: 'var(--glass-border)' }}>
+                  {/* 人員基本資料 */}
+                  <th className={`${thCls()} sticky left-0 z-20 min-w-[80px]`} style={{ color: 'var(--table-header-text)', background: 'var(--table-header-bg)' }}>員編</th>
+                  <th className={`${thCls()} sticky left-[80px] z-20`} style={{ color: 'var(--table-header-text)', background: 'var(--table-header-bg)', boxShadow: '2px 0 6px -2px rgba(0,0,0,0.2)' }}>姓名</th>
+                  {/* 應領費用明細 */}
+                  {['本薪','轉場費','加班費(x1.34)','加班費(x1.67)','加班費(x2.67)','加班費(x1)','加班費(x2)'].map(h => (
+                    <th key={h} className={thCls(true)} style={{ color: 'var(--table-header-text)' }}>{h}</th>
+                  ))}
+                  {/* 應扣費用明細 */}
+                  {['扣繳稅額','勞保費','健保費','自繳勞退金','應扣費用'].map(h => (
+                    <th key={h} className={thCls(true)} style={{ color: 'var(--table-header-text)' }}>{h}</th>
+                  ))}
+                  <th className={thCls(true)} style={{ color: 'var(--table-header-text)' }}>實領金額</th>
+                </tr>
+              </thead>
+              <tbody>
+                {salary2Items.length === 0 ? (
+                  <tr>
+                    <td colSpan="15" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>
+                      尚無數據，請先建立員工名單並上傳計算
+                    </td>
+                  </tr>
+                ) : salary2Items.map(item => (
+                  <tr key={item.id} className="group transition-colors border-b hover:bg-white/[0.05]" style={{ borderColor: 'var(--glass-border)' }}>
+                    <td className="px-4 py-3 font-mono text-sm font-medium sticky left-0 z-[5] min-w-[80px]" style={{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }}>{item.empId}</td>
+                    <td className="px-4 py-3 text-sm font-medium sticky left-[80px] z-[5]" style={{ color: 'var(--text-primary)', background: 'var(--glass-bg)', boxShadow: '2px 0 6px -2px rgba(0,0,0,0.2)' }}>{item.name}</td>
+                    {/* 應領 */}
+                    <td className="px-4 py-3 font-mono text-sm text-right font-semibold" style={{ color: 'var(--text-primary)' }}>{money(item.baseSalary)}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>{money(item.crossArea)}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-right text-amber-400">{money(item.ot134)}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-right text-amber-400">{money(item.ot167)}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-right text-amber-400">{money(item.ot267)}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-right text-amber-400">{money(item.ot1)}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-right text-amber-400">{money(item.ot2)}</td>
+                    {/* 應扣 */}
+                    <td className="px-4 py-3 font-mono text-sm text-right text-red-400">{money(item.withholdingTax)}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-right text-red-400">{money(item.laborFee)}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-right text-red-400">{money(item.healthFee)}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-right text-red-400">{money(item.pensionFee)}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-right text-red-400">{money(item.otherDeduction)}</td>
+                    <td className="px-4 py-3 font-mono text-sm text-right font-bold text-emerald-400">${item.netSalary.toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+              {salary2Items.length > 0 && (
+                <tfoot className="sticky bottom-0 z-10" style={{ background: 'var(--table-header-bg)' }}>
+                  <tr className="border-t" style={{ borderColor: 'var(--glass-border)' }}>
+                    <td className="px-4 py-2.5 text-xs font-bold sticky left-0 z-[5] min-w-[80px]" style={{ color: 'var(--text-primary)', background: 'var(--table-header-bg)' }}>小計</td>
+                    <EC />
+                    <SumCell items={salary2Items} field="baseSalary" bold />
+                    <SumCell items={salary2Items} field="crossArea" />
+                    <SumCell items={salary2Items} field="ot134" />
+                    <SumCell items={salary2Items} field="ot167" />
+                    <SumCell items={salary2Items} field="ot267" />
+                    <SumCell items={salary2Items} field="ot1" />
+                    <SumCell items={salary2Items} field="ot2" />
+                    <SumCell items={salary2Items} field="withholdingTax" />
+                    <SumCell items={salary2Items} field="laborFee" />
+                    <SumCell items={salary2Items} field="healthFee" />
+                    <SumCell items={salary2Items} field="pensionFee" />
+                    <SumCell items={salary2Items} field="otherDeduction" />
+                    <SumCell items={salary2Items} field="netSalary" accent />
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
+        </div>
       )}
 
       {/* ── Edit Modal ─────────────────────────────────────────────────────── */}
