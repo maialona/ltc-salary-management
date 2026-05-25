@@ -3,12 +3,13 @@ import { CheckCircle, Download, AlertCircle, ChevronDown, FileText, AlertTriangl
 import DebugPanel from './DebugPanel';
 import { downloadExcel } from '../../utils/acode-excel';
 
-const ResultsDashboard = ({ 
-    debugInfo, 
-    errors, 
-    summaryResult, 
-    calculationResult, 
-    onReset
+const ResultsDashboard = ({
+    debugInfo,
+    errors,
+    summaryResult,
+    calculationResult,
+    onReset,
+    employees = [],
 }) => {
     const [expandedId, setExpandedId] = useState(null);
 
@@ -73,7 +74,10 @@ const ResultsDashboard = ({
 
                 {summaryResult.map((staff, idx) => {
                     const isExpanded = expandedId === staff.name;
-                    
+                    const emp = employees.find(e => e.empId === staff.id || e.name === staff.name);
+                    const aa09Rate = emp?.splits?.aa09 || 0;
+                    const otherRate = emp?.splits?.otherAcode || 0;
+
                     return (
                         <div key={idx} className="relative group perspective-1000">
                              <div
@@ -99,6 +103,16 @@ const ResultsDashboard = ({
                                             <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                                                 {staff.name}
                                             </h3>
+                                            {(aa09Rate > 0 || otherRate > 0) && (
+                                                <p className="text-xs mt-0.5 font-mono flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+                                                    {aa09Rate > 0 && (
+                                                        <span>AA09 <span style={{ color: 'var(--text-accent)' }}>{aa09Rate}%</span></span>
+                                                    )}
+                                                    {otherRate > 0 && (
+                                                        <span>其餘A碼 <span style={{ color: 'var(--text-accent)' }}>{otherRate}%</span></span>
+                                                    )}
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
 

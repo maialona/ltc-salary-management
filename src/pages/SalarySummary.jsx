@@ -980,9 +980,6 @@ const SalarySummary = () => {
         <>
         {/* 自動計算說明列 */}
         <div className="flex items-center justify-between px-1 -mt-2 mb-1">
-          <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-            扣繳稅額依 115 年度薪資所得扣繳稅額表自動計算（以應收金額 × 扶養親屬人數查表）
-          </p>
           <button
             onClick={applyAutoTax}
             disabled={applying || summaryItems.length === 0}

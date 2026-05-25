@@ -38,7 +38,9 @@ export const processData = async (files, updateProgress) => {
         const name = cleanName(row['姓名'] || row['服務人員'] || row['員工姓名']);
         const id = String(row['員編'] || row['員工編號'] || '').trim();
         const role = String(row['職級'] || row['身分'] || row['職務']).includes('正職') ? 'full' : 'part';
-        staffMap[name] = { role, id };
+        const aa09Rate = parseFloat(row['aa09抽成'] || 0) / 100;
+        const otherAcodeRate = parseFloat(row['其餘A碼抽成'] || 0) / 100;
+        staffMap[name] = { role, id, aa09Rate, otherAcodeRate };
     });
 
     updateProgress("正在分析排班紀錄...");
@@ -209,11 +211,17 @@ export const processData = async (files, updateProgress) => {
                     const splitQty = parseFloat((qtyPerDate / workerCount).toFixed(14));
 
                     targetWorkers.forEach(worker => {
-                        const staffInfo = staffMap[worker] || { role: 'part', id: '' };
+                        const staffInfo = staffMap[worker] || { role: 'part', id: '', aa09Rate: 0, otherAcodeRate: 0 };
                         const role = staffInfo.role;
                         const rule = CODE_RULES[code];
                         let commissionRate = 0.6;
-                        if (rule) commissionRate = (role === 'full') ? rule.full : rule.part;
+                        if (code === 'AA09' && staffInfo.aa09Rate > 0) {
+                            commissionRate = staffInfo.aa09Rate;
+                        } else if (code !== 'AA09' && staffInfo.otherAcodeRate > 0) {
+                            commissionRate = staffInfo.otherAcodeRate;
+                        } else if (rule) {
+                            commissionRate = (role === 'full') ? rule.full : rule.part;
+                        }
 
                         const rawCommission = revenuePerWorker * commissionRate;
                         const displayAmount = Math.round(rawCommission);

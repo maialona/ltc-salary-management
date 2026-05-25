@@ -15,6 +15,7 @@ const ACodeCalculation = () => {
     const [files, setFiles] = useState({ serviceRecord: null, govRecord: null, staffList: null });
     const [fileStatus, setFileStatus] = useState({ serviceRecord: false, govRecord: false, staffList: false });
     const [fileHeaders, setFileHeaders] = useState({ serviceRecord: [], govRecord: [], staffList: [] });
+    const [employees, setEmployees] = useState([]);
 
     // Calculation State
     const [isProcessing, setIsProcessing] = useState(false);
@@ -45,12 +46,15 @@ const ACodeCalculation = () => {
                 ]);
 
                 if (employees && employees.length > 0) {
+                    setEmployees(employees);
                     const mappedRoster = employees.map(emp => ({
                         '員編': emp.empId,
                         '姓名': emp.name,
                         '職級': emp.position === 'Full-time' ? '正職' : '兼職',
                         '員工編號': emp.empId,
-                        '員工姓名': emp.name
+                        '員工姓名': emp.name,
+                        'aa09抽成': emp.splits?.aa09 || 0,
+                        '其餘A碼抽成': emp.splits?.otherAcode || 0,
                     }));
                     setFiles(prev => ({ ...prev, staffList: mappedRoster }));
                     setFileStatus(prev => ({ ...prev, staffList: true }));
@@ -157,6 +161,7 @@ const ACodeCalculation = () => {
                         selectedWorker={selectedWorker}
                         setSelectedWorker={setSelectedWorker}
                         onReset={handleReset}
+                        employees={employees}
                     />
                 )}
             </div>
