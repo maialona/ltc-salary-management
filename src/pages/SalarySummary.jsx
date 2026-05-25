@@ -459,7 +459,6 @@ const SalarySummary = () => {
       const dependentsCount = emp.dependentsCount ?? 0;
       const withholdingTax = lookupWithholdingTax(fullPayable, dependentsCount);
 
-      // 驗算: 實領(2) = baseSalary + crossArea + overtimeFee − 扣繳 − 勞保 − 健保 − 勞退 − 應扣 = 實領(1)
       const netSalary = Math.round(baseSalary + crossArea + overtimeFee - withholdingTax - laborFee - healthFee - pensionFee - otherDeduction);
 
       return {
