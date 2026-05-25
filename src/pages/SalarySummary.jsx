@@ -165,6 +165,9 @@ const SalarySummary = () => {
   const [exporting, setExporting]       = useState(false);
   const [modal, setModal]               = useState({ open: false, type: null, form: {}, raw: {} });
   const [noteModal, setNoteModal]       = useState({ open: false, type: null, form: {}, raw: {} });
+  const [detailModal, setDetailModal]   = useState({ open: false, empId: null, name: null });
+  const [rawRecords, setRawRecords]     = useState([]);
+  const [rawACodeResults, setRawACodeResults] = useState([]);
 
   useEffect(() => {
     loadData();
@@ -192,9 +195,9 @@ const SalarySummary = () => {
       const splitS        = record.s || 0;
       const splitMissed   = record.missed || 0;
       const serviceIncome = splitB + splitG + splitS + splitMissed;
-      const rawB          = record.breakdown?.['B']?.rawSum      || 0;
-      const rawG          = record.breakdown?.['G']?.rawSum      || 0;
-      const rawS          = record.breakdown?.['S']?.rawSum      || 0;
+      const rawB          = (record.breakdown?.['B']?.rawSum      || 0) + (record.breakdown?.['B']?.selfPayRaw      || 0);
+      const rawG          = (record.breakdown?.['G']?.rawSum      || 0) + (record.breakdown?.['G']?.selfPayRaw      || 0);
+      const rawS          = (record.breakdown?.['S']?.rawSum      || 0) + (record.breakdown?.['S']?.selfPayRaw      || 0);
       const rawMissed     = record.breakdown?.['Missed']?.rawSum || 0;
       const otherSubsidy  = bonus.bgsOtherSubsidy || 0;
       const { bgsOther1, acodeOther2 } = laborAdj[emp.empId] || { bgsOther1: 0, acodeOther2: 0 };
@@ -316,9 +319,9 @@ const SalarySummary = () => {
       const splitG      = record.g || 0;
       const splitS      = record.s || 0;
       const splitMissed = record.missed || 0;
-      const rawB        = record.breakdown?.['B']?.rawSum      || 0;
-      const rawG        = record.breakdown?.['G']?.rawSum      || 0;
-      const rawS        = record.breakdown?.['S']?.rawSum      || 0;
+      const rawB        = (record.breakdown?.['B']?.rawSum      || 0) + (record.breakdown?.['B']?.selfPayRaw      || 0);
+      const rawG        = (record.breakdown?.['G']?.rawSum      || 0) + (record.breakdown?.['G']?.selfPayRaw      || 0);
+      const rawS        = (record.breakdown?.['S']?.rawSum      || 0) + (record.breakdown?.['S']?.selfPayRaw      || 0);
       const rawMissed   = record.breakdown?.['Missed']?.rawSum || 0;
       const serviceIncome = splitA + splitB + splitG + splitS + splitMissed;
 
@@ -395,7 +398,12 @@ const SalarySummary = () => {
     setBgsItems(bgs);
     setAItems(aCode);
     setSummaryItems(summary);
+    setRawRecords(records);
+    setRawACodeResults(aCodeResults);
   };
+
+  // ── Detail modal ────────────────────────────────────────────────────────────
+  const openDetail = (item) => setDetailModal({ open: true, empId: item.empId, name: item.name });
 
   // ── Edit modal ──────────────────────────────────────────────────────────────
   const openEdit = (type, item) => {
@@ -720,8 +728,8 @@ const SalarySummary = () => {
             <table className="w-full text-left border-collapse whitespace-nowrap">
               <thead className="sticky top-0 z-10" style={{ background: 'var(--table-header-bg)' }}>
                 <tr className="border-b" style={{ borderColor: 'var(--glass-border)' }}>
-                  <th className={thCls()}     style={{ color: 'var(--table-header-text)' }}>員編</th>
-                  <th className={thCls()}     style={{ color: 'var(--table-header-text)' }}>姓名</th>
+                  <th className={`${thCls()} sticky left-0 z-20 min-w-[80px]`} style={{ color: 'var(--table-header-text)', background: 'var(--table-header-bg)' }}>員編</th>
+                  <th className={`${thCls()} sticky left-[80px] z-20`} style={{ color: 'var(--table-header-text)', background: 'var(--table-header-bg)', boxShadow: '2px 0 6px -2px rgba(0,0,0,0.2)' }}>姓名</th>
                   <th className={thCls()}     style={{ color: 'var(--table-header-text)' }}>領款方式</th>
                   {['B碼申請金額','G碼申請金額','S碼申請金額','服務未遇','B碼拆帳金額','G碼拆帳金額','S碼拆帳金額','服務未遇拆帳','服務所得總額',
                     '其他補貼','其他(1)','應領金額',
@@ -743,8 +751,8 @@ const SalarySummary = () => {
                   </tr>
                 ) : bgsItems.map(item => (
                   <tr key={item.id} className="group transition-colors border-b hover:bg-white/[0.05]" style={{ borderColor: 'var(--glass-border)' }}>
-                    <td className="px-4 py-3 font-mono text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{item.empId}</td>
-                    <td className="px-4 py-3 text-sm font-medium"           style={{ color: 'var(--text-primary)' }}>{item.name}</td>
+                    <td className="px-4 py-3 font-mono text-sm font-medium sticky left-0 z-[5] min-w-[80px]" style={{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }}>{item.empId}</td>
+                    <td className="px-4 py-3 text-sm font-medium cursor-pointer hover:underline sticky left-[80px] z-[5]" style={{ color: 'var(--text-accent)', background: 'var(--glass-bg)', boxShadow: '2px 0 6px -2px rgba(0,0,0,0.2)' }} onClick={() => openDetail(item)}>{item.name}</td>
                     <td className="px-4 py-3 text-sm"                       style={{ color: 'var(--text-secondary)' }}>{item.paymentMethod}</td>
                     <td className="px-4 py-3 font-mono text-sm text-right"  style={{ color: 'var(--text-secondary)' }}>{money(item.rawB)}</td>
                     <td className="px-4 py-3 font-mono text-sm text-right"  style={{ color: 'var(--text-secondary)' }}>{money(item.rawG)}</td>
@@ -800,7 +808,7 @@ const SalarySummary = () => {
               {bgsItems.length > 0 && (
                 <tfoot className="sticky bottom-0 z-10" style={{ background: 'var(--table-header-bg)' }}>
                   <tr className="border-t" style={{ borderColor: 'var(--glass-border)' }}>
-                    <td className="px-4 py-2.5 text-xs font-bold" style={{ color: 'var(--text-primary)' }}>小計</td>
+                    <td className="px-4 py-2.5 text-xs font-bold sticky left-0 z-[5] min-w-[80px]" style={{ color: 'var(--text-primary)', background: 'var(--table-header-bg)' }}>小計</td>
                     <EC /><EC />
                     <SumCell items={bgsItems} field="rawB" />
                     <SumCell items={bgsItems} field="rawG" />
@@ -839,8 +847,8 @@ const SalarySummary = () => {
             <table className="w-full text-left border-collapse whitespace-nowrap">
               <thead className="sticky top-0 z-10" style={{ background: 'var(--table-header-bg)' }}>
                 <tr className="border-b" style={{ borderColor: 'var(--glass-border)' }}>
-                  <th className={thCls()}     style={{ color: 'var(--table-header-text)' }}>員編</th>
-                  <th className={thCls()}     style={{ color: 'var(--table-header-text)' }}>姓名</th>
+                  <th className={`${thCls()} sticky left-0 z-20 min-w-[80px]`} style={{ color: 'var(--table-header-text)', background: 'var(--table-header-bg)' }}>員編</th>
+                  <th className={`${thCls()} sticky left-[80px] z-20`} style={{ color: 'var(--table-header-text)', background: 'var(--table-header-bg)', boxShadow: '2px 0 6px -2px rgba(0,0,0,0.2)' }}>姓名</th>
                   <th className={thCls()}     style={{ color: 'var(--table-header-text)' }}>領款方式</th>
                   {['A碼申請金額','A碼拆帳金額','服務所得總額','跨區補助','服務獎金','額度開發','丙證獎金',
                     '介紹費','帶新人津貼','節日獎金','其他補貼','其他(2)',
@@ -861,8 +869,8 @@ const SalarySummary = () => {
                   </tr>
                 ) : aItems.map(item => (
                   <tr key={item.id} className="group transition-colors border-b hover:bg-white/[0.05]" style={{ borderColor: 'var(--glass-border)' }}>
-                    <td className="px-4 py-3 font-mono text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{item.empId}</td>
-                    <td className="px-4 py-3 text-sm font-medium"           style={{ color: 'var(--text-primary)' }}>{item.name}</td>
+                    <td className="px-4 py-3 font-mono text-sm font-medium sticky left-0 z-[5] min-w-[80px]" style={{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }}>{item.empId}</td>
+                    <td className="px-4 py-3 text-sm font-medium cursor-pointer hover:underline sticky left-[80px] z-[5]" style={{ color: 'var(--text-accent)', background: 'var(--glass-bg)', boxShadow: '2px 0 6px -2px rgba(0,0,0,0.2)' }} onClick={() => openDetail(item)}>{item.name}</td>
                     <td className="px-4 py-3 text-sm"                       style={{ color: 'var(--text-secondary)' }}>{item.paymentMethod}</td>
                     <td className="px-4 py-3 font-mono text-sm text-right"  style={{ color: 'var(--text-secondary)' }}>{money(item.rawA)}</td>
                     <td className="px-4 py-3 font-mono text-sm text-right"  style={{ color: 'var(--text-secondary)' }}>{money(item.splitA)}</td>
@@ -938,7 +946,7 @@ const SalarySummary = () => {
               {aItems.length > 0 && (
                 <tfoot className="sticky bottom-0 z-10" style={{ background: 'var(--table-header-bg)' }}>
                   <tr className="border-t" style={{ borderColor: 'var(--glass-border)' }}>
-                    <td className="px-4 py-2.5 text-xs font-bold" style={{ color: 'var(--text-primary)' }}>小計</td>
+                    <td className="px-4 py-2.5 text-xs font-bold sticky left-0 z-[5] min-w-[80px]" style={{ color: 'var(--text-primary)', background: 'var(--table-header-bg)' }}>小計</td>
                     <EC /><EC />
                     <SumCell items={aItems} field="rawA" />
                     <SumCell items={aItems} field="splitA" />
@@ -992,8 +1000,8 @@ const SalarySummary = () => {
             <table className="w-full text-left border-collapse whitespace-nowrap">
               <thead className="sticky top-0 z-10" style={{ background: 'var(--table-header-bg)' }}>
                 <tr className="border-b" style={{ borderColor: 'var(--glass-border)' }}>
-                  <th className={thCls()} style={{ color: 'var(--table-header-text)' }}>員編</th>
-                  <th className={thCls()} style={{ color: 'var(--table-header-text)' }}>姓名</th>
+                  <th className={`${thCls()} sticky left-0 z-20 min-w-[80px]`} style={{ color: 'var(--table-header-text)', background: 'var(--table-header-bg)' }}>員編</th>
+                  <th className={`${thCls()} sticky left-[80px] z-20`} style={{ color: 'var(--table-header-text)', background: 'var(--table-header-bg)', boxShadow: '2px 0 6px -2px rgba(0,0,0,0.2)' }}>姓名</th>
                   {['A碼申請金額','B碼申請金額','G碼申請金額','S碼申請金額','服務未遇',
                     'A碼拆帳金額','B碼拆帳金額','G碼拆帳金額','S碼拆帳金額','服務未遇拆帳','服務所得總額',
                     '跨區補助','服務獎金','額度開發','丙證獎金','介紹費','帶新人津貼','節日獎金',
@@ -1017,8 +1025,8 @@ const SalarySummary = () => {
                   </tr>
                 ) : summaryItems.map(item => (
                   <tr key={item.id} className="group transition-colors border-b hover:bg-white/[0.05]" style={{ borderColor: 'var(--glass-border)' }}>
-                    <td className="px-4 py-3 font-mono text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{item.empId}</td>
-                    <td className="px-4 py-3 text-sm font-medium"           style={{ color: 'var(--text-primary)' }}>{item.name}</td>
+                    <td className="px-4 py-3 font-mono text-sm font-medium sticky left-0 z-[5] min-w-[80px]" style={{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }}>{item.empId}</td>
+                    <td className="px-4 py-3 text-sm font-medium cursor-pointer hover:underline sticky left-[80px] z-[5]" style={{ color: 'var(--text-accent)', background: 'var(--glass-bg)', boxShadow: '2px 0 6px -2px rgba(0,0,0,0.2)' }} onClick={() => openDetail(item)}>{item.name}</td>
                     {/* 申請金額 */}
                     <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>{money(item.rawA)}</td>
                     <td className="px-4 py-3 font-mono text-sm text-right" style={{ color: 'var(--text-secondary)' }}>{money(item.rawB)}</td>
@@ -1068,13 +1076,6 @@ const SalarySummary = () => {
                     <td className="px-4 py-3 font-mono text-sm text-right text-red-400">
                       <span className="inline-flex items-center justify-end gap-1">
                         {money(item.autoTax)}
-                        {item.autoTax !== item.storedWithholdingTax && item.storedWithholdingTax !== 0 && (
-                          <span
-                            className="text-[10px] px-1 rounded font-sans"
-                            style={{ background: 'var(--text-accent)', color: 'var(--glass-bg)', opacity: 0.85 }}
-                            title={`已儲存值：$${item.storedWithholdingTax.toLocaleString()}，點選「套用扣繳稅額至A碼」更新`}
-                          >更新</span>
-                        )}
                         <NoteTooltip note={item.withholdingTaxNote} />
                       </span>
                     </td>
@@ -1111,7 +1112,7 @@ const SalarySummary = () => {
               {summaryItems.length > 0 && (
                 <tfoot className="sticky bottom-0 z-10" style={{ background: 'var(--table-header-bg)' }}>
                   <tr className="border-t" style={{ borderColor: 'var(--glass-border)' }}>
-                    <td className="px-4 py-2.5 text-xs font-bold" style={{ color: 'var(--text-primary)' }}>小計</td>
+                    <td className="px-4 py-2.5 text-xs font-bold sticky left-0 z-[5] min-w-[80px]" style={{ color: 'var(--text-primary)', background: 'var(--table-header-bg)' }}>小計</td>
                     <EC />
                     <SumCell items={summaryItems} field="rawA" />
                     <SumCell items={summaryItems} field="rawB" />
@@ -1220,6 +1221,124 @@ const SalarySummary = () => {
           )}
         </ModalShell>
       )}
+
+      {/* ── Detail Modal ───────────────────────────────────────────────────── */}
+      {detailModal.open && (() => {
+        const record      = rawRecords.find(r => r.empId === detailModal.empId) || {};
+        const aCodeResult = rawACodeResults.find(r => r.name === detailModal.name);
+        const bd          = record.breakdown || {};
+        const fmt = (v) => (v || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 1 });
+
+        const TypeSection = ({ type, label, color }) => {
+          const items = bd[type]?.items || [];
+          if (items.length === 0) return null;
+          const hasSelfPay = items.some(i => i.selfPayAmount > 0);
+          return (
+            <div>
+              <h4 className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color }}>{label}</h4>
+              <div className="overflow-hidden rounded border" style={{ borderColor: 'var(--glass-border)' }}>
+                <table className="w-full text-xs">
+                  <thead style={{ background: 'var(--table-header-bg)', color: 'var(--table-header-text)' }}>
+                    <tr>
+                      <th className="px-3 py-2 text-left font-medium">個案</th>
+                      <th className="px-3 py-2 text-left font-medium">代碼</th>
+                      <th className="px-3 py-2 text-right font-medium">數量</th>
+                      <th className="px-3 py-2 text-right font-medium">補助金額</th>
+                      {hasSelfPay && <th className="px-3 py-2 text-right font-medium">自費金額</th>}
+                      <th className="px-3 py-2 text-right font-medium">拆帳金額</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((it, i) => (
+                      <tr key={i} className="border-t" style={{ borderColor: 'var(--glass-border)' }}>
+                        <td className="px-3 py-1.5" style={{ color: 'var(--text-primary)' }}>{it.client}</td>
+                        <td className="px-3 py-1.5 font-mono" style={{ color: 'var(--text-secondary)' }}>{it.code}</td>
+                        <td className="px-3 py-1.5 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>{it.count}</td>
+                        <td className="px-3 py-1.5 text-right font-mono" style={{ color: 'var(--text-primary)' }}>${fmt(it.amount)}</td>
+                        {hasSelfPay && <td className="px-3 py-1.5 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>{it.selfPayAmount > 0 ? `$${fmt(it.selfPayAmount)}` : '—'}</td>}
+                        <td className="px-3 py-1.5 text-right font-mono font-semibold" style={{ color }}>${fmt(it.split)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t font-semibold" style={{ borderColor: 'var(--glass-border)', background: 'var(--accordion-bg)' }}>
+                      <td className="px-3 py-1.5" colSpan={3} style={{ color: 'var(--text-secondary)' }}>合計</td>
+                      <td className="px-3 py-1.5 text-right font-mono" style={{ color: 'var(--text-primary)' }}>${fmt(items.reduce((s, i) => s + i.amount, 0))}</td>
+                      {hasSelfPay && <td className="px-3 py-1.5 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>${fmt(items.reduce((s, i) => s + i.selfPayAmount, 0))}</td>}
+                      <td className="px-3 py-1.5 text-right font-mono" style={{ color }}>${fmt(items.reduce((s, i) => s + i.split, 0))}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          );
+        };
+
+        return (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDetailModal(m => ({ ...m, open: false }))} />
+            <div
+              className="relative w-full max-w-3xl border overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]"
+              style={{ background: 'var(--modal-bg)', borderRadius: 'var(--modal-radius)', boxShadow: 'var(--modal-shadow)', borderColor: 'var(--glass-border)' }}
+            >
+              <div className="p-6 border-b flex justify-between items-center" style={{ borderColor: 'var(--glass-border)', background: 'var(--modal-header-bg)' }}>
+                <div>
+                  <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>服務明細核對 — {detailModal.name}</h3>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>員編 {detailModal.empId}</p>
+                </div>
+                <button onClick={() => setDetailModal(m => ({ ...m, open: false }))} className="p-1.5 hover:bg-white/10 rounded-md transition-colors cursor-pointer">
+                  <X size={20} style={{ color: 'var(--text-secondary)' }} />
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6">
+                <TypeSection type="B" label="B碼明細" color="var(--color-blue-400, #60a5fa)" />
+                <TypeSection type="G" label="G碼明細" color="var(--color-emerald-400, #34d399)" />
+                <TypeSection type="S" label="S碼明細" color="var(--color-purple-400, #c084fc)" />
+                <TypeSection type="Missed" label="服務未遇明細" color="var(--color-orange-400, #fb923c)" />
+                {aCodeResult && aCodeResult.details?.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--text-accent)' }}>A碼明細</h4>
+                    <div className="overflow-hidden rounded border" style={{ borderColor: 'var(--glass-border)' }}>
+                      <table className="w-full text-xs">
+                        <thead style={{ background: 'var(--table-header-bg)', color: 'var(--table-header-text)' }}>
+                          <tr>
+                            <th className="px-3 py-2 text-left font-medium">個案</th>
+                            <th className="px-3 py-2 text-left font-medium">代碼</th>
+                            <th className="px-3 py-2 text-right font-medium">數量</th>
+                            <th className="px-3 py-2 text-right font-medium">申報金額</th>
+                            <th className="px-3 py-2 text-right font-medium">拆帳金額</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {aCodeResult.details.map((d, i) => (
+                            <tr key={i} className="border-t" style={{ borderColor: 'var(--glass-border)' }}>
+                              <td className="px-3 py-1.5" style={{ color: 'var(--text-primary)' }}>{d.client}</td>
+                              <td className="px-3 py-1.5 font-mono" style={{ color: 'var(--text-secondary)' }}>{d.code}</td>
+                              <td className="px-3 py-1.5 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>{d.qty?.toFixed ? d.qty.toFixed(1) : d.qty}</td>
+                              <td className="px-3 py-1.5 text-right font-mono" style={{ color: 'var(--text-primary)' }}>${fmt(d.subtotal)}</td>
+                              <td className="px-3 py-1.5 text-right font-mono font-semibold" style={{ color: 'var(--text-accent)' }}>${fmt(d.amount)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr className="border-t font-semibold" style={{ borderColor: 'var(--glass-border)', background: 'var(--accordion-bg)' }}>
+                            <td className="px-3 py-1.5" colSpan={3} style={{ color: 'var(--text-secondary)' }}>合計</td>
+                            <td className="px-3 py-1.5 text-right font-mono" style={{ color: 'var(--text-primary)' }}>${fmt(aCodeResult.details.reduce((s, d) => s + (d.subtotal || 0), 0))}</td>
+                            <td className="px-3 py-1.5 text-right font-mono" style={{ color: 'var(--text-accent)' }}>${fmt(aCodeResult.totalCommission)}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                )}
+                {!bd['B'] && !bd['G'] && !bd['S'] && !bd['Missed'] && !aCodeResult && (
+                  <p className="text-sm text-center py-8" style={{ color: 'var(--text-secondary)' }}>無明細資料，請先上傳計算</p>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Note Modal ─────────────────────────────────────────────────────── */}
       {noteModal.open && (
