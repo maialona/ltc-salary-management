@@ -55,12 +55,14 @@ export default function SummaryReconciliation() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [warnings, setWarnings] = useState([]);
   const [filter, setFilter] = useState('all');
+  const [isInitialized, setIsInitialized] = useState(false);
   const fileInputRef = useRef(null);
 
   const loadPeriod = (institution, p) => {
     const cq = getCaseQuantity(institution, p);
     const welfare = getWelfare(institution, p);
     setCaseQuantity(cq);
+    setIsInitialized(true);
     setWarnings([]);
     if (cq && welfare) {
       setRows(reconcileSummaries(cq, welfare, p));
@@ -147,7 +149,7 @@ export default function SummaryReconciliation() {
     <div className="space-y-6">
 
       {/* No-cache banner */}
-      {!hasCacheData && (
+      {isInitialized && !hasCacheData && (
         <div className="p-4 rounded-md border flex gap-3 items-start"
           style={{ background: 'rgba(239,68,68,0.05)', borderColor: 'rgba(239,68,68,0.2)' }}>
           <div className="p-1.5 rounded-md shrink-0" style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171' }}>
