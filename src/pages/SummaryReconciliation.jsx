@@ -129,6 +129,16 @@ export default function SummaryReconciliation() {
     welSelfPayAmount: rows.reduce((s, r) => s + (r.welfare?.selfPayAmount ?? 0), 0),
   };
 
+  const breakdown = { B: { rec: 0, wel: 0 }, G: { rec: 0, wel: 0 }, S: { rec: 0, wel: 0 }, selfPay: 0 };
+  for (const r of rows) {
+    const p = (r.code || '')[0]?.toUpperCase();
+    if (p === 'B' || p === 'G' || p === 'S') {
+      breakdown[p].rec += r.record?.govAmount ?? 0;
+      breakdown[p].wel += r.welfare?.govAmount ?? 0;
+    }
+    breakdown.selfPay += r.record?.selfPaySubtotal ?? 0;
+  }
+
   const statusCards = [
     { label: '比對筆數', value: stats.total, color: 'var(--text-primary)' },
     { label: '完全一致', value: stats.match, color: '#34d399' },
@@ -260,6 +270,49 @@ export default function SummaryReconciliation() {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Verification breakdown */}
+          {rows.length > 0 && !isProcessing && (
+            <div className="overflow-hidden rounded-md border glass-panel animate-in fade-in duration-300" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
+              <table className="w-full border-collapse text-xs">
+                <thead>
+                  <tr className="border-b" style={{ borderColor: 'var(--glass-border)', background: 'var(--table-header-bg)' }}>
+                    <th className="px-4 py-2 text-left font-medium" style={{ color: 'var(--table-header-text)' }}>驗算</th>
+                    <th className="px-4 py-2 text-right font-medium" style={{ color: '#60a5fa' }}>服務清冊</th>
+                    <th className="px-4 py-2 text-right font-medium" style={{ color: '#34d399' }}>衛服部總表</th>
+                    <th className="px-4 py-2 text-right font-medium" style={{ color: 'var(--text-secondary)' }}>差異</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { label: 'B申', rec: breakdown.B.rec, wel: breakdown.B.wel },
+                    { label: 'G申', rec: breakdown.G.rec, wel: breakdown.G.wel },
+                    { label: 'S申', rec: breakdown.S.rec, wel: breakdown.S.wel },
+                  ].map(({ label, rec, wel }) => {
+                    const diff = rec - wel;
+                    return (
+                      <tr key={label} className="border-b" style={{ borderColor: 'var(--glass-border)' }}>
+                        <td className="px-4 py-2 font-medium" style={{ color: 'var(--text-primary)' }}>{label}</td>
+                        <td className="px-4 py-2 text-right font-mono" style={{ color: '#60a5fa' }}>{fmt(rec)}</td>
+                        <td className="px-4 py-2 text-right font-mono" style={{ color: '#34d399' }}>{fmt(wel)}</td>
+                        <td className="px-4 py-2 text-right font-mono" style={{ color: diff !== 0 ? '#f87171' : '#34d399' }}>
+                          {diff !== 0 ? (diff > 0 ? '+' : '') + fmt(diff) : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  <tr>
+                    <td className="px-4 py-2 font-medium" style={{ color: 'var(--text-primary)' }}>自費</td>
+                    <td className="px-4 py-2 text-right font-mono" style={{ color: '#60a5fa' }}>{fmt(breakdown.selfPay)}</td>
+                    <td className="px-4 py-2 text-right font-mono" style={{ color: 'var(--text-secondary)', opacity: 0.45 }}>—</td>
+                    <td className="px-4 py-2 text-right font-mono" style={{ color: breakdown.selfPay !== 0 ? '#f87171' : '#34d399' }}>
+                      {breakdown.selfPay !== 0 ? '+' + fmt(breakdown.selfPay) : '—'}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           )}
 
