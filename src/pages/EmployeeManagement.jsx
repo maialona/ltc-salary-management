@@ -17,9 +17,7 @@ const safeNum = (v) => {
 const EmployeeManagement = () => {
   const { currentInstitution } = useInstitution();
   const [subTab, setSubTab] = useState('employees');
-  const [overtimeRows, setOvertimeRows] = useState(() => {
-    try { const s = localStorage.getItem(`overtime_rows_${getPeriod()}`); return s ? JSON.parse(s) : []; } catch { return []; }
-  });
+  const [overtimeRows, setOvertimeRows] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
@@ -91,14 +89,24 @@ const EmployeeManagement = () => {
   }, [currentInstitution]);
 
   useEffect(() => {
+    try {
+      const period = getPeriod();
+      const s = localStorage.getItem(`overtime_rows_${currentInstitution}_${period}`)
+        ?? localStorage.getItem(`overtime_rows_${period}`);
+      setOvertimeRows(s ? JSON.parse(s) : []);
+    } catch { setOvertimeRows([]); }
+  }, [currentInstitution]);
+
+  useEffect(() => {
     const loadOvertime = (period) => {
       try {
-        const s = localStorage.getItem(`overtime_rows_${period}`);
+        const s = localStorage.getItem(`overtime_rows_${currentInstitution}_${period}`)
+          ?? localStorage.getItem(`overtime_rows_${period}`);
         setOvertimeRows(s ? JSON.parse(s) : []);
       } catch { setOvertimeRows([]); }
     };
     return subscribePeriod(loadOvertime);
-  }, []);
+  }, [currentInstitution]);
 
   const loadEmployees = async () => {
     try {
@@ -346,7 +354,7 @@ const EmployeeManagement = () => {
         rows.push({ name, actualHours, transfer, h134, h167, h267, h1, h2, transferFee, overtimeFee });
       }
       setOvertimeRows(rows);
-      try { localStorage.setItem(`overtime_rows_${getPeriod()}`, JSON.stringify(rows)); } catch {}
+      try { localStorage.setItem(`overtime_rows_${currentInstitution}_${getPeriod()}`, JSON.stringify(rows)); } catch {}
     };
     reader.readAsArrayBuffer(file);
   };
@@ -506,6 +514,19 @@ const EmployeeManagement = () => {
                             }`}>
                                 {emp.paymentMethod || '匯款'}
                             </span>
+
+                            {/* BGS / AA09 / 其餘A碼 抽成 */}
+                            <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+                                <span className="text-xs font-mono px-1.5 py-0.5 rounded border bg-violet-500/10 text-violet-400 border-violet-500/20">
+                                    BGS {emp.splits?.b ?? 0}%
+                                </span>
+                                <span className="text-xs font-mono px-1.5 py-0.5 rounded border bg-violet-500/10 text-violet-400 border-violet-500/20">
+                                    AA09 {emp.splits?.aa09 ?? 0}%
+                                </span>
+                                <span className="text-xs font-mono px-1.5 py-0.5 rounded border bg-violet-500/10 text-violet-400 border-violet-500/20">
+                                    A碼 {emp.splits?.otherAcode ?? 0}%
+                                </span>
+                            </div>
 
                             {/* Chevron */}
                             <div className={`w-5 h-5 ml-auto shrink-0 flex items-center justify-center transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}

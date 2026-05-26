@@ -320,6 +320,9 @@ const RecordsProcessing = () => {
                         <h3 className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                           {res.employee.name}
                         </h3>
+                        <span className="px-1.5 py-0.5 rounded border text-xs font-mono bg-violet-500/10 text-violet-400 border-violet-500/20">
+                          BGS {res.employee.splits?.b ?? 0}%
+                        </span>
                         <div className="flex gap-1 flex-wrap">
                           {tagDefs.map(tag => (
                             <span key={tag.key}

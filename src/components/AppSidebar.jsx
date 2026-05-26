@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import {
   Users, FileSpreadsheet, Coins, Banknote, Download,
   Calculator, Calendar, ChevronLeft, ChevronRight,
-  Sun, Moon, ShieldCheck, ClipboardCheck,
+  Sun, Moon, ShieldCheck, ClipboardCheck, Pin, PinOff,
 } from 'lucide-react';
 import { getPeriod, offsetPeriod, subscribePeriod } from '../data/periodStore';
 import { useTheme } from '../context/ThemeContext';
@@ -48,6 +48,7 @@ function NavLabel({ isCollapsed, children }) {
 
 export function AppSidebar({ activeTab, onTabChange, onCollapsedChange }) {
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isLocked, setIsLocked] = useState(false);
   const [period, setPeriod] = useState(getPeriod());
   const { theme, toggleTheme } = useTheme();
   const { dbUser } = useAuth();
@@ -64,8 +65,21 @@ export function AppSidebar({ activeTab, onTabChange, onCollapsedChange }) {
   };
 
   const handleMouseLeave = () => {
+    if (isLocked) return;
     setIsCollapsed(true);
     onCollapsedChange?.(true);
+  };
+
+  const toggleLock = () => {
+    const next = !isLocked;
+    setIsLocked(next);
+    if (next) {
+      setIsCollapsed(false);
+      onCollapsedChange?.(false);
+    } else {
+      setIsCollapsed(true);
+      onCollapsedChange?.(true);
+    }
   };
 
   return (
@@ -192,6 +206,20 @@ export function AppSidebar({ activeTab, onTabChange, onCollapsedChange }) {
           </div>
           <NavLabel isCollapsed={isCollapsed}>
             {theme === 'dark' ? '深色模式' : '淺色模式'}
+          </NavLabel>
+        </button>
+        <button
+          onClick={toggleLock}
+          className="flex items-center w-full h-10 rounded-lg px-2.5 transition-colors duration-150 cursor-pointer hover:bg-white/5"
+          style={{ color: isLocked ? 'var(--nav-active-text)' : 'var(--text-secondary)' }}
+          aria-label={isLocked ? '解鎖側欄' : '鎖定側欄'}
+        >
+          {isLocked
+            ? <Pin size={16} className="shrink-0" />
+            : <PinOff size={16} className="shrink-0" />
+          }
+          <NavLabel isCollapsed={isCollapsed}>
+            {isLocked ? '已鎖定展開' : '自動收合'}
           </NavLabel>
         </button>
       </div>
