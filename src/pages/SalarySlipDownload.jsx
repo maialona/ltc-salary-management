@@ -569,7 +569,7 @@ function buildSummaryData(emp, bonus, deduction, record, aCodeResult, laborAdj) 
            totalIncome, totalDeduction, net };
 }
 
-function buildSummary2Data(emp, bonus, deduction, record, aCodeResult, laborAdj, overtimeData) {
+function buildSummary2Data(emp, bonus, deduction, record, aCodeResult, laborAdj, ot) {
   const bd          = record.breakdown || {};
   const splitA      = aCodeResult?.totalCommission || 0;
   const splitB      = bd['B']?.splitSum      || record.b      || 0;
@@ -587,8 +587,6 @@ function buildSummary2Data(emp, bonus, deduction, record, aCodeResult, laborAdj,
   const mentoring    = bonus.mentoring    || 0;
   const holidayBonus = bonus.holidayBonus || 0;
   const fuel         = bonus.fuel         || 0;
-
-  const ot = overtimeData.find(o => o.name === emp.name) || {};
   const crossArea    = ot.transferFee || 0;
   const ot134 = Math.round((ot.h134 || 0) * 200);
   const ot167 = Math.round((ot.h167 || 0) * 200);
@@ -652,12 +650,15 @@ const SalarySlipDownload = () => {
   const [isBulkMode,   setIsBulkMode]   = useState(false);
 
   const employeesRef    = useRef([]);
-  const bonusesRef      = useRef([]);
-  const deductionsRef   = useRef([]);
-  const recordsRef      = useRef([]);
   const acodeResultsRef = useRef(null);
   const laborAdjRef     = useRef({});
-  const overtimeDataRef = useRef([]);
+  const bonusMapRef     = useRef(new Map());
+  const deductionMapRef = useRef(new Map());
+  const recordMapRef    = useRef(new Map());
+  const empMapRef       = useRef(new Map());
+  const aCodeByEmpIdRef = useRef(new Map());
+  const aCodeByNameRef  = useRef(new Map());
+  const overtimeMapRef  = useRef(new Map());
 
   const loadAllData = async () => {
     const [emps, bonuses, deductions, records, acodeData] = await Promise.all([
@@ -666,35 +667,39 @@ const SalarySlipDownload = () => {
     const aCodeResults = acodeData?.finalSummary ?? [];
     setEmployees(emps);
     employeesRef.current    = emps;
-    bonusesRef.current      = bonuses;
-    deductionsRef.current   = deductions;
-    recordsRef.current      = records;
     acodeResultsRef.current = acodeData;
     laborAdjRef.current     = computeLaborCapAdjustments(emps, bonuses, records, aCodeResults);
+    bonusMapRef.current     = new Map(bonuses.map(b => [b.empId, b]));
+    deductionMapRef.current = new Map(deductions.map(d => [d.empId, d]));
+    recordMapRef.current    = new Map(records.map(r => [r.empId, r]));
+    empMapRef.current       = new Map(emps.map(e => [e.empId, e]));
+    aCodeByEmpIdRef.current = new Map(aCodeResults.map(r => [r.id, r]));
+    aCodeByNameRef.current  = new Map(aCodeResults.map(r => [r.name, r]));
     try {
       const s = localStorage.getItem(`overtime_rows_${currentInstitution}_${getPeriod()}`);
-      overtimeDataRef.current = s ? JSON.parse(s) : [];
+      const overtimeData = s ? JSON.parse(s) : [];
+      overtimeMapRef.current = new Map(overtimeData.map(o => [o.name, o]));
     } catch {
-      overtimeDataRef.current = [];
+      overtimeMapRef.current = new Map();
     }
   };
 
   useEffect(() => { loadAllData(); }, [currentInstitution]);
 
   const buildSlipData = (empId, type) => {
-    const emp       = employeesRef.current.find(e => e.empId === empId);
+    const emp       = empMapRef.current.get(empId);
     if (!emp) return null;
-    const bonus     = bonusesRef.current.find(b => b.empId === empId) || {};
-    const deduction = deductionsRef.current.find(d => d.empId === empId) || {};
-    const record    = recordsRef.current.find(r => r.empId === empId) || {};
-    const summary   = acodeResultsRef.current?.finalSummary ?? [];
-    const aCodeResult = summary.find(r => r.id === empId || r.name === emp.name) || null;
+    const bonus     = bonusMapRef.current.get(empId) || {};
+    const deduction = deductionMapRef.current.get(empId) || {};
+    const record    = recordMapRef.current.get(empId) || {};
+    const aCodeResult = aCodeByEmpIdRef.current.get(empId) ?? aCodeByNameRef.current.get(emp.name) ?? null;
     const laborAdj  = laborAdjRef.current[empId] || { bgsOther1: 0, acodeOther2: 0 };
+    const ot        = overtimeMapRef.current.get(emp.name) || {};
 
     if (type === 'bgs')      return buildBgsData(emp, bonus, deduction, record, laborAdj);
     if (type === 'acode')    return buildAcodeData(emp, bonus, deduction, aCodeResult, laborAdj);
     if (type === 'summary')  return buildSummaryData(emp, bonus, deduction, record, aCodeResult, laborAdj);
-    if (type === 'summary2') return buildSummary2Data(emp, bonus, deduction, record, aCodeResult, laborAdj, overtimeDataRef.current);
+    if (type === 'summary2') return buildSummary2Data(emp, bonus, deduction, record, aCodeResult, laborAdj, ot);
     return null;
   };
 

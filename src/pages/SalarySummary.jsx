@@ -158,6 +158,7 @@ const ModalShell = ({ title, subtitle, onClose, onSave, children }) => (
 const SalarySummary = () => {
   const { currentInstitution } = useInstitution();
   const [subTab, setSubTab]             = useState('bgs');
+  const [search, setSearch]             = useState('');
   const [bgsItems, setBgsItems]         = useState([]);
   const [aItems, setAItems]             = useState([]);
   const [summaryItems, setSummaryItems] = useState([]);
@@ -185,11 +186,17 @@ const SalarySummary = () => {
     const aCodeResults = acodeData?.finalSummary ?? [];
     const laborAdj = computeLaborCapAdjustments(employees, bonuses, records, aCodeResults);
 
+    const bonusMap      = new Map(bonuses.map(b => [b.empId, b]));
+    const deductionMap  = new Map(deductions.map(d => [d.empId, d]));
+    const recordMap     = new Map(records.map(r => [r.empId, r]));
+    const aCodeByEmpId  = new Map(aCodeResults.map(r => [r.id, r]));
+    const aCodeByName   = new Map(aCodeResults.map(r => [r.name, r]));
+
     // BGS碼薪資
     const bgs = employees.map(emp => {
-      const bonus     = bonuses.find(b => b.empId === emp.empId) || {};
-      const deduction = deductions.find(d => d.empId === emp.empId) || {};
-      const record    = records.find(r => r.empId === emp.empId) || {};
+      const bonus     = bonusMap.get(emp.empId) || {};
+      const deduction = deductionMap.get(emp.empId) || {};
+      const record    = recordMap.get(emp.empId) || {};
 
       const splitB        = record.b || 0;
       const splitG        = record.g || 0;
@@ -242,10 +249,10 @@ const SalarySummary = () => {
 
     // A碼及其他獎金
     const aCode = employees.map(emp => {
-      const bonus       = bonuses.find(b => b.empId === emp.empId) || {};
-      const deduction   = deductions.find(d => d.empId === emp.empId) || {};
-      const record      = records.find(r => r.empId === emp.empId) || {};
-      const aCodeResult = aCodeResults.find(r => r.id === emp.empId || r.name === emp.name);
+      const bonus       = bonusMap.get(emp.empId) || {};
+      const deduction   = deductionMap.get(emp.empId) || {};
+      const record      = recordMap.get(emp.empId) || {};
+      const aCodeResult = aCodeByEmpId.get(emp.empId) ?? aCodeByName.get(emp.name);
 
       const splitA        = aCodeResult ? aCodeResult.totalCommission : (bonus.bonusA || 0);
       const rawA          = (aCodeResult?.details || []).reduce((s, d) => s + (d.subtotal || 0), 0);
@@ -309,10 +316,10 @@ const SalarySummary = () => {
 
     // 薪資總表 (combined)
     const summary = employees.map(emp => {
-      const bonus       = bonuses.find(b => b.empId === emp.empId) || {};
-      const deduction   = deductions.find(d => d.empId === emp.empId) || {};
-      const record      = records.find(r => r.empId === emp.empId) || {};
-      const aCodeResult = aCodeResults.find(r => r.id === emp.empId || r.name === emp.name);
+      const bonus       = bonusMap.get(emp.empId) || {};
+      const deduction   = deductionMap.get(emp.empId) || {};
+      const record      = recordMap.get(emp.empId) || {};
+      const aCodeResult = aCodeByEmpId.get(emp.empId) ?? aCodeByName.get(emp.name);
 
       const splitA      = aCodeResult ? aCodeResult.totalCommission : (bonus.bonusA || 0);
       const rawA        = (aCodeResult?.details || []).reduce((s, d) => s + (d.subtotal || 0), 0);
@@ -404,12 +411,13 @@ const SalarySummary = () => {
       overtimeData = s ? JSON.parse(s) : [];
     } catch {}
 
+    const otMap = new Map(overtimeData.map(o => [o.name, o]));
     const salary2 = employees.map(emp => {
-      const bonus     = bonuses.find(b => b.empId === emp.empId) || {};
-      const deduction = deductions.find(d => d.empId === emp.empId) || {};
-      const record    = records.find(r => r.empId === emp.empId) || {};
-      const aCodeResult = aCodeResults.find(r => r.id === emp.empId || r.name === emp.name);
-      const ot = overtimeData.find(o => o.name === emp.name) || {};
+      const bonus       = bonusMap.get(emp.empId) || {};
+      const deduction   = deductionMap.get(emp.empId) || {};
+      const record      = recordMap.get(emp.empId) || {};
+      const aCodeResult = aCodeByEmpId.get(emp.empId) ?? aCodeByName.get(emp.name);
+      const ot = otMap.get(emp.name) || {};
 
       const splitA      = aCodeResult ? aCodeResult.totalCommission : (bonus.bonusA || 0);
       const splitB      = record.b || 0;
@@ -764,6 +772,15 @@ const SalarySummary = () => {
 
   const tabLabel = (type) => type === 'bgs' ? 'BGS碼薪資' : type === 'acode' ? 'A碼及其他獎金' : type === 'summary2' ? '薪資總表(2)' : '薪資總表';
 
+  const q = search.trim().toLowerCase();
+  const filterItems = items => !q ? items : items.filter(
+    item => item.empId?.toLowerCase().includes(q) || item.name?.toLowerCase().includes(q)
+  );
+  const filteredBgs     = filterItems(bgsItems);
+  const filteredA       = filterItems(aItems);
+  const filteredSummary = filterItems(summaryItems);
+  const filteredSalary2 = filterItems(salary2Items);
+
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -782,21 +799,38 @@ const SalarySummary = () => {
         </button>
       </div>
 
-      {/* Sub-tab selector */}
-      <div className="flex gap-1 border-b" style={{ borderColor: 'var(--glass-border)' }}>
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setSubTab(tab.id)}
-            className="px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer border-b-2 -mb-px"
-            style={{
-              color:       subTab === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
-              borderColor: subTab === tab.id ? 'var(--text-accent)'  : 'transparent',
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Sub-tab selector + search */}
+      <div className="flex items-end justify-between border-b" style={{ borderColor: 'var(--glass-border)' }}>
+        <div className="flex gap-1">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setSubTab(tab.id)}
+              className="px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer border-b-2 -mb-px"
+              style={{
+                color:       subTab === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
+                borderColor: subTab === tab.id ? 'var(--text-accent)'  : 'transparent',
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <input
+          type="text"
+          placeholder="搜尋員編 / 姓名…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="mb-1.5 px-3 py-1.5 text-sm outline-none rounded-md"
+          style={{
+            background: 'var(--input-bg)',
+            border: 'var(--input-border)',
+            color: 'var(--text-primary)',
+            width: '180px',
+          }}
+          onFocus={e => e.target.style.boxShadow = 'var(--input-focus-ring)'}
+          onBlur={e => e.target.style.boxShadow = 'none'}
+        />
       </div>
 
       {/* ── BGS碼薪資 ─────────────────────────────────────────────────────── */}
@@ -822,12 +856,10 @@ const SalarySummary = () => {
               </thead>
               <tbody>
                 {bgsItems.length === 0 ? (
-                  <tr>
-                    <td colSpan="27" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>
-                      尚無數據，請先建立員工名單並上傳計算
-                    </td>
-                  </tr>
-                ) : bgsItems.map(item => (
+                  <tr><td colSpan="27" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>尚無數據，請先建立員工名單並上傳計算</td></tr>
+                ) : filteredBgs.length === 0 ? (
+                  <tr><td colSpan="27" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>無符合「{search}」的結果</td></tr>
+                ) : filteredBgs.map(item => (
                   <tr key={item.id} className="group transition-colors border-b hover:bg-white/[0.05]" style={{ borderColor: 'var(--glass-border)' }}>
                     <td className="px-4 py-3 font-mono text-sm font-medium sticky left-0 z-[5] min-w-[80px]" style={{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }}>{item.empId}</td>
                     <td className="px-4 py-3 text-sm font-medium cursor-pointer hover:underline sticky left-[80px] z-[5]" style={{ color: 'var(--text-accent)', background: 'var(--glass-bg)', boxShadow: '2px 0 6px -2px rgba(0,0,0,0.2)' }} onClick={() => openDetail(item)}>{item.name}</td>
@@ -940,12 +972,10 @@ const SalarySummary = () => {
               </thead>
               <tbody>
                 {aItems.length === 0 ? (
-                  <tr>
-                    <td colSpan="23" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>
-                      尚無數據，請先建立員工名單並上傳計算
-                    </td>
-                  </tr>
-                ) : aItems.map(item => (
+                  <tr><td colSpan="23" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>尚無數據，請先建立員工名單並上傳計算</td></tr>
+                ) : filteredA.length === 0 ? (
+                  <tr><td colSpan="23" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>無符合「{search}」的結果</td></tr>
+                ) : filteredA.map(item => (
                   <tr key={item.id} className="group transition-colors border-b hover:bg-white/[0.05]" style={{ borderColor: 'var(--glass-border)' }}>
                     <td className="px-4 py-3 font-mono text-sm font-medium sticky left-0 z-[5] min-w-[80px]" style={{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }}>{item.empId}</td>
                     <td className="px-4 py-3 text-sm font-medium cursor-pointer hover:underline sticky left-[80px] z-[5]" style={{ color: 'var(--text-accent)', background: 'var(--glass-bg)', boxShadow: '2px 0 6px -2px rgba(0,0,0,0.2)' }} onClick={() => openDetail(item)}>{item.name}</td>
@@ -1093,12 +1123,10 @@ const SalarySummary = () => {
               </thead>
               <tbody>
                 {summaryItems.length === 0 ? (
-                  <tr>
-                    <td colSpan="40" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>
-                      尚無數據，請先建立員工名單並上傳計算
-                    </td>
-                  </tr>
-                ) : summaryItems.map(item => (
+                  <tr><td colSpan="40" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>尚無數據，請先建立員工名單並上傳計算</td></tr>
+                ) : filteredSummary.length === 0 ? (
+                  <tr><td colSpan="40" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>無符合「{search}」的結果</td></tr>
+                ) : filteredSummary.map(item => (
                   <tr key={item.id} className="group transition-colors border-b hover:bg-white/[0.05]" style={{ borderColor: 'var(--glass-border)' }}>
                     <td className="px-4 py-3 font-mono text-sm font-medium sticky left-0 z-[5] min-w-[80px]" style={{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }}>{item.empId}</td>
                     <td className="px-4 py-3 text-sm font-medium cursor-pointer hover:underline sticky left-[80px] z-[5]" style={{ color: 'var(--text-accent)', background: 'var(--glass-bg)', boxShadow: '2px 0 6px -2px rgba(0,0,0,0.2)' }} onClick={() => openDetail(item)}>{item.name}</td>
@@ -1257,12 +1285,10 @@ const SalarySummary = () => {
               </thead>
               <tbody>
                 {salary2Items.length === 0 ? (
-                  <tr>
-                    <td colSpan="15" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>
-                      尚無數據，請先建立員工名單並上傳計算
-                    </td>
-                  </tr>
-                ) : salary2Items.map(item => (
+                  <tr><td colSpan="15" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>尚無數據，請先建立員工名單並上傳計算</td></tr>
+                ) : filteredSalary2.length === 0 ? (
+                  <tr><td colSpan="15" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>無符合「{search}」的結果</td></tr>
+                ) : filteredSalary2.map(item => (
                   <tr key={item.id} className="group transition-colors border-b hover:bg-white/[0.05]" style={{ borderColor: 'var(--glass-border)' }}>
                     <td className="px-4 py-3 font-mono text-sm font-medium sticky left-0 z-[5] min-w-[80px]" style={{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }}>{item.empId}</td>
                     <td className="px-4 py-3 text-sm font-medium sticky left-[80px] z-[5]" style={{ color: 'var(--text-primary)', background: 'var(--glass-bg)', boxShadow: '2px 0 6px -2px rgba(0,0,0,0.2)' }}>{item.name}</td>
