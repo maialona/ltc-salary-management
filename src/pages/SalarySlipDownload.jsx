@@ -80,6 +80,19 @@ function triggerDownload(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// ─── Denomination helpers ─────────────────────────────────────────────────────
+const DENOMS = [1000, 500, 100, 50, 10, 5, 1];
+
+function calcDenominations(amount) {
+  const result = {};
+  let remaining = Math.max(0, Math.round(amount));
+  for (const d of DENOMS) {
+    result[d] = Math.floor(remaining / d);
+    remaining %= d;
+  }
+  return result;
+}
+
 // ─── Formatters ───────────────────────────────────────────────────────────────
 const money = (n) => (n != null && n !== 0) ? `$${Math.round(n).toLocaleString()}` : '–';
 const pct   = (n) => n ? `${n}%` : '–';
@@ -717,6 +730,7 @@ const SalarySlipDownload = () => {
   const [singleData,   setSingleData]   = useState(null);
   const [allData,      setAllData]      = useState(null);
   const [isBulkMode,   setIsBulkMode]   = useState(false);
+  const [showDenomination, setShowDenomination] = useState(false);
   const [customReceiptOpen, setCustomReceiptOpen] = useState(false);
   const [customReceiptForm, setCustomReceiptForm] = useState({
     type: 'labor', name: '', idNumber: '', institution: 'fucheng', rocYear: '', month: '', salary: '',
@@ -978,6 +992,76 @@ const SalarySlipDownload = () => {
               <span>自訂領據</span>
             </button>
           </div>
+        </div>
+
+        {/* Denomination calculation */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>面額計算</div>
+            <button
+              onClick={() => setShowDenomination(v => !v)}
+              className="text-xs px-3 py-1 rounded border cursor-pointer hover:bg-white/10 glass-panel"
+              style={{ borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}
+            >
+              {showDenomination ? '收合' : '展開'}
+            </button>
+          </div>
+          {showDenomination && (() => {
+            const cashRows = employeesRef.current
+              .filter(e => slipType === 'acode' || e.paymentMethod === '領現')
+              .map(emp => {
+                const data = buildSlipData(emp.empId, slipType);
+                const net = Math.max(0, data?.net ?? 0);
+                return { emp, net, denoms: calcDenominations(net) };
+              })
+              .filter(r => r.net > 0);
+            if (cashRows.length === 0) {
+              return <div key="empty" className="text-sm py-3 text-center" style={{ color: 'var(--text-secondary)' }}>目前無領現員工資料</div>;
+            }
+            const totals = { net: 0 };
+            DENOMS.forEach(d => { totals[d] = 0; });
+            cashRows.forEach(r => {
+              totals.net += r.net;
+              DENOMS.forEach(d => { totals[d] += r.denoms[d]; });
+            });
+            return (
+              <div key="table" className="overflow-x-auto rounded-lg border" style={{ borderColor: 'var(--glass-border)' }}>
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr style={{ background: 'var(--glass-bg)', borderBottom: '1px solid var(--glass-border)' }}>
+                      <th className="px-3 py-2 text-left font-bold" style={{ color: 'var(--text-primary)' }}>姓名</th>
+                      <th className="px-3 py-2 text-right font-bold" style={{ color: 'var(--text-primary)' }}>實領</th>
+                      {DENOMS.map(d => (
+                        <th key={d} className="px-2 py-2 text-right font-bold" style={{ color: 'var(--text-primary)' }}>${d}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cashRows.map(({ emp, net, denoms }) => (
+                      <tr key={emp.empId} className="border-t" style={{ borderColor: 'var(--glass-border)' }}>
+                        <td className="px-3 py-1.5 font-medium" style={{ color: 'var(--text-primary)' }}>{emp.name}</td>
+                        <td className="px-3 py-1.5 text-right font-mono" style={{ color: 'var(--text-primary)' }}>{net.toLocaleString()}</td>
+                        {DENOMS.map(d => (
+                          <td key={d} className="px-2 py-1.5 text-right font-mono" style={{ color: denoms[d] === 0 ? 'var(--text-secondary)' : 'var(--text-primary)', opacity: denoms[d] === 0 ? 0.35 : 1 }}>
+                            {denoms[d]}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2" style={{ borderColor: 'var(--text-secondary)', background: 'var(--glass-bg)' }}>
+                      <td className="px-3 py-2 font-black" style={{ color: 'var(--text-primary)' }}>總計</td>
+                      <td className="px-3 py-2 text-right font-black font-mono" style={{ color: 'var(--text-primary)' }}>{totals.net.toLocaleString()}</td>
+                      {DENOMS.map(d => (
+                        <td key={d} className="px-2 py-2 text-right font-black font-mono" style={{ color: 'var(--text-primary)' }}>{totals[d]}</td>
+                      ))}
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Slip type selector */}
