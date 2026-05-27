@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import PizZip from 'pizzip';
 import { getEmployees } from '../data/employeeStore';
 import { getBonuses } from '../data/bonusStore';
 import { getDeductions } from '../data/deductionStore';
@@ -6,10 +7,78 @@ import { getRecords } from '../data/recordsStore';
 import { getAcodeResults } from '../data/acodeStore';
 import { subscribePeriod, getPeriod } from '../data/periodStore';
 import { useInstitution } from '../context/InstitutionContext';
-import { getInstitutionFullName } from '../constants/institutions';
+import { getInstitutionFullName, INSTITUTIONS } from '../constants/institutions';
 import { computeLaborCapAdjustments } from '../utils/laborCap';
 import { lookupWithholdingTax } from '../data/withholdingTaxTable';
-import { FileText, Printer } from 'lucide-react';
+import { FileText, Printer, FileDown } from 'lucide-react';
+
+// ─── Receipt (領據) helpers ───────────────────────────────────────────────────
+
+// Convert integer to Traditional Chinese financial numerals (大寫)
+function toChineseAmount(n) {
+  const digits = ['零','壹','貳','參','肆','伍','陸','柒','捌','玖'];
+  const units  = ['','拾','佰','仟','萬','拾萬','佰萬','仟萬','億'];
+  if (n === 0) return '零元整';
+  const str = String(Math.round(n));
+  let result = '';
+  let hasZero = false;
+  for (let i = 0; i < str.length; i++) {
+    const d = parseInt(str[i]);
+    const pos = str.length - 1 - i;
+    if (d === 0) {
+      hasZero = true;
+    } else {
+      if (hasZero && result) result += '零';
+      result += digits[d] + units[pos];
+      hasZero = false;
+    }
+  }
+  return result + '元整';
+}
+
+async function fillDocxTemplate(templateUrl, replacements) {
+  const res = await fetch(templateUrl);
+  const buf = await res.arrayBuffer();
+  const zip = new PizZip(buf);
+  const xmlFile = zip.file('word/document.xml');
+  if (!xmlFile) throw new Error('Invalid docx template');
+  let xml = xmlFile.asText();
+
+  // Word may split placeholder text across multiple <w:r> runs.
+  // Match {key} or ｛key｝ where XML tags may be interspersed between characters,
+  // strip those tags to recover the key, then replace the whole matched span.
+  const replaceWithXmlSplit = (braceOpen, braceClose) => {
+    const esc = (c) => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(
+      `${esc(braceOpen)}((?:[^${esc(braceOpen)}${esc(braceClose)}<>]|<[^>]+>)*)${esc(braceClose)}`,
+      'g'
+    );
+    xml = xml.replace(pattern, (match, inner) => {
+      const key = inner.replace(/<[^>]+>/g, '');
+      return replacements[key] !== undefined ? String(replacements[key]) : match;
+    });
+  };
+
+  replaceWithXmlSplit('{', '}');
+  replaceWithXmlSplit('｛', '｝');
+
+  zip.file('word/document.xml', xml);
+  return zip.generate({
+    type: 'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  });
+}
+
+function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 const money = (n) => (n != null && n !== 0) ? `$${Math.round(n).toLocaleString()}` : '–';
@@ -648,6 +717,10 @@ const SalarySlipDownload = () => {
   const [singleData,   setSingleData]   = useState(null);
   const [allData,      setAllData]      = useState(null);
   const [isBulkMode,   setIsBulkMode]   = useState(false);
+  const [customReceiptOpen, setCustomReceiptOpen] = useState(false);
+  const [customReceiptForm, setCustomReceiptForm] = useState({
+    type: 'labor', name: '', idNumber: '', institution: 'fucheng', rocYear: '', month: '', salary: '',
+  });
 
   const employeesRef    = useRef([]);
   const acodeResultsRef = useRef(null);
@@ -731,6 +804,80 @@ const SalarySlipDownload = () => {
     }
   }, [isBulkMode, slipType]);
 
+  const buildReceiptReplacements = (emp, net) => {
+    const [yearStr, monthStr] = getPeriod().split('-');
+    const rocYear = String(parseInt(yearStr) - 1911);
+    const month = String(parseInt(monthStr));
+    const roundedNet = Math.round(net);
+    return {
+      '姓名': emp.name || '',
+      '機構': getInstitutionFullName(emp.organization) || '',
+      '民國年': rocYear,
+      '月': month,
+      '薪資': roundedNet.toLocaleString(),
+      '薪資數字大寫': toChineseAmount(roundedNet),
+      '身分證字號': emp.idNumber || '',
+      '身份證字號': emp.idNumber || '',
+    };
+  };
+
+  const handleReceiptDownload = async (receiptType) => {
+    const isLabor = receiptType === 'labor';
+    const templateUrl = isLabor
+      ? '/templates/勞務所得(B+G+S).docx'
+      : '/templates/預支獎金.docx';
+    const receiptLabel = isLabor ? '勞務所得領據' : '預支獎金領據';
+    const slipKey = isLabor ? 'bgs' : 'acode';
+
+    if (isBulkMode) {
+      for (const emp of employeesRef.current) {
+        const data = buildSlipData(emp.empId, slipKey);
+        if (!data || data.net <= 0) continue;
+        const replacements = buildReceiptReplacements(emp, data.net);
+        const blob = await fillDocxTemplate(templateUrl, replacements);
+        triggerDownload(blob, `${emp.empId}_${emp.name}_${receiptLabel}.docx`);
+        await new Promise(r => setTimeout(r, 200));
+      }
+    } else if (selectedEmpId) {
+      const data = buildSlipData(selectedEmpId, slipKey);
+      if (!data) return;
+      const emp = empMapRef.current.get(selectedEmpId);
+      const replacements = buildReceiptReplacements(emp, data.net);
+      const blob = await fillDocxTemplate(templateUrl, replacements);
+      triggerDownload(blob, `${emp.empId}_${emp.name}_${receiptLabel}.docx`);
+    }
+  };
+
+  const openCustomReceipt = () => {
+    const [yearStr, monthStr] = getPeriod().split('-');
+    setCustomReceiptForm(f => ({
+      ...f,
+      rocYear: String(parseInt(yearStr) - 1911),
+      month: String(parseInt(monthStr)),
+    }));
+    setCustomReceiptOpen(true);
+  };
+
+  const handleCustomReceiptSubmit = async () => {
+    const { type, name, idNumber, institution, rocYear, month, salary } = customReceiptForm;
+    const net = Math.round(parseFloat(salary) || 0);
+    const templateUrl = type === 'labor' ? '/templates/勞務所得(B+G+S).docx' : '/templates/預支獎金.docx';
+    const receiptLabel = type === 'labor' ? '勞務所得領據' : '預支獎金領據';
+    const replacements = {
+      '姓名': name,
+      '機構': getInstitutionFullName(institution),
+      '民國年': rocYear,
+      '月': month,
+      '薪資': net.toLocaleString(),
+      '薪資數字大寫': toChineseAmount(net),
+      '身分證字號': idNumber,
+      '身份證字號': idNumber,
+    };
+    const blob = await fillDocxTemplate(templateUrl, replacements);
+    triggerDownload(blob, `${name}_${receiptLabel}.docx`);
+    setCustomReceiptOpen(false);
+  };
+
   const handlePrint = () => {
     const orig = document.title;
     if (!isBulkMode && singleData) {
@@ -800,6 +947,39 @@ const SalarySlipDownload = () => {
           </div>
         </div>
 
+        {/* Receipt download */}
+        <div className="flex flex-col gap-2">
+          <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>領據產出</div>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => handleReceiptDownload('labor')}
+              disabled={!isBulkMode && !selectedEmpId}
+              className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all border cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/10 glass-panel"
+              style={{ borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+            >
+              <FileDown size={14} />
+              <span>勞務所得領據</span>
+            </button>
+            <button
+              onClick={() => handleReceiptDownload('acode')}
+              disabled={!isBulkMode && !selectedEmpId}
+              className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all border cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/10 glass-panel"
+              style={{ borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+            >
+              <FileDown size={14} />
+              <span>預支獎金領據</span>
+            </button>
+            <button
+              onClick={openCustomReceipt}
+              className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all border cursor-pointer hover:bg-white/10 glass-panel"
+              style={{ borderColor: 'var(--glass-border)', color: 'var(--text-primary)' }}
+            >
+              <FileDown size={14} />
+              <span>自訂領據</span>
+            </button>
+          </div>
+        </div>
+
         {/* Slip type selector */}
         <div className="flex gap-1 p-1 rounded-lg w-fit" style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)' }}>
           {SLIP_TYPES.map(({ key, label }) => (
@@ -843,6 +1023,143 @@ const SalarySlipDownload = () => {
           </div>
         )}
       </div>
+
+      {/* 自訂領據 Modal */}
+      {customReceiptOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setCustomReceiptOpen(false)}
+        >
+          <div
+            className="glass-panel rounded-xl p-6 w-full max-w-md space-y-4 shadow-2xl"
+            style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>自訂領據</h3>
+
+            {/* 領據類型 */}
+            <div className="flex gap-2">
+              {[{ value: 'labor', label: '勞務所得(B+G+S)' }, { value: 'acode', label: '預支獎金' }].map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setCustomReceiptForm(f => ({ ...f, type: opt.value }))}
+                  className="flex-1 py-2 rounded-md text-sm font-medium transition-all cursor-pointer border"
+                  style={customReceiptForm.type === opt.value
+                    ? { background: 'var(--btn-primary-bg)', color: 'var(--glass-bg)', borderColor: 'var(--btn-primary-bg)' }
+                    : { background: 'transparent', color: 'var(--text-secondary)', borderColor: 'var(--glass-border)' }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            {/* 姓名 */}
+            <label className="block space-y-1">
+              <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>姓名</span>
+              <input
+                type="text"
+                value={customReceiptForm.name}
+                onChange={e => setCustomReceiptForm(f => ({ ...f, name: e.target.value }))}
+                className="w-full px-3 py-2 rounded-md text-sm outline-none glass-panel"
+                style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}
+              />
+            </label>
+
+            {/* 身份證字號 */}
+            <label className="block space-y-1">
+              <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>身份證字號</span>
+              <input
+                type="text"
+                value={customReceiptForm.idNumber}
+                onChange={e => setCustomReceiptForm(f => ({ ...f, idNumber: e.target.value }))}
+                className="w-full px-3 py-2 rounded-md text-sm outline-none glass-panel"
+                style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}
+              />
+            </label>
+
+            {/* 機構 */}
+            <label className="block space-y-1">
+              <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>機構</span>
+              <select
+                value={customReceiptForm.institution}
+                onChange={e => setCustomReceiptForm(f => ({ ...f, institution: e.target.value }))}
+                className="w-full px-3 py-2 rounded-md text-sm outline-none appearance-none cursor-pointer glass-panel"
+                style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}
+              >
+                {INSTITUTIONS.map(inst => (
+                  <option key={inst.code} value={inst.code} style={{ background: 'var(--glass-bg)', color: 'var(--text-primary)' }}>
+                    {inst.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {/* 民國年 / 月 */}
+            <div className="flex gap-3">
+              <label className="flex-1 space-y-1">
+                <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>民國年</span>
+                <input
+                  type="number"
+                  value={customReceiptForm.rocYear}
+                  onChange={e => setCustomReceiptForm(f => ({ ...f, rocYear: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-md text-sm outline-none glass-panel"
+                  style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}
+                />
+              </label>
+              <label className="flex-1 space-y-1">
+                <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>月</span>
+                <input
+                  type="number"
+                  min="1" max="12"
+                  value={customReceiptForm.month}
+                  onChange={e => setCustomReceiptForm(f => ({ ...f, month: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-md text-sm outline-none glass-panel"
+                  style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}
+                />
+              </label>
+            </div>
+
+            {/* 薪資 */}
+            <label className="block space-y-1">
+              <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>薪資（元）</span>
+              <input
+                type="number"
+                value={customReceiptForm.salary}
+                onChange={e => setCustomReceiptForm(f => ({ ...f, salary: e.target.value }))}
+                className="w-full px-3 py-2 rounded-md text-sm outline-none glass-panel"
+                style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}
+              />
+            </label>
+
+            {/* 薪資數字大寫（唯讀） */}
+            {customReceiptForm.salary && (
+              <div className="text-xs px-3 py-2 rounded-md" style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)' }}>
+                大寫：{toChineseAmount(Math.round(parseFloat(customReceiptForm.salary) || 0))}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                onClick={() => setCustomReceiptOpen(false)}
+                className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                取消
+              </button>
+              <button
+                onClick={handleCustomReceiptSubmit}
+                disabled={!customReceiptForm.name || !customReceiptForm.salary}
+                className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ background: 'var(--btn-primary-bg)', color: 'var(--glass-bg)' }}
+              >
+                產出領據
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
