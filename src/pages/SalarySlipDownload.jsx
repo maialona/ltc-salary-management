@@ -333,7 +333,7 @@ const BgsTemplate = ({ data, isBulk }) => {
         <div className="p-8 space-y-4">
           <SlipHeader title="BGS碼服務項目明細" period={getPeriod()} emp={emp} institutionName={institutionName} />
           <section>
-            <SectionLabel>服務項目明細（BGS碼 / 未遇）</SectionLabel>
+            <SectionLabel>BGS碼服務項目明細</SectionLabel>
             <ServiceCards rows={rows} splitTotal={totalSplit} />
           </section>
         </div>
