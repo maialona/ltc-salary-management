@@ -48,10 +48,11 @@ export const buildRevenueRows = (welfareRows, acodeRows, selfPayRows, supervisor
   const rows = [];
 
   for (const r of (welfareRows || [])) {
-    const codeType = getCodeType(r.服務項目類別);
-    const category = r.序號 || '';
     const serviceItemName = String(r.服務項目類別 || '');
-    const fineItem = serviceItemName.includes('服務未遇') ? '居服B碼' : getFineItem(category, codeType);
+    const isMissed = serviceItemName.includes('服務未遇');
+    const codeType = isMissed ? 'B碼' : getCodeType(r.服務項目類別);
+    const category = r.序號 || '';
+    const fineItem = isMissed ? '居服B碼' : getFineItem(category, codeType);
     rows.push({
       所屬機構: institutionName,
       申報年月: applyMonth,
