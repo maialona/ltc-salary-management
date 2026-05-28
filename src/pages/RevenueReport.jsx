@@ -143,6 +143,9 @@ export default function RevenueReport() {
   const selfPayTotal = rows.filter(r => r.類別 === '全自費').reduce((s, r) => s + (Number(r.申報費用) || 0), 0);
   const byCode = rows.reduce((acc, r) => {
     const k = r.碼別 || '其他';
+    if (k === 'B碼' && !(r.類別 === '居服' && r.細項 === '居服B碼')) return acc;
+    if (k === 'G碼' && !(r.類別 === '喘息' && r.細項 === '喘息G碼')) return acc;
+    if (k === 'S碼' && !(r.類別 === '短照' && r.細項 === '短照S碼')) return acc;
     acc[k] = (acc[k] || 0) + (Number(r.申報費用) || 0);
     return acc;
   }, {});
