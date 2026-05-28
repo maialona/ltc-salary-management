@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import {
   Users, FileSpreadsheet, Coins, Banknote, Download,
   Calculator, Calendar, ChevronLeft, ChevronRight,
-  Sun, Moon, ShieldCheck, ClipboardCheck, Pin, PinOff,
+  Sun, Moon, ShieldCheck, ClipboardCheck, Pin, PinOff, TrendingUp,
 } from 'lucide-react';
 import { getPeriod, offsetPeriod, subscribePeriod } from '../data/periodStore';
 import { useTheme } from '../context/ThemeContext';
@@ -26,6 +26,7 @@ const ALL_NAV_ITEMS = [
   { id: 'records', icon: FileSpreadsheet, label: 'B、G、S碼計算', adminOnly: false },
   { id: 'acode', icon: Calculator, label: 'A碼計算', adminOnly: false },
   { id: 'reconcile', icon: ClipboardCheck, label: '總表核對', adminOnly: false },
+  { id: 'revenue',   icon: TrendingUp,    label: '營業額',   adminOnly: false },
   { id: 'bonuses', icon: Coins, label: '額外獎金', adminOnly: false },
   { id: 'deductions', icon: FileSpreadsheet, label: '應扣費用', adminOnly: false },
   { id: 'summary', icon: Banknote, label: '薪資報表', adminOnly: false },

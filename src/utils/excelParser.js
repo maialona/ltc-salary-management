@@ -428,3 +428,120 @@ export const parseBonusExcel = async (file) => {
     })
     .filter(Boolean);
 };
+
+// --- Revenue parsers ---
+
+const getRowVal = (row, keys) => {
+  for (const k of keys) {
+    if (k in row) return row[k];
+    const found = Object.keys(row).find(rk => rk.replace(/[\r\n]/g, '') === k.replace(/[\r\n]/g, ''));
+    if (found !== undefined) return row[found];
+  }
+  return '';
+};
+
+export const parseWelfareRawRows = async (file) => {
+  const buffer = await file.arrayBuffer();
+  const isXls = file.name.toLowerCase().endsWith('.xls');
+  const options = {
+    sheetMatcher: (name) => name.includes('照顧組合服務費用項目清冊'),
+    headerRow: 5,
+  };
+  const jsonData = isXls
+    ? parseXlsBufferWithOptions(new Uint8Array(buffer), options)
+    : await parseExcelBufferWithOptions(buffer, options);
+
+  return jsonData
+    .map((row) => {
+      const caseName = String(getRowVal(row, ['個案姓名']) || '').trim();
+      if (!caseName) return null;
+      const serviceItem = String(getRowVal(row, ['服務項目\r\n類別', '服務項目類別', '服務項目\n類別']) || '').trim();
+      const code = serviceItem.split(/\s+/)[0];
+      if (!code || code.toUpperCase().startsWith('AA')) return null;
+      return {
+        序號: String(getRowVal(row, ['序號']) || '').trim(),
+        身分證號: String(getRowVal(row, ['身分證號']) || '').trim(),
+        個案姓名: caseName,
+        採用計畫: String(getRowVal(row, ['採用計畫']) || '').trim(),
+        CMS等級: String(getRowVal(row, ['CMS\r\n等級', 'CMS等級', 'CMS\n等級']) || '').trim(),
+        福利身分別: String(getRowVal(row, ['福利身分別']) || '').trim(),
+        服務項目類別: serviceItem,
+        服務日期: String(getRowVal(row, ['服務日期']) || '').trim(),
+        給付價格: getRowVal(row, ['給(支)付\r\n價格', '給(支)付價格', '給付價格']) ?? '',
+        原民區支付價格: getRowVal(row, ['原民區或離島支付價格']) ?? '',
+        次數: getRowVal(row, ['次數']) ?? 0,
+        申報費用: getRowVal(row, ['申報費用']) ?? 0,
+        部分負擔比率: String(getRowVal(row, ['部分負擔比率']) || '').trim(),
+        部分負擔費用: getRowVal(row, ['部分負擔\r\n費用', '部分負擔費用', '部分負擔\n費用']) ?? 0,
+        補助比率: String(getRowVal(row, ['補助比率']) || '').trim(),
+        申請補助費用: getRowVal(row, ['申請(補助)費用']) ?? 0,
+        原民區申請費用: getRowVal(row, ['原民區或離島申請(補助)費用']) ?? '',
+        實際補助金額: getRowVal(row, ['實際補助\r\n金額', '實際補助金額', '實際補助\n金額']) ?? 0,
+        服務當下居住縣市: String(getRowVal(row, ['服務當下\r\n居住縣市', '服務當下居住縣市', '服務當下\n居住縣市']) || '').trim(),
+        目前居住縣市: String(getRowVal(row, ['目前居住縣市']) || '').trim(),
+        目前居住行政區: String(getRowVal(row, ['目前居住行政區']) || '').trim(),
+        照管專員: String(getRowVal(row, ['照管專員']) || '').trim(),
+        服務人員: String(getRowVal(row, ['服務人員']) || '').trim(),
+      };
+    })
+    .filter(Boolean);
+};
+
+export const parseSupervisorMap = async (file) => {
+  const buffer = await file.arrayBuffer();
+  const isXls = file.name.toLowerCase().endsWith('.xls');
+  const options = {
+    sheetMatcher: (name) => name.includes('服務明細'),
+    headerRow: 1,
+  };
+  const jsonData = isXls
+    ? parseXlsBufferWithOptions(new Uint8Array(buffer), options)
+    : await parseExcelBufferWithOptions(buffer, options);
+
+  const map = {};
+  for (const row of jsonData) {
+    const caseName = String(row['服務個案'] || '').trim();
+    const supervisor = String(row['居督'] || '').trim();
+    if (caseName && supervisor && !map[caseName]) {
+      map[caseName] = supervisor;
+    }
+  }
+  return map;
+};
+
+export const parseAcodeRawRows = async (file) => {
+  const buffer = await file.arrayBuffer();
+  const isXls = file.name.toLowerCase().endsWith('.xls');
+  const options = {
+    sheetMatcher: (name) => name.includes('A碼項目清冊'),
+    headerRow: 1,
+  };
+  const jsonData = isXls
+    ? parseXlsBufferWithOptions(new Uint8Array(buffer), options)
+    : await parseExcelBufferWithOptions(buffer, options);
+
+  return jsonData
+    .map((row) => {
+      const caseName = String(row['個案姓名'] || '').trim();
+      const code = String(row['服務代碼'] || '').trim();
+      if (!caseName || !code) return null;
+      return {
+        序號: String(row['序號'] || '').trim(),
+        服務代碼: code,
+        採用計畫: String(row['採用計畫'] || '').trim(),
+        CMS等級: String(row['CMS等級'] || '').trim(),
+        服務項目類別: String(row['服務項目類別'] || '').trim(),
+        身分證號: String(row['身分證號'] || '').trim(),
+        個案姓名: caseName,
+        給付價格: String(row['給付價格'] || '').trim(),
+        數量: row['數量'] ?? 0,
+        小計: row['小計'] ?? 0,
+        服務日期: String(row['服務日期'] || '').trim(),
+        目前居住縣市: String(row['目前居住縣市'] || '').trim(),
+        目前居住行政區: String(row['目前居住行政區'] || '').trim(),
+        照管專員: String(row['照管專員'] || '').trim(),
+        服務人員: String(row['服務人員'] || '').trim(),
+      };
+    })
+    .filter(Boolean);
+};

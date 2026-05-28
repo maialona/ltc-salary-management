@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { CloudUpload, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
-import { parseWelfareSummaryExcel } from '../utils/excelParser';
+import { parseWelfareSummaryExcel, parseWelfareRawRows } from '../utils/excelParser';
 import { reconcileSummaries } from '../utils/summaryReconcile';
 import { getCaseQuantity } from '../data/caseQuantityStore';
 import { getWelfare, saveWelfare } from '../data/welfareStore';
+import { saveRevenueWelfare } from '../data/revenueDataStore';
 import { getPeriod, subscribePeriod } from '../data/periodStore';
 import { useInstitution } from '../context/InstitutionContext';
 
@@ -96,6 +97,9 @@ export default function SummaryReconciliation() {
           throw new Error('衛福部清冊解析失敗：找不到資料，請確認 header 在第 5 列');
         }
         saveWelfare(currentInstitution, period, welfareData);
+        parseWelfareRawRows(file).then(raw => {
+          if (raw.length > 0) saveRevenueWelfare(currentInstitution, period, raw);
+        }).catch(() => {});
         const reconciledRows = reconcileSummaries(caseQuantity, welfareData, period);
         setRows(reconciledRows);
       } catch (err) {

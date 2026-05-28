@@ -13,6 +13,7 @@ import SalarySlipDownload from './pages/SalarySlipDownload';
 import ACodeCalculation from './pages/ACodeCalculation';
 import UserManagement from './pages/UserManagement.jsx';
 import SummaryReconciliation from './pages/SummaryReconciliation';
+import RevenueReport from './pages/RevenueReport';
 
 function App() {
   const [activeTab, setActiveTab] = useState('employees');
@@ -29,6 +30,7 @@ function App() {
               {activeTab === 'records' && <RecordsProcessing />}
               {activeTab === 'acode' && <ACodeCalculation />}
               {activeTab === 'reconcile' && <SummaryReconciliation />}
+              {activeTab === 'revenue' && <RevenueReport />}
               {activeTab === 'summary' && <SalarySummary />}
               {activeTab === 'download' && <SalarySlipDownload />}
               {activeTab === 'users' && <UserManagement />}

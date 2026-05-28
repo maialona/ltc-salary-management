@@ -2,8 +2,10 @@ import React, { useState, useEffect } from "react";
 import { processData } from '../utils/acode-processor';
 import { getEmployees } from '../data/employeeStore';
 import { getAcodeResults, saveAcodeResults, deleteAcodeResults } from '../data/acodeStore';
-import { subscribePeriod } from '../data/periodStore';
+import { subscribePeriod, getPeriod } from '../data/periodStore';
 import { useInstitution } from '../context/InstitutionContext';
+import { parseAcodeRawRows } from '../utils/excelParser';
+import { saveRevenueAcode } from '../data/revenueDataStore';
 import FileUpload from '../components/acode/FileUpload';
 import ResultsDashboard from '../components/acode/ResultsDashboard';
 import Modal from '../components/acode/Modal';
@@ -93,6 +95,13 @@ const ACodeCalculation = () => {
             await new Promise(r => setTimeout(r, 100));
 
             const resultData = await processData(files, setProgressText);
+
+            // Piggyback: 儲存 A碼原始列，供「營業額」頁使用
+            if (files.govRecord instanceof File) {
+              parseAcodeRawRows(files.govRecord).then(raw => {
+                if (raw.length > 0) saveRevenueAcode(currentInstitution, getPeriod(), raw);
+              }).catch(() => {});
+            }
 
             setResults(resultData);
             if (resultData.finalSummary.length > 0) {

@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Upload, AlertTriangle, ChevronDown, CloudUpload, FileText, RotateCcw } from 'lucide-react';
-import { parseServiceRecordExcel, parseCaseQuantityExcel } from '../utils/excelParser';
+import { parseServiceRecordExcel, parseCaseQuantityExcel, parseSupervisorMap } from '../utils/excelParser';
 import { processSalaryCalculation } from '../utils/calculator';
 import { getEmployees } from '../data/employeeStore';
 import { saveRecords } from '../data/recordsStore';
+import { saveRevenueSelfPay, saveRevenueSupervisor } from '../data/revenueDataStore';
 import { getPeriod, subscribePeriod } from '../data/periodStore';
 import { saveCaseQuantity } from '../data/caseQuantityStore';
 import { useInstitution } from '../context/InstitutionContext';
@@ -76,10 +77,30 @@ const RecordsProcessing = () => {
           console.warn('parseCaseQuantityExcel failed (non-blocking):', e);
         }
 
+        // Piggyback: 儲存居督對照表與自費明細，供「營業額」頁使用
+        parseSupervisorMap(file).then(map => {
+          if (Object.keys(map).length > 0) saveRevenueSupervisor(currentInstitution, getPeriod(), map);
+        }).catch(() => {});
+
         const employees = await getEmployees();
 
         if (!rawData || rawData.length === 0) {
           throw new Error('Excel 檔案似乎是空的或無法讀取，請確認工作表名稱含有「服務員服務個案計算」且第3列為標題列');
+        }
+
+        // Piggyback: 儲存自費明細，供「營業額」頁使用
+        const selfPayRows = rawData
+          .filter(r => (r.自費數量 ?? 0) > 0)
+          .map(r => ({
+            個案: r.Client,
+            服務項目: r.服務項目,
+            自費單價: r.自費單價,
+            自費數量: r.自費數量,
+            自費小計: r.自費小計,
+            服務員: r.服務員,
+          }));
+        if (selfPayRows.length > 0) {
+          saveRevenueSelfPay(currentInstitution, getPeriod(), selfPayRows);
         }
 
         const { results: calcResults, warnings: calcWarnings } = processSalaryCalculation(rawData, employees);
