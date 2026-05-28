@@ -53,7 +53,7 @@ const DateCell = ({ value }) => {
   const dates = String(value).split(',').map(d => d.trim()).filter(Boolean);
   if (dates.length <= 1) return <span>{value}</span>;
   return (
-    <span className="flex items-center gap-1.5 flex-wrap">
+    <span className="flex items-center gap-1.5 flex-nowrap">
       <span>{dates[0]}</span>
       {expanded
         ? <>
