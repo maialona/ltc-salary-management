@@ -36,8 +36,11 @@ export const periodToApplyMonth = (period) => {
   if (!period) return '';
   const [yearStr, monthStr] = period.split('-');
   if (!yearStr || !monthStr) return period;
-  const minguo = parseInt(yearStr, 10) - 1911;
-  return `${minguo}${monthStr}`;
+  let year = parseInt(yearStr, 10);
+  let month = parseInt(monthStr, 10) + 1;
+  if (month > 12) { month = 1; year += 1; }
+  const minguo = year - 1911;
+  return `${minguo}${String(month).padStart(2, '0')}`;
 };
 
 export const buildRevenueRows = (welfareRows, acodeRows, selfPayRows, supervisorMap, institutionName, period) => {
@@ -47,12 +50,14 @@ export const buildRevenueRows = (welfareRows, acodeRows, selfPayRows, supervisor
   for (const r of (welfareRows || [])) {
     const codeType = getCodeType(r.服務項目類別);
     const category = r.序號 || '';
+    const serviceItemName = String(r.服務項目類別 || '');
+    const fineItem = serviceItemName.includes('服務未遇') ? '居服B碼' : getFineItem(category, codeType);
     rows.push({
       所屬機構: institutionName,
       申報年月: applyMonth,
       服務年月: firstServiceMonth(r.服務日期),
       類別: category,
-      細項: getFineItem(category, codeType),
+      細項: fineItem,
       身分證號: r.身分證號,
       個案姓名: r.個案姓名,
       採用計畫: r.採用計畫,

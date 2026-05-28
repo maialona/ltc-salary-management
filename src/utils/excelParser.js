@@ -500,8 +500,8 @@ export const parseSupervisorMap = async (file) => {
 
   const map = {};
   for (const row of jsonData) {
-    const caseName = String(row['服務個案'] || '').trim();
-    const supervisor = String(row['居督'] || '').trim();
+    const caseName = String(getRowVal(row, ['服務個案', '個案', '個案姓名']) || '').trim();
+    const supervisor = String(getRowVal(row, ['居督', '居服督導', '督導']) || '').trim();
     if (caseName && supervisor && !map[caseName]) {
       map[caseName] = supervisor;
     }

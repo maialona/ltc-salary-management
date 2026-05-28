@@ -140,6 +140,7 @@ export default function RevenueReport() {
   };
 
   const totalRevenue = rows.reduce((s, r) => s + (Number(r.申報費用) || 0), 0);
+  const selfPayTotal = rows.filter(r => r.類別 === '全自費').reduce((s, r) => s + (Number(r.申報費用) || 0), 0);
   const byCode = rows.reduce((acc, r) => {
     const k = r.碼別 || '其他';
     acc[k] = (acc[k] || 0) + (Number(r.申報費用) || 0);
@@ -219,13 +220,8 @@ export default function RevenueReport() {
 
       {/* Summary cards */}
       {isBuilt && rows.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <div className="p-3 rounded-md border col-span-2 md:col-span-1"
-            style={{ background: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}>
-            <div className="text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>總筆數</div>
-            <div className="text-xl font-bold font-mono" style={{ color: 'var(--text-primary)' }}>{rows.length}</div>
-          </div>
-          <div className="p-3 rounded-md border col-span-2 md:col-span-1"
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+          <div className="p-3 rounded-md border"
             style={{ background: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}>
             <div className="text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>總申報費用</div>
             <div className="text-xl font-bold font-mono" style={{ color: 'var(--text-accent)' }}>
@@ -241,6 +237,13 @@ export default function RevenueReport() {
               </div>
             </div>
           ))}
+          <div className="p-3 rounded-md border"
+            style={{ background: 'rgba(251,191,36,0.08)', borderColor: 'var(--glass-border)' }}>
+            <div className="text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>全自費</div>
+            <div className="text-base font-bold font-mono" style={{ color: '#fbbf24' }}>
+              {fmt(selfPayTotal)}
+            </div>
+          </div>
         </div>
       )}
 
