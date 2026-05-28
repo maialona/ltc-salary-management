@@ -93,24 +93,29 @@ export default function RevenueReport() {
   const [isBuilt, setIsBuilt] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
-  const loadSources = (inst, p) => {
-    setSources({
-      welfare:    getRevenueWelfare(inst, p),
-      acode:      getRevenueAcode(inst, p),
-      selfpay:    getRevenueSelfPay(inst, p),
-      supervisor: getRevenueSupervisor(inst, p),
-    });
-    setRows([]);
-    setIsBuilt(false);
+  const loadAndBuild = (inst, p) => {
+    const welfare    = getRevenueWelfare(inst, p);
+    const acode      = getRevenueAcode(inst, p);
+    const selfpay    = getRevenueSelfPay(inst, p);
+    const supervisor = getRevenueSupervisor(inst, p);
+    setSources({ welfare, acode, selfpay, supervisor });
+    if (welfare !== null) {
+      const built = buildRevenueRows(welfare, acode, selfpay, supervisor, getInstitutionName(inst), p);
+      setRows(built);
+      setIsBuilt(true);
+    } else {
+      setRows([]);
+      setIsBuilt(false);
+    }
   };
 
   useEffect(() => {
     const p = getPeriod();
     setPeriod(p);
-    loadSources(currentInstitution, p);
+    loadAndBuild(currentInstitution, p);
     return subscribePeriod((p2) => {
       setPeriod(p2);
-      loadSources(currentInstitution, p2);
+      loadAndBuild(currentInstitution, p2);
     });
   }, [currentInstitution]); // eslint-disable-line react-hooks/exhaustive-deps
 
