@@ -87,10 +87,27 @@ const CODE_COLORS = {
 
 export default function RevenueReport() {
   const { currentInstitution } = useInstitution();
-  const [period, setPeriod] = useState(getPeriod());
-  const [sources, setSources] = useState({ welfare: null, acode: null, selfpay: null, supervisor: null });
-  const [rows, setRows] = useState([]);
-  const [isBuilt, setIsBuilt] = useState(false);
+
+  const [period, setPeriod] = useState(getPeriod);
+  const [sources, setSources] = useState(() => {
+    const p = getPeriod();
+    return {
+      welfare:    getRevenueWelfare(currentInstitution, p),
+      acode:      getRevenueAcode(currentInstitution, p),
+      selfpay:    getRevenueSelfPay(currentInstitution, p),
+      supervisor: getRevenueSupervisor(currentInstitution, p),
+    };
+  });
+  const [rows, setRows] = useState(() => {
+    const p = getPeriod();
+    const welfare    = getRevenueWelfare(currentInstitution, p);
+    if (!welfare) return [];
+    const acode      = getRevenueAcode(currentInstitution, p);
+    const selfpay    = getRevenueSelfPay(currentInstitution, p);
+    const supervisor = getRevenueSupervisor(currentInstitution, p);
+    return buildRevenueRows(welfare, acode, selfpay, supervisor, getInstitutionName(currentInstitution), p);
+  });
+  const [isBuilt, setIsBuilt] = useState(() => getRevenueWelfare(currentInstitution, getPeriod()) !== null);
   const [isExporting, setIsExporting] = useState(false);
 
   const loadAndBuild = (inst, p) => {
