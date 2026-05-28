@@ -86,6 +86,148 @@ const CODE_COLORS = {
   '':    { bg: 'transparent',           text: 'var(--text-secondary)' },
 };
 
+const PIVOT_CATS = [
+  { cat: '全自費', items: ['居服B碼'] },
+  { cat: '居服',   items: ['居服A碼', '居服B碼'] },
+  { cat: '喘息',   items: ['喘息A碼', '喘息G碼'] },
+  { cat: '短照',   items: ['短照A碼', '短照S碼'] },
+];
+
+function SupervisorPivotTable({ rows }) {
+  const tree = useMemo(() => {
+    const map = {};
+    for (const r of rows) {
+      const sup  = r.個案主責督導    || '（未指定）';
+      const dist = r.目前居住行政區  || '（未知）';
+      const cat  = r.類別           || '';
+      const item = r.細項           || '';
+      const amt  = Number(r.申報費用) || 0;
+      if (!map[sup]) map[sup] = {};
+      if (!map[sup][dist]) map[sup][dist] = {};
+      const key = `${cat}|${item}`;
+      map[sup][dist][key] = (map[sup][dist][key] || 0) + amt;
+    }
+    return Object.entries(map).map(([sup, dists]) => ({
+      supervisor: sup,
+      districts:  Object.entries(dists).map(([dist, amts]) => ({ district: dist, amts })),
+    }));
+  }, [rows]);
+
+  const catTotal  = (amts, cat, items) => items.reduce((s, i) => s + (amts[`${cat}|${i}`] || 0), 0);
+  const grandTotal = (amts) => PIVOT_CATS.reduce((s, { cat, items }) => s + catTotal(amts, cat, items), 0);
+  const mergeAmts  = (districts) => {
+    const merged = {};
+    for (const { amts } of districts)
+      for (const [k, v] of Object.entries(amts)) merged[k] = (merged[k] || 0) + v;
+    return merged;
+  };
+  const tdAmt = (v) => v ? fmt(v) : '—';
+  const thSt  = { borderColor: 'var(--glass-border)', color: 'var(--text-secondary)', background: 'var(--glass-bg)' };
+
+  const allAmts = tree.length ? mergeAmts(tree.flatMap(({ districts }) => districts)) : {};
+
+  return (
+    <div className="rounded-md border overflow-hidden" style={{ borderColor: 'var(--glass-border)' }}>
+      <div className="overflow-auto" style={{ maxHeight: '70vh' }}>
+        <table className="text-xs border-collapse" style={{ minWidth: '860px' }}>
+          <thead className="sticky top-0 z-20">
+            <tr>
+              <th rowSpan={2} className="px-3 py-2 text-left font-semibold border-b border-r whitespace-nowrap sticky left-0 z-30" style={{ ...thSt, minWidth: 100 }}>督導 / 行政區</th>
+              {PIVOT_CATS.map(({ cat, items }) => (
+                <th key={cat} colSpan={items.length + 1} className="px-3 py-2 text-center font-semibold border-b border-r whitespace-nowrap" style={thSt}>{cat}</th>
+              ))}
+              <th rowSpan={2} className="px-3 py-2 text-right font-semibold border-b whitespace-nowrap" style={thSt}>總計</th>
+            </tr>
+            <tr>
+              {PIVOT_CATS.map(({ cat, items }) => (
+                <React.Fragment key={cat}>
+                  {items.map(item => (
+                    <th key={item} className="px-3 py-1.5 text-right font-semibold border-b whitespace-nowrap" style={thSt}>{item}</th>
+                  ))}
+                  <th className="px-3 py-1.5 text-right font-semibold border-b border-r whitespace-nowrap" style={{ ...thSt, color: 'var(--text-accent)' }}>合計</th>
+                </React.Fragment>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {tree.map(({ supervisor, districts }) => {
+              const supAmts = mergeAmts(districts);
+              return (
+                <React.Fragment key={supervisor}>
+                  {/* supervisor row */}
+                  <tr style={{ background: 'var(--nav-active-bg)' }}>
+                    <td className="sticky left-0 z-10 px-3 py-1.5 font-semibold border-b border-r whitespace-nowrap" style={{ background: 'var(--nav-active-bg)', color: 'var(--text-accent)', borderColor: 'var(--glass-border)' }}>
+                      {supervisor}
+                    </td>
+                    {PIVOT_CATS.map(({ cat, items }) => (
+                      <React.Fragment key={cat}>
+                        {items.map(item => (
+                          <td key={item} className="px-3 py-1.5 text-right font-mono border-b" style={{ borderColor: 'var(--glass-border)', color: 'var(--text-accent)' }}>
+                            {tdAmt(supAmts[`${cat}|${item}`])}
+                          </td>
+                        ))}
+                        <td className="px-3 py-1.5 text-right font-mono font-semibold border-b border-r" style={{ borderColor: 'var(--glass-border)', color: 'var(--text-accent)' }}>
+                          {tdAmt(catTotal(supAmts, cat, items))}
+                        </td>
+                      </React.Fragment>
+                    ))}
+                    <td className="px-3 py-1.5 text-right font-mono font-semibold border-b" style={{ borderColor: 'var(--glass-border)', color: 'var(--text-accent)' }}>
+                      {tdAmt(grandTotal(supAmts))}
+                    </td>
+                  </tr>
+                  {/* district rows */}
+                  {districts.map(({ district, amts }) => (
+                    <tr key={district} className="border-b hover:bg-white/5 transition-colors" style={{ borderColor: 'var(--glass-border)' }}>
+                      <td className="sticky left-0 z-10 px-3 py-1.5 border-r whitespace-nowrap pl-6" style={{ background: 'var(--glass-bg)', color: 'var(--text-primary)', borderColor: 'var(--glass-border)' }}>
+                        {district}
+                      </td>
+                      {PIVOT_CATS.map(({ cat, items }) => (
+                        <React.Fragment key={cat}>
+                          {items.map(item => (
+                            <td key={item} className="px-3 py-1.5 text-right font-mono" style={{ color: amts[`${cat}|${item}`] ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                              {tdAmt(amts[`${cat}|${item}`])}
+                            </td>
+                          ))}
+                          <td className="px-3 py-1.5 text-right font-mono font-semibold border-r" style={{ borderColor: 'var(--glass-border)', color: catTotal(amts, cat, items) ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                            {tdAmt(catTotal(amts, cat, items))}
+                          </td>
+                        </React.Fragment>
+                      ))}
+                      <td className="px-3 py-1.5 text-right font-mono font-semibold" style={{ color: 'var(--text-primary)' }}>
+                        {tdAmt(grandTotal(amts))}
+                      </td>
+                    </tr>
+                  ))}
+                </React.Fragment>
+              );
+            })}
+            {tree.length > 0 && (
+              <tr style={{ background: 'rgba(96,165,250,0.06)' }}>
+                <td className="sticky left-0 z-10 px-3 py-2 border-t border-r whitespace-nowrap font-semibold" style={{ background: 'rgba(96,165,250,0.06)', color: 'var(--text-accent)', borderColor: 'var(--glass-border)' }}>總計</td>
+                {PIVOT_CATS.map(({ cat, items }) => (
+                  <React.Fragment key={cat}>
+                    {items.map(item => (
+                      <td key={item} className="px-3 py-2 text-right font-mono border-t" style={{ borderColor: 'var(--glass-border)', color: 'var(--text-accent)' }}>
+                        {tdAmt(allAmts[`${cat}|${item}`])}
+                      </td>
+                    ))}
+                    <td className="px-3 py-2 text-right font-mono font-semibold border-t border-r" style={{ borderColor: 'var(--glass-border)', color: 'var(--text-accent)' }}>
+                      {tdAmt(catTotal(allAmts, cat, items))}
+                    </td>
+                  </React.Fragment>
+                ))}
+                <td className="px-3 py-2 text-right font-mono font-semibold border-t" style={{ borderColor: 'var(--glass-border)', color: 'var(--text-accent)' }}>
+                  {tdAmt(grandTotal(allAmts))}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function RevenueReport() {
   const { currentInstitution } = useInstitution();
 
@@ -110,6 +252,7 @@ export default function RevenueReport() {
   });
   const [isBuilt, setIsBuilt] = useState(() => getRevenueWelfare(currentInstitution, getPeriod()) !== null);
   const [isExporting, setIsExporting] = useState(false);
+  const [view, setView] = useState('detail');
 
   const loadAndBuild = (inst, p) => {
     const welfare    = getRevenueWelfare(inst, p);
@@ -288,6 +431,24 @@ export default function RevenueReport() {
         </div>
       )}
 
+      {/* View toggle */}
+      {isBuilt && rows.length > 0 && (
+        <div className="flex gap-1">
+          {[{ id: 'detail', label: '明細' }, { id: 'supervisor', label: '督導摘要' }].map(({ id, label }) => (
+            <button key={id} onClick={() => setView(id)}
+              className="px-3 py-1.5 text-xs rounded-md font-medium transition cursor-pointer"
+              style={{
+                background:   view === id ? 'var(--nav-active-bg)' : 'transparent',
+                color:        view === id ? 'var(--nav-active-text)' : 'var(--text-secondary)',
+                border:       '1px solid',
+                borderColor:  view === id ? 'var(--nav-active-bg)' : 'var(--glass-border)',
+              }}>
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Table */}
       {isBuilt && (
         rows.length === 0 ? (
@@ -295,6 +456,9 @@ export default function RevenueReport() {
             無資料。請確認衛福部清冊已上傳。
           </div>
         ) : (
+          view === 'supervisor' ? (
+            <SupervisorPivotTable rows={rows} />
+          ) : (
           <div className="rounded-md border overflow-hidden" style={{ borderColor: 'var(--glass-border)' }}>
             <div ref={tableContainerRef} className="overflow-auto" style={{ maxHeight: '70vh' }}>
               <table className="text-xs border-collapse" style={{ minWidth: '2400px' }}>
@@ -361,6 +525,7 @@ export default function RevenueReport() {
               </table>
             </div>
           </div>
+          )
         )
       )}
 
