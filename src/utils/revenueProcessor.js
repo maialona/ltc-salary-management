@@ -122,13 +122,15 @@ export const buildRevenueRows = (welfareRows, acodeRows, selfPayRows, supervisor
   }
 
   for (const r of (selfPayRows || [])) {
-    const codeType = getCodeType(r.服務項目);
+    const selfPayItemName = String(r.服務項目 || '');
+    const isSelfMissed = selfPayItemName.includes('服務未遇');
+    const codeType = isSelfMissed ? 'B碼' : getCodeType(r.服務項目);
     rows.push({
       所屬機構: institutionName,
       申報年月: applyMonth,
       服務年月: firstServiceMonth(r.服務日期),
       類別: '全自費',
-      細項: String(r.服務項目 || '').includes('服務未遇') ? '居服B碼' : getFineItem('全自費', codeType),
+      細項: isSelfMissed ? '居服B碼' : getFineItem('全自費', codeType),
       身分證號: '',
       個案姓名: r.個案,
       採用計畫: '',
