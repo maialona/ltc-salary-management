@@ -167,6 +167,44 @@ function UserRow({ user, onEdit, onToggleDisabled, isSelf }) {
   );
 }
 
+function UserList({ users, selfId, onEdit, onToggleDisabled }) {
+  const [disabledOpen, setDisabledOpen] = useState(false);
+  const active = users.filter(u => !u.disabled);
+  const disabled = users.filter(u => u.disabled);
+
+  const rowProps = u => ({
+    key: u.id,
+    user: u,
+    isSelf: u.id === selfId,
+    onEdit,
+    onToggleDisabled,
+  });
+
+  if (users.length === 0) {
+    return <p className="text-sm text-center py-8" style={{ color: 'var(--text-secondary)' }}>尚無使用者</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {active.map(u => <UserRow {...rowProps(u)} />)}
+
+      {disabled.length > 0 && (
+        <div className="flex flex-col gap-2 mt-2">
+          <button
+            onClick={() => setDisabledOpen(v => !v)}
+            className="flex items-center gap-2 text-xs cursor-pointer hover:opacity-80 transition-opacity w-fit"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            {disabledOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            已停用（{disabled.length}）
+          </button>
+          {disabledOpen && disabled.map(u => <UserRow {...rowProps(u)} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function UserManagement() {
   const { dbUser } = useAuth();
   const [users, setUsers] = useState([]);
@@ -289,27 +327,19 @@ export default function UserManagement() {
       {loading ? (
         <p className="text-sm text-center py-8" style={{ color: 'var(--text-secondary)' }}>載入中…</p>
       ) : (
-        <div className="flex flex-col gap-2">
-          {users.map(u => (
-            <UserRow
-              key={u.id}
-              user={u}
-              isSelf={u.id === dbUser?.id}
-              onEdit={u => {
-                setEditing({
-                  ...u,
-                  display_name: u.display_name ?? '',
-                  institution_codes: u.institution_codes ?? [INSTITUTIONS[0].code],
-                });
-                setShowAdd(false);
-              }}
-              onToggleDisabled={handleToggleDisabled}
-            />
-          ))}
-          {users.length === 0 && (
-            <p className="text-sm text-center py-8" style={{ color: 'var(--text-secondary)' }}>尚無使用者</p>
-          )}
-        </div>
+        <UserList
+          users={users}
+          selfId={dbUser?.id}
+          onEdit={u => {
+            setEditing({
+              ...u,
+              display_name: u.display_name ?? '',
+              institution_codes: u.institution_codes ?? [INSTITUTIONS[0].code],
+            });
+            setShowAdd(false);
+          }}
+          onToggleDisabled={handleToggleDisabled}
+        />
       )}
     </div>
   );
