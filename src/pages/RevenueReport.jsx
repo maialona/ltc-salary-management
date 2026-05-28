@@ -71,7 +71,7 @@ const DateCell = ({ value }) => {
             className="px-1.5 rounded text-xs cursor-pointer transition-colors"
             style={{ background: 'rgba(96,165,250,0.12)', color: '#60a5fa' }}
           >
-            +{dates.length - 1} more
+            more
           </button>
       }
     </span>
