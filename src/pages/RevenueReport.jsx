@@ -176,11 +176,13 @@ export default function RevenueReport() {
           <button
             onClick={handleExport}
             disabled={!rows.length || isExporting}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-            style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399' }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ color: 'var(--text-secondary)', borderColor: 'var(--glass-border)', background: 'transparent' }}
+            onMouseEnter={e => { if (rows.length && !isExporting) e.currentTarget.style.background = 'var(--glass-border)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
           >
-            <Download size={12} />
-            {isExporting ? '匯出中...' : '匯出 Excel'}
+            <Download size={14} />
+            {isExporting ? '匯出中…' : '匯出 Excel'}
           </button>
         </div>
       </div>
@@ -220,27 +222,24 @@ export default function RevenueReport() {
 
       {/* Summary cards */}
       {isBuilt && rows.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-          <div className="p-3 rounded-md border"
-            style={{ background: 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}>
-            <div className="text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>總申報費用</div>
-            <div className="text-xl font-bold font-mono" style={{ color: 'var(--text-accent)' }}>
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+          <div className="p-3 rounded-md border glass-panel" style={{ borderColor: 'var(--glass-border)' }}>
+            <div className="text-xs font-medium mb-1 leading-tight" style={{ color: 'var(--text-secondary)', fontSize: 'var(--label-text-size)' }}>總申報費用</div>
+            <div className="text-base font-mono font-semibold" style={{ color: 'var(--text-accent)' }}>
               {fmt(totalRevenue)}
             </div>
           </div>
           {['B碼', 'G碼', 'S碼', 'A碼'].map(k => (
-            <div key={k} className="p-3 rounded-md border"
-              style={{ background: CODE_COLORS[k]?.bg ?? 'var(--glass-bg)', borderColor: 'var(--glass-border)' }}>
-              <div className="text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>{k}</div>
-              <div className="text-base font-bold font-mono" style={{ color: CODE_COLORS[k]?.text }}>
+            <div key={k} className="p-3 rounded-md border glass-panel" style={{ borderColor: 'var(--glass-border)' }}>
+              <div className="text-xs font-medium mb-1 leading-tight" style={{ color: 'var(--text-secondary)', fontSize: 'var(--label-text-size)' }}>{k}</div>
+              <div className="text-base font-mono font-semibold" style={{ color: CODE_COLORS[k]?.text }}>
                 {fmt(byCode[k] ?? 0)}
               </div>
             </div>
           ))}
-          <div className="p-3 rounded-md border"
-            style={{ background: 'rgba(251,191,36,0.08)', borderColor: 'var(--glass-border)' }}>
-            <div className="text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>全自費</div>
-            <div className="text-base font-bold font-mono" style={{ color: '#fbbf24' }}>
+          <div className="p-3 rounded-md border glass-panel" style={{ borderColor: 'var(--glass-border)' }}>
+            <div className="text-xs font-medium mb-1 leading-tight" style={{ color: 'var(--text-secondary)', fontSize: 'var(--label-text-size)' }}>全自費</div>
+            <div className="text-base font-mono font-semibold" style={{ color: '#fbbf24' }}>
               {fmt(selfPayTotal)}
             </div>
           </div>
