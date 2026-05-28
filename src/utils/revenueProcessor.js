@@ -126,7 +126,7 @@ export const buildRevenueRows = (welfareRows, acodeRows, selfPayRows, supervisor
     rows.push({
       所屬機構: institutionName,
       申報年月: applyMonth,
-      服務年月: '',
+      服務年月: firstServiceMonth(r.服務日期),
       類別: '全自費',
       細項: String(r.服務項目 || '').includes('服務未遇') ? '居服B碼' : getFineItem('全自費', codeType),
       身分證號: '',
@@ -135,7 +135,7 @@ export const buildRevenueRows = (welfareRows, acodeRows, selfPayRows, supervisor
       CMS等級: '',
       福利身分別: '',
       服務項目類別: r.服務項目,
-      服務日期: '',
+      服務日期: r.服務日期 || '',
       給付價格: r.自費單價 ?? '',
       原民區支付價格: '',
       次數: r.自費數量,

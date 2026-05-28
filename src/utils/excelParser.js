@@ -500,6 +500,7 @@ export const parseSupervisorMap = async (file) => {
 
   const supervisorMap = {};
   const districtMap = {};
+  const serviceDateSetMap = {};
   for (const row of jsonData) {
     const caseName = String(getRowVal(row, ['服務個案', '個案', '個案姓名']) || '').trim();
     if (!caseName) continue;
@@ -507,8 +508,16 @@ export const parseSupervisorMap = async (file) => {
     if (supervisor && !supervisorMap[caseName]) supervisorMap[caseName] = supervisor;
     const district = String(getRowVal(row, ['居住區', '行政區']) || '').trim();
     if (district && !districtMap[caseName]) districtMap[caseName] = district;
+    const date = String(getRowVal(row, ['服務日期']) || '').trim();
+    if (date) {
+      if (!serviceDateSetMap[caseName]) serviceDateSetMap[caseName] = new Set();
+      serviceDateSetMap[caseName].add(date);
+    }
   }
-  return { supervisorMap, districtMap };
+  const serviceDateMap = Object.fromEntries(
+    Object.entries(serviceDateSetMap).map(([k, v]) => [k, [...v].join(',')])
+  );
+  return { supervisorMap, districtMap, serviceDateMap };
 };
 
 export const parseAcodeRawRows = async (file) => {

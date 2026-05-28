@@ -77,7 +77,7 @@ const RecordsProcessing = () => {
         }
 
         // Piggyback: 儲存居督對照表與自費明細，供「營業額」頁使用
-        const { supervisorMap, districtMap } = await parseSupervisorMap(file).catch(() => ({ supervisorMap: {}, districtMap: {} }));
+        const { supervisorMap, districtMap, serviceDateMap } = await parseSupervisorMap(file).catch(() => ({ supervisorMap: {}, districtMap: {}, serviceDateMap: {} }));
         if (Object.keys(supervisorMap).length > 0) saveRevenueSupervisor(currentInstitution, getPeriod(), supervisorMap);
 
         const employees = await getEmployees();
@@ -96,6 +96,7 @@ const RecordsProcessing = () => {
             自費數量: r.自費數量,
             自費小計: r.自費小計,
             服務員: r.服務員,
+            服務日期: serviceDateMap[r.Client] || '',
             目前居住行政區: districtMap[r.Client] || '',
           }));
         if (selfPayRows.length > 0) {
