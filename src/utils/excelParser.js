@@ -511,7 +511,10 @@ export const parseSupervisorMap = async (file) => {
     const date = String(getRowVal(row, ['服務日期']) || '').trim();
     if (date) {
       if (!serviceDateSetMap[caseName]) serviceDateSetMap[caseName] = new Set();
-      serviceDateSetMap[caseName].add(date);
+      const parts = date.split('/');
+      const y = parts.length >= 3 ? parseInt(parts[0], 10) : 0;
+      const minguo = y > 1911 ? `${y - 1911}/${parts.slice(1).join('/')}` : date;
+      serviceDateSetMap[caseName].add(minguo);
     }
   }
   const serviceDateMap = Object.fromEntries(
