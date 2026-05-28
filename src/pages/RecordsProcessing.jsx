@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Upload, AlertTriangle, ChevronDown, CloudUpload, FileText, RotateCcw } from 'lucide-react';
 import { parseServiceRecordExcel, parseCaseQuantityExcel, parseSupervisorMap } from '../utils/excelParser';
 import { processSalaryCalculation } from '../utils/calculator';
@@ -65,9 +65,8 @@ const RecordsProcessing = () => {
     setResults([]);
     setWarnings([]);
 
-    setTimeout(async () => {
-      try {
-        const rawData = await parseServiceRecordExcel(file);
+    try {
+      const rawData = await parseServiceRecordExcel(file);
 
         // 同步快取「個案服務數量」工作表，供「總表核對」頁使用
         try {
@@ -126,36 +125,72 @@ const RecordsProcessing = () => {
       } catch (err) {
         console.error(err);
         setWarnings([`處理失敗: ${err.message}`]);
-      } finally {
-        setIsProcessing(false);
-      }
-    }, 1500);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const toggleExpand = (id) => setExpandedId(expandedId === id ? null : id);
 
-  // --- Global summary values ---
-  const globalStats = ['B', 'G', 'S', 'Missed'].reduce((acc, t) => {
-    acc[t] = {
-      raw: results.reduce((s, r) => s + r.breakdown[t].rawSum, 0),
-      split: results.reduce((s, r) => s + r.breakdown[t].splitSum, 0),
-    };
-    return acc;
-  }, {});
-  const globalSelfPayRaw = results.reduce((s, r) =>
-    s + ['B', 'G', 'S', 'Missed'].reduce((a, t) => a + r.breakdown[t].selfPayRaw, 0), 0);
+  // --- Global summary values (memoized) ---
+  const { globalStats, globalSelfPayRaw, summaryCards } = useMemo(() => {
+    const TYPES = ['B', 'G', 'S', 'Missed'];
+    const globalStats = TYPES.reduce((acc, t) => {
+      acc[t] = {
+        raw:   results.reduce((s, r) => s + r.breakdown[t].rawSum,   0),
+        split: results.reduce((s, r) => s + r.breakdown[t].splitSum, 0),
+      };
+      return acc;
+    }, {});
+    const globalSelfPayRaw = results.reduce(
+      (s, r) => s + TYPES.reduce((a, t) => a + r.breakdown[t].selfPayRaw, 0), 0
+    );
+    const summaryCards = [
+      { label: 'B碼申請金額',  value: globalStats['B'].raw,       color: 'text-blue-400' },
+      { label: 'G碼申請金額',  value: globalStats['G'].raw,       color: 'text-emerald-400' },
+      { label: 'S碼申請金額',  value: globalStats['S'].raw,       color: 'text-purple-400' },
+      { label: '未遇金額',     value: globalStats['Missed'].raw,  color: 'text-orange-400' },
+      { label: 'B碼拆帳金額',  value: globalStats['B'].split,     color: 'text-blue-500' },
+      { label: 'G碼拆帳金額',  value: globalStats['G'].split,     color: 'text-emerald-500' },
+      { label: 'S碼拆帳金額',  value: globalStats['S'].split,     color: 'text-purple-500' },
+      { label: '未遇拆帳金額', value: globalStats['Missed'].split, color: 'text-orange-500' },
+      { label: '自費金額',     value: globalSelfPayRaw,           color: 'text-pink-500' },
+    ];
+    return { globalStats, globalSelfPayRaw, summaryCards };
+  }, [results]);
 
-  const summaryCards = [
-    { label: 'B碼申請金額', value: globalStats['B'].raw, color: 'text-blue-400' },
-    { label: 'G碼申請金額', value: globalStats['G'].raw, color: 'text-emerald-400' },
-    { label: 'S碼申請金額', value: globalStats['S'].raw, color: 'text-purple-400' },
-    { label: '未遇金額', value: globalStats['Missed'].raw, color: 'text-orange-400' },
-    { label: 'B碼拆帳金額', value: globalStats['B'].split, color: 'text-blue-500' },
-    { label: 'G碼拆帳金額', value: globalStats['G'].split, color: 'text-emerald-500' },
-    { label: 'S碼拆帳金額', value: globalStats['S'].split, color: 'text-purple-500' },
-    { label: '未遇拆帳金額', value: globalStats['Missed'].split, color: 'text-orange-500' },
-    { label: '自費金額', value: globalSelfPayRaw, color: 'text-pink-500' },
-  ];
+  // Pre-compute groupedByClient for all results (O(1) map lookup, runs only when results change)
+  const groupedByEmp = useMemo(() => {
+    const out = {};
+    results.forEach(res => {
+      const allItems = [
+        ...res.breakdown['B'].items,
+        ...res.breakdown['G'].items,
+        ...res.breakdown['S'].items,
+        ...res.breakdown['Missed'].items,
+      ];
+      const byClient = {};
+      allItems.forEach(item => {
+        const key = item.client || 'Unknown';
+        if (!byClient[key]) byClient[key] = { client: key, itemMap: {} };
+        const existing = byClient[key].itemMap[item.code];
+        if (existing) {
+          existing.count        += item.count;
+          existing.amount       += item.amount;
+          existing.split        += item.split;
+          existing.selfPayAmount += item.selfPayAmount;
+          existing.selfPaySplit  += item.selfPaySplit;
+        } else {
+          byClient[key].itemMap[item.code] = { ...item };
+        }
+      });
+      out[res.employee.id] = Object.values(byClient).map(g => ({
+        client: g.client,
+        items:  Object.values(g.itemMap),
+      }));
+    });
+    return out;
+  }, [results]);
 
   return (
     <div className="space-y-8">
@@ -298,29 +333,7 @@ const RecordsProcessing = () => {
             ] : []),
           ];
 
-          // All items for detail view grouped by client → service code
-          const allItems = [
-            ...bd['B'].items,
-            ...bd['G'].items,
-            ...bd['S'].items,
-            ...bd['Missed'].items,
-          ];
-
-          const groupedByClient = allItems.reduce((acc, item) => {
-            const key = item.client || 'Unknown';
-            if (!acc[key]) acc[key] = { client: key, items: [] };
-            const existing = acc[key].items.find(i => i.code === item.code);
-            if (existing) {
-              existing.count += item.count;
-              existing.amount += item.amount;
-              existing.split += item.split;
-              existing.selfPayAmount += item.selfPayAmount;
-              existing.selfPaySplit += item.selfPaySplit;
-            } else {
-              acc[key].items.push({ ...item });
-            }
-            return acc;
-          }, {});
+          const groupedByClient = groupedByEmp[res.employee.id] || [];
 
           return (
             <div key={res.employee.id} className="relative">
@@ -404,7 +417,7 @@ const RecordsProcessing = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {Object.values(groupedByClient).map((group, idx) => {
+                          {groupedByClient.map((group, idx) => {
                             const clientTotalAmount = group.items.reduce((s, i) => s + i.amount, 0);
                             const clientTotalSplit = group.items.reduce((s, i) => s + i.split, 0);
                             const clientSelfPayAmount = group.items.reduce((s, i) => s + i.selfPayAmount, 0);

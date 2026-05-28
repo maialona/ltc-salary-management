@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { TrendingUp, Download, RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
 import { getRevenueWelfare, getRevenueAcode, getRevenueSelfPay, getRevenueSupervisor } from '../data/revenueDataStore';
 import { buildRevenueRows } from '../utils/revenueProcessor';
@@ -161,16 +162,32 @@ export default function RevenueReport() {
     }
   };
 
-  const totalRevenue = rows.reduce((s, r) => s + (Number(r.申報費用) || 0), 0);
-  const selfPayTotal = rows.filter(r => r.類別 === '全自費').reduce((s, r) => s + (Number(r.申報費用) || 0), 0);
-  const byCode = rows.reduce((acc, r) => {
-    const k = r.碼別 || '其他';
-    if (k === 'B碼' && !(r.類別 === '居服' && r.細項 === '居服B碼')) return acc;
-    if (k === 'G碼' && !(r.類別 === '喘息' && r.細項 === '喘息G碼')) return acc;
-    if (k === 'S碼' && !(r.類別 === '短照' && r.細項 === '短照S碼')) return acc;
-    acc[k] = (acc[k] || 0) + (Number(r.申報費用) || 0);
-    return acc;
-  }, {});
+  const { totalRevenue, selfPayTotal, byCode } = useMemo(() => {
+    const totalRevenue = rows.reduce((s, r) => s + (Number(r.申報費用) || 0), 0);
+    const selfPayTotal = rows.filter(r => r.類別 === '全自費').reduce((s, r) => s + (Number(r.申報費用) || 0), 0);
+    const byCode = rows.reduce((acc, r) => {
+      const k = r.碼別 || '其他';
+      if (k === 'B碼' && !(r.類別 === '居服' && r.細項 === '居服B碼')) return acc;
+      if (k === 'G碼' && !(r.類別 === '喘息' && r.細項 === '喘息G碼')) return acc;
+      if (k === 'S碼' && !(r.類別 === '短照' && r.細項 === '短照S碼')) return acc;
+      acc[k] = (acc[k] || 0) + (Number(r.申報費用) || 0);
+      return acc;
+    }, {});
+    return { totalRevenue, selfPayTotal, byCode };
+  }, [rows]);
+
+  const tableContainerRef = useRef(null);
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => tableContainerRef.current,
+    estimateSize: () => 33,
+    overscan: 10,
+  });
+  const virtualItems = rowVirtualizer.getVirtualItems();
+  const paddingTop    = virtualItems.length > 0 ? virtualItems[0].start : 0;
+  const paddingBottom = virtualItems.length > 0
+    ? rowVirtualizer.getTotalSize() - virtualItems[virtualItems.length - 1].end
+    : 0;
 
   const canBuild = sources.welfare !== null;
 
@@ -279,9 +296,9 @@ export default function RevenueReport() {
           </div>
         ) : (
           <div className="rounded-md border overflow-hidden" style={{ borderColor: 'var(--glass-border)' }}>
-            <div className="overflow-x-auto">
+            <div ref={tableContainerRef} className="overflow-auto" style={{ maxHeight: '70vh' }}>
               <table className="text-xs border-collapse" style={{ minWidth: '2400px' }}>
-                <thead>
+                <thead className="sticky top-0 z-20">
                   <tr style={{ background: 'var(--glass-bg)' }}>
                     <th className="sticky left-0 z-10 px-3 py-2 text-left font-semibold border-b border-r whitespace-nowrap"
                       style={{ background: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-secondary)', minWidth: 32 }}>
@@ -297,7 +314,12 @@ export default function RevenueReport() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((row, idx) => {
+                  {paddingTop > 0 && (
+                    <tr><td colSpan={TABLE_COLS.length + 1} style={{ height: paddingTop }} /></tr>
+                  )}
+                  {virtualItems.map(virtualRow => {
+                    const row = rows[virtualRow.index];
+                    const idx = virtualRow.index;
                     const codeColor = CODE_COLORS[row.碼別] ?? CODE_COLORS[''];
                     return (
                       <tr key={idx}
@@ -332,6 +354,9 @@ export default function RevenueReport() {
                       </tr>
                     );
                   })}
+                  {paddingBottom > 0 && (
+                    <tr><td colSpan={TABLE_COLS.length + 1} style={{ height: paddingBottom }} /></tr>
+                  )}
                 </tbody>
               </table>
             </div>

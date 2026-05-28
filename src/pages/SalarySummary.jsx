@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Edit2, X, Calculator, Download } from 'lucide-react';
 import FilledBellIcon from '../components/ui/filled-bell-icon';
 import { getEmployees } from '../data/employeeStore';
@@ -159,6 +159,8 @@ const SalarySummary = () => {
   const { currentInstitution } = useInstitution();
   const [subTab, setSubTab]             = useState('bgs');
   const [search, setSearch]             = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debounceRef = useRef(null);
   const [bgsItems, setBgsItems]         = useState([]);
   const [aItems, setAItems]             = useState([]);
   const [summaryItems, setSummaryItems] = useState([]);
@@ -192,291 +194,188 @@ const SalarySummary = () => {
     const aCodeByEmpId  = new Map(aCodeResults.map(r => [r.id, r]));
     const aCodeByName   = new Map(aCodeResults.map(r => [r.name, r]));
 
-    // BGS碼薪資
-    const bgs = employees.map(emp => {
-      const bonus     = bonusMap.get(emp.empId) || {};
-      const deduction = deductionMap.get(emp.empId) || {};
-      const record    = recordMap.get(emp.empId) || {};
+    // 薪資總表(2) 外帳的加班資料
+    let overtimeData = [];
+    try {
+      const s = localStorage.getItem(`overtime_rows_${currentInstitution}_${getPeriod()}`);
+      overtimeData = s ? JSON.parse(s) : [];
+    } catch {}
+    const otMap = new Map(overtimeData.map(o => [o.name, o]));
 
-      const splitB        = record.b || 0;
-      const splitG        = record.g || 0;
-      const splitS        = record.s || 0;
-      const splitMissed   = record.missed || 0;
-      const serviceIncome = splitB + splitG + splitS + splitMissed;
-      const rawB          = (record.breakdown?.['B']?.rawSum      || 0) + (record.breakdown?.['B']?.selfPayRaw      || 0);
-      const rawG          = (record.breakdown?.['G']?.rawSum      || 0) + (record.breakdown?.['G']?.selfPayRaw      || 0);
-      const rawS          = (record.breakdown?.['S']?.rawSum      || 0) + (record.breakdown?.['S']?.selfPayRaw      || 0);
-      const rawMissed     = record.breakdown?.['Missed']?.rawSum || 0;
-      const otherSubsidy  = bonus.bgsOtherSubsidy || 0;
+    // 四張報表合併為一個 reduce，每位員工只遍歷一次
+    const { bgs, aCode, summary, salary2 } = employees.reduce((acc, emp) => {
+      // ── 共用查表 ────────────────────────────────────────────────────────
+      const bonus       = bonusMap.get(emp.empId) || {};
+      const deduction   = deductionMap.get(emp.empId) || {};
+      const record      = recordMap.get(emp.empId) || {};
+      const aCodeResult = aCodeByEmpId.get(emp.empId) ?? aCodeByName.get(emp.name);
+      const ot          = otMap.get(emp.name) || {};
       const { bgsOther1, acodeOther2 } = laborAdj[emp.empId] || { bgsOther1: 0, acodeOther2: 0 };
-      const other1        = bgsOther1;
-      const other2        = acodeOther2;
-      const payable       = serviceIncome + otherSubsidy + other1;
 
-      const laborFee        = deduction.laborFee  ?? emp.laborInsuranceSelfPay  ?? 0;
-      const healthFee       = deduction.healthFee ?? emp.healthInsuranceSelfPay ?? 0;
-      const pensionFee      = deduction.pensionFee ?? emp.voluntaryPensionDeduction ?? 0;
-      const otherDeduction1 = deduction.otherDeduction1 || 0;
-      const otherDeduction2 = deduction.otherDeduction2 || 0;
-
-      const total     = payable - laborFee - healthFee - pensionFee - otherDeduction1;
-      const netSalary = Math.round(total);
-
-      return {
-        id: emp.id, empId: emp.empId, name: emp.name,
-        paymentMethod: emp.paymentMethod || '-',
-        rawB, rawG, rawS, rawMissed,
-        splitB, splitG, splitS, splitMissed,
-        serviceIncome, otherSubsidy, other1, other2, payable,
-        laborBracket:    emp.laborInsuranceBracket || 0,
-        laborFee,
-        healthBracket:   emp.healthInsuranceBracket || 0,
-        healthDependents: emp.healthDependents ?? 0,
-        healthFee,
-        pensionRate:     emp.voluntaryPensionRate || 0,
-        pensionFee,
-        otherDeduction1, otherDeduction2,
-        total, netSalary,
-        _bonusId: bonus.id, _deductionId: deduction.id,
-        bgsOtherSubsidyNote:   bonus.bgsOtherSubsidyNote        || '',
-        bgsOtherNote:          bonus.bgsOtherNote                || '',
-        laborFeeNote:          deduction.laborFeeNote            || '',
-        healthFeeNote:         deduction.healthFeeNote           || '',
-        pensionFeeNote:        deduction.pensionFeeNote          || '',
-        bgsOtherDeductionNote: deduction.bgsOtherDeductionNote   || '',
-      };
-    });
-
-    // A碼及其他獎金
-    const aCode = employees.map(emp => {
-      const bonus       = bonusMap.get(emp.empId) || {};
-      const deduction   = deductionMap.get(emp.empId) || {};
-      const record      = recordMap.get(emp.empId) || {};
-      const aCodeResult = aCodeByEmpId.get(emp.empId) ?? aCodeByName.get(emp.name);
-
-      const splitA        = aCodeResult ? aCodeResult.totalCommission : (bonus.bonusA || 0);
-      const rawA          = (aCodeResult?.details || []).reduce((s, d) => s + (d.subtotal || 0), 0);
-      const serviceIncome = splitA;
-      const crossArea     = bonus.bonusCross   || 0;
-      const serviceBonus  = bonus.bonusOpen    || 0;
-      const quotaDev      = bonus.bonusDev     || 0;
-      const certBonus     = bonus.bonusC       || 0;
-      const referral      = bonus.referral     || 0;
-      const mentoring     = bonus.mentoring    || 0;
-      const holidayBonus  = bonus.holidayBonus || 0;
-      const otherSubsidy  = bonus.otherSubsidy || 0;
-      const { bgsOther1: aOther1, acodeOther2: other2 } = laborAdj[emp.empId] || { bgsOther1: 0, acodeOther2: 0 };
-      const other1        = aOther1;
-
-      const payable = serviceIncome + crossArea + serviceBonus + quotaDev + certBonus
-                    + referral + mentoring + holidayBonus + otherSubsidy + other2;
-
-      // 應收金額 = 全部來源合計（A+B+G+S+未遇+所有獎金補貼），查115年度扣繳稅額表
-      const bgsOtherSubsidy = bonus.bgsOtherSubsidy || 0;
-      const splitB = record.b || 0;
-      const splitG = record.g || 0;
-      const splitS = record.s || 0;
-      const splitMissed = record.missed || 0;
-      const fullPayable = splitA + splitB + splitG + splitS + splitMissed
-                        + crossArea + serviceBonus + quotaDev + certBonus
-                        + referral + mentoring + holidayBonus
-                        + bgsOtherSubsidy + otherSubsidy + other1 + other2;
-      const acDepCount = emp.dependentsCount ?? 0;
-      const withholdingTax  = lookupWithholdingTax(fullPayable, acDepCount);
-      const fuel            = bonus.fuel || 0;
-      const otherDeduction1 = deduction.otherDeduction1 || 0;
-      const otherDeduction2 = deduction.otherDeduction2 || 0;
-
-      const total     = payable - withholdingTax + fuel - otherDeduction2;
-      const netSalary = Math.round(total);
-
-      return {
-        id: emp.id, empId: emp.empId, name: emp.name,
-        paymentMethod: '領現',
-        rawA, splitA, serviceIncome,
-        crossArea, serviceBonus, quotaDev, certBonus,
-        referral, mentoring, holidayBonus, otherSubsidy, other1, other2,
-        payable, withholdingTax, fuel, otherDeduction1, otherDeduction2,
-        total, netSalary,
-        _bonusId: bonus.id, _deductionId: deduction.id,
-        crossAreaNote:      bonus.crossAreaNote           || '',
-        serviceBonusNote:   bonus.serviceBonusNote        || '',
-        quotaDevNote:       bonus.quotaDevNote             || '',
-        certBonusNote:      bonus.certBonusNote            || '',
-        referralNote:       bonus.referralNote             || '',
-        mentoringNote:      bonus.mentoringNote            || '',
-        holidayBonusNote:   bonus.holidayBonusNote         || '',
-        otherSubsidyNote:   bonus.otherSubsidyNote         || '',
-        otherNote:          bonus.otherNote                || '',
-        fuelNote:           bonus.fuelNote                 || '',
-        withholdingTaxNote: deduction.withholdingTaxNote   || '',
-        otherDeductionNote: deduction.otherDeductionNote   || '',
-      };
-    });
-
-    // 薪資總表 (combined)
-    const summary = employees.map(emp => {
-      const bonus       = bonusMap.get(emp.empId) || {};
-      const deduction   = deductionMap.get(emp.empId) || {};
-      const record      = recordMap.get(emp.empId) || {};
-      const aCodeResult = aCodeByEmpId.get(emp.empId) ?? aCodeByName.get(emp.name);
-
+      // ── 共用收入欄位 ─────────────────────────────────────────────────────
       const splitA      = aCodeResult ? aCodeResult.totalCommission : (bonus.bonusA || 0);
       const rawA        = (aCodeResult?.details || []).reduce((s, d) => s + (d.subtotal || 0), 0);
       const splitB      = record.b || 0;
       const splitG      = record.g || 0;
       const splitS      = record.s || 0;
       const splitMissed = record.missed || 0;
-      const rawB        = (record.breakdown?.['B']?.rawSum      || 0) + (record.breakdown?.['B']?.selfPayRaw      || 0);
-      const rawG        = (record.breakdown?.['G']?.rawSum      || 0) + (record.breakdown?.['G']?.selfPayRaw      || 0);
-      const rawS        = (record.breakdown?.['S']?.rawSum      || 0) + (record.breakdown?.['S']?.selfPayRaw      || 0);
+      const rawB        = (record.breakdown?.['B']?.rawSum   || 0) + (record.breakdown?.['B']?.selfPayRaw   || 0);
+      const rawG        = (record.breakdown?.['G']?.rawSum   || 0) + (record.breakdown?.['G']?.selfPayRaw   || 0);
+      const rawS        = (record.breakdown?.['S']?.rawSum   || 0) + (record.breakdown?.['S']?.selfPayRaw   || 0);
       const rawMissed   = record.breakdown?.['Missed']?.rawSum || 0;
-      const serviceIncome = splitA + splitB + splitG + splitS + splitMissed;
 
-      const crossArea        = bonus.bonusCross   || 0;
-      const serviceBonus     = bonus.bonusOpen    || 0;
-      const quotaDev         = bonus.bonusDev     || 0;
-      const certBonus        = bonus.bonusC       || 0;
-      const referral         = bonus.referral     || 0;
-      const mentoring        = bonus.mentoring    || 0;
-      const holidayBonus     = bonus.holidayBonus || 0;
-      const bgsOtherSubsidy  = bonus.bgsOtherSubsidy || 0;
-      const acodeOtherSubsidy = bonus.otherSubsidy  || 0;
-      const otherSubsidy     = bgsOtherSubsidy + acodeOtherSubsidy;
-      const { bgsOther1: other1, acodeOther2: other2 } = laborAdj[emp.empId] || { bgsOther1: 0, acodeOther2: 0 };
-      const other            = other1 + other2;
+      // ── 共用獎金欄位 ─────────────────────────────────────────────────────
+      const crossArea         = bonus.bonusCross      || 0;
+      const serviceBonus      = bonus.bonusOpen       || 0;
+      const quotaDev          = bonus.bonusDev        || 0;
+      const certBonus         = bonus.bonusC          || 0;
+      const referral          = bonus.referral        || 0;
+      const mentoring         = bonus.mentoring       || 0;
+      const holidayBonus      = bonus.holidayBonus    || 0;
+      const bgsOtherSubsidy   = bonus.bgsOtherSubsidy || 0;
+      const acodeOtherSubsidy = bonus.otherSubsidy    || 0;
+      const fuel              = bonus.fuel || 0;
 
-      const payable = serviceIncome + crossArea + serviceBonus + quotaDev + certBonus
-                    + referral + mentoring + holidayBonus + otherSubsidy + other;
-
-      const storedWithholdingTax = deduction.withholdingTax || 0;
-      const dependentsCount = emp.dependentsCount ?? 0;
-      const fuel            = bonus.fuel || 0;
-      const laborBracket    = emp.laborInsuranceBracket || 0;
-      const laborFee        = deduction.laborFee  ?? emp.laborInsuranceSelfPay  ?? 0;
-      const healthBracket   = emp.healthInsuranceBracket || 0;
-      const healthDependents = emp.healthDependents ?? 0;
-      const healthFee       = deduction.healthFee ?? emp.healthInsuranceSelfPay ?? 0;
-      const pensionRate     = emp.voluntaryPensionRate || 0;
+      // ── 共用應扣欄位 ─────────────────────────────────────────────────────
+      const laborFee        = deduction.laborFee   ?? emp.laborInsuranceSelfPay     ?? 0;
+      const healthFee       = deduction.healthFee  ?? emp.healthInsuranceSelfPay    ?? 0;
       const pensionFee      = deduction.pensionFee ?? emp.voluntaryPensionDeduction ?? 0;
       const otherDeduction1 = deduction.otherDeduction1 || 0;
       const otherDeduction2 = deduction.otherDeduction2 || 0;
-      const otherDeduction  = otherDeduction1 + otherDeduction2;
+      const dependentsCount = emp.dependentsCount ?? 0;
+      const laborBracket    = emp.laborInsuranceBracket || 0;
+      const healthBracket   = emp.healthInsuranceBracket || 0;
+      const healthDependents = emp.healthDependents ?? 0;
+      const pensionRate     = emp.voluntaryPensionRate || 0;
 
-      // 依115年度扣繳稅額表自動計算，以應收金額(=payable)及扶養人數查表
-      const autoTax = lookupWithholdingTax(payable, dependentsCount);
-      const withholdingTax = autoTax;
+      // ── 共用扣繳稅額（BGS+A 合計基礎，查115年度扣繳稅額表）─────────────
+      const taxBase = splitA + splitB + splitG + splitS + splitMissed
+                    + crossArea + serviceBonus + quotaDev + certBonus
+                    + referral + mentoring + holidayBonus
+                    + bgsOtherSubsidy + acodeOtherSubsidy + bgsOther1 + acodeOther2;
+      const withholdingTax = lookupWithholdingTax(taxBase, dependentsCount);
 
-      const total     = payable - withholdingTax + fuel - laborFee - healthFee - pensionFee - otherDeduction;
-      const netSalary = Math.round(total);
+      // ── BGS碼薪資 ────────────────────────────────────────────────────────
+      const bgsServiceIncome = splitB + splitG + splitS + splitMissed;
+      const bgsPayable       = bgsServiceIncome + bgsOtherSubsidy + bgsOther1;
+      const bgsTotal         = bgsPayable - laborFee - healthFee - pensionFee - otherDeduction1;
+      acc.bgs.push({
+        id: emp.id, empId: emp.empId, name: emp.name,
+        paymentMethod: emp.paymentMethod || '-',
+        rawB, rawG, rawS, rawMissed,
+        splitB, splitG, splitS, splitMissed,
+        serviceIncome: bgsServiceIncome, otherSubsidy: bgsOtherSubsidy, other1: bgsOther1, other2: acodeOther2, payable: bgsPayable,
+        laborBracket, laborFee, healthBracket, healthDependents, healthFee,
+        pensionRate, pensionFee, otherDeduction1, otherDeduction2,
+        total: bgsTotal, netSalary: Math.round(bgsTotal),
+        _bonusId: bonus.id, _deductionId: deduction.id,
+        bgsOtherSubsidyNote:   bonus.bgsOtherSubsidyNote      || '',
+        bgsOtherNote:          bonus.bgsOtherNote              || '',
+        laborFeeNote:          deduction.laborFeeNote          || '',
+        healthFeeNote:         deduction.healthFeeNote         || '',
+        pensionFeeNote:        deduction.pensionFeeNote        || '',
+        bgsOtherDeductionNote: deduction.bgsOtherDeductionNote || '',
+      });
 
-      return {
+      // ── A碼及其他獎金 ─────────────────────────────────────────────────────
+      const aPayable = splitA + crossArea + serviceBonus + quotaDev + certBonus
+                     + referral + mentoring + holidayBonus + acodeOtherSubsidy + acodeOther2;
+      const aTotal   = aPayable - withholdingTax + fuel - otherDeduction2;
+      acc.aCode.push({
+        id: emp.id, empId: emp.empId, name: emp.name,
+        paymentMethod: '領現',
+        rawA, splitA, serviceIncome: splitA,
+        crossArea, serviceBonus, quotaDev, certBonus,
+        referral, mentoring, holidayBonus, otherSubsidy: acodeOtherSubsidy, other1: bgsOther1, other2: acodeOther2,
+        payable: aPayable, withholdingTax, fuel, otherDeduction1, otherDeduction2,
+        total: aTotal, netSalary: Math.round(aTotal),
+        _bonusId: bonus.id, _deductionId: deduction.id,
+        crossAreaNote:      bonus.crossAreaNote          || '',
+        serviceBonusNote:   bonus.serviceBonusNote       || '',
+        quotaDevNote:       bonus.quotaDevNote            || '',
+        certBonusNote:      bonus.certBonusNote           || '',
+        referralNote:       bonus.referralNote            || '',
+        mentoringNote:      bonus.mentoringNote           || '',
+        holidayBonusNote:   bonus.holidayBonusNote        || '',
+        otherSubsidyNote:   bonus.otherSubsidyNote        || '',
+        otherNote:          bonus.otherNote               || '',
+        fuelNote:           bonus.fuelNote                || '',
+        withholdingTaxNote: deduction.withholdingTaxNote  || '',
+        otherDeductionNote: deduction.otherDeductionNote  || '',
+      });
+
+      // ── 薪資總表 ──────────────────────────────────────────────────────────
+      const summaryServiceIncome = splitA + splitB + splitG + splitS + splitMissed;
+      const summaryOtherSubsidy  = bgsOtherSubsidy + acodeOtherSubsidy;
+      const summaryOther         = bgsOther1 + acodeOther2;
+      const summaryPayable       = summaryServiceIncome + crossArea + serviceBonus + quotaDev + certBonus
+                                 + referral + mentoring + holidayBonus + summaryOtherSubsidy + summaryOther;
+      const summaryTotal         = summaryPayable - withholdingTax + fuel
+                                 - laborFee - healthFee - pensionFee - otherDeduction1 - otherDeduction2;
+      acc.summary.push({
         id: emp.id, empId: emp.empId, name: emp.name,
         rawA, rawB, rawG, rawS, rawMissed,
-        splitA, splitB, splitG, splitS, splitMissed, serviceIncome,
+        splitA, splitB, splitG, splitS, splitMissed, serviceIncome: summaryServiceIncome,
         crossArea, serviceBonus, quotaDev, certBonus,
-        referral, mentoring, holidayBonus, otherSubsidy, other1, other2, other, payable,
-        withholdingTax, autoTax, storedWithholdingTax, dependentsCount, fuel,
+        referral, mentoring, holidayBonus, otherSubsidy: summaryOtherSubsidy,
+        other1: bgsOther1, other2: acodeOther2, other: summaryOther, payable: summaryPayable,
+        withholdingTax, autoTax: withholdingTax, storedWithholdingTax: deduction.withholdingTax || 0,
+        dependentsCount, fuel,
         laborBracket, laborFee, healthBracket, healthDependents, healthFee,
-        pensionRate, pensionFee, otherDeduction1, otherDeduction2, otherDeduction, total, netSalary,
+        pensionRate, pensionFee,
+        otherDeduction1, otherDeduction2, otherDeduction: otherDeduction1 + otherDeduction2,
+        total: summaryTotal, netSalary: Math.round(summaryTotal),
         _bonusId: bonus.id, _deductionId: deduction.id,
         bgsOtherSubsidy, acodeOtherSubsidy,
-        // all notes
-        bgsOtherSubsidyNote:   bonus.bgsOtherSubsidyNote   || '',
-        bgsOtherNote:          bonus.bgsOtherNote           || '',
-        crossAreaNote:         bonus.crossAreaNote          || '',
-        serviceBonusNote:      bonus.serviceBonusNote       || '',
-        quotaDevNote:          bonus.quotaDevNote           || '',
-        certBonusNote:         bonus.certBonusNote          || '',
-        referralNote:          bonus.referralNote           || '',
-        mentoringNote:         bonus.mentoringNote          || '',
-        holidayBonusNote:      bonus.holidayBonusNote       || '',
-        otherSubsidyNote:      bonus.otherSubsidyNote       || '',
-        otherNote:             bonus.otherNote              || '',
-        fuelNote:              bonus.fuelNote               || '',
-        laborFeeNote:          deduction.laborFeeNote       || '',
-        healthFeeNote:         deduction.healthFeeNote      || '',
-        pensionFeeNote:        deduction.pensionFeeNote     || '',
-        bgsOtherDeductionNote: deduction.bgsOtherDeductionNote || '',
-        withholdingTaxNote:    deduction.withholdingTaxNote || '',
-        otherDeductionNote:    deduction.otherDeductionNote || '',
-      };
-    });
+        bgsOtherSubsidyNote:   bonus.bgsOtherSubsidyNote      || '',
+        bgsOtherNote:          bonus.bgsOtherNote              || '',
+        crossAreaNote:         bonus.crossAreaNote             || '',
+        serviceBonusNote:      bonus.serviceBonusNote          || '',
+        quotaDevNote:          bonus.quotaDevNote               || '',
+        certBonusNote:         bonus.certBonusNote              || '',
+        referralNote:          bonus.referralNote               || '',
+        mentoringNote:         bonus.mentoringNote              || '',
+        holidayBonusNote:      bonus.holidayBonusNote           || '',
+        otherSubsidyNote:      bonus.otherSubsidyNote           || '',
+        otherNote:             bonus.otherNote                  || '',
+        fuelNote:              bonus.fuelNote                   || '',
+        laborFeeNote:          deduction.laborFeeNote           || '',
+        healthFeeNote:         deduction.healthFeeNote          || '',
+        pensionFeeNote:        deduction.pensionFeeNote         || '',
+        bgsOtherDeductionNote: deduction.bgsOtherDeductionNote  || '',
+        withholdingTaxNote:    deduction.withholdingTaxNote     || '',
+        otherDeductionNote:    deduction.otherDeductionNote     || '',
+      });
 
-    // 薪資總表(2) — 外帳
-    let overtimeData = [];
-    try {
-      const period = getPeriod();
-      const s = localStorage.getItem(`overtime_rows_${currentInstitution}_${period}`);
-      overtimeData = s ? JSON.parse(s) : [];
-    } catch {}
-
-    const otMap = new Map(overtimeData.map(o => [o.name, o]));
-    const salary2 = employees.map(emp => {
-      const bonus       = bonusMap.get(emp.empId) || {};
-      const deduction   = deductionMap.get(emp.empId) || {};
-      const record      = recordMap.get(emp.empId) || {};
-      const aCodeResult = aCodeByEmpId.get(emp.empId) ?? aCodeByName.get(emp.name);
-      const ot = otMap.get(emp.name) || {};
-
-      const splitA      = aCodeResult ? aCodeResult.totalCommission : (bonus.bonusA || 0);
-      const splitB      = record.b || 0;
-      const splitG      = record.g || 0;
-      const splitS      = record.s || 0;
-      const splitMissed = record.missed || 0;
-      const bgsOtherSubsidy  = bonus.bgsOtherSubsidy || 0;
-      const acodeOtherSubsidy = bonus.otherSubsidy   || 0;
-      const { bgsOther1: other1, acodeOther2: other2 } = laborAdj[emp.empId] || { bgsOther1: 0, acodeOther2: 0 };
-      const serviceBonus = bonus.bonusOpen  || 0;
-      const quotaDev     = bonus.bonusDev   || 0;
-      const certBonus    = bonus.bonusC     || 0;
-      const referral     = bonus.referral   || 0;
-      const mentoring    = bonus.mentoring  || 0;
-      const holidayBonus = bonus.holidayBonus || 0;
-      const fuel         = bonus.fuel || 0;
-      const crossArea    = ot.transferFee || 0;
-
-      const h134 = ot.h134 || 0;
-      const h167 = ot.h167 || 0;
-      const h267 = ot.h267 || 0;
-      const h1   = ot.h1   || 0;
-      const h2   = ot.h2   || 0;
-      const ot134 = Math.round(h134 * 200);
-      const ot167 = Math.round(h167 * 200);
-      const ot267 = Math.round(h267 * 200);
-      const ot1   = Math.round(h1   * 200);
+      // ── 薪資總表(2) 外帳 ──────────────────────────────────────────────────
+      const crossAreaOT  = ot.transferFee || 0;
+      const h134 = ot.h134 || 0; const h167 = ot.h167 || 0; const h267 = ot.h267 || 0;
+      const h1   = ot.h1   || 0; const h2   = ot.h2   || 0;
+      const ot134 = Math.round(h134 * 200); const ot167 = Math.round(h167 * 200);
+      const ot267 = Math.round(h267 * 200); const ot1   = Math.round(h1   * 200);
       const ot2   = Math.round(h2   * 200);
       const overtimeFee = ot134 + ot167 + ot267 + ot1 + ot2;
-
-      // 本薪 = 所有薪資來源 + 油資 − 加班費 (不含轉場費，轉場費獨立列出)
-      const baseSalary = splitA + splitB + splitG + splitS + splitMissed
-        + bgsOtherSubsidy + other1 + serviceBonus + quotaDev + certBonus
-        + referral + mentoring + holidayBonus + acodeOtherSubsidy + other2 + fuel
+      const baseSalary  = splitA + splitB + splitG + splitS + splitMissed
+        + bgsOtherSubsidy + bgsOther1 + serviceBonus + quotaDev + certBonus
+        + referral + mentoring + holidayBonus + acodeOtherSubsidy + acodeOther2 + fuel
         - overtimeFee;
-
-      const laborFee    = deduction.laborFee  ?? emp.laborInsuranceSelfPay  ?? 0;
-      const healthFee   = deduction.healthFee ?? emp.healthInsuranceSelfPay ?? 0;
-      const pensionFee  = deduction.pensionFee ?? emp.voluntaryPensionDeduction ?? 0;
-      const otherDeduction1 = deduction.otherDeduction1 || 0;
-      const otherDeduction2 = deduction.otherDeduction2 || 0;
-      const otherDeduction  = otherDeduction1 + otherDeduction2;
-
-      const fullPayable = splitA + splitB + splitG + splitS + splitMissed + crossArea
+      const fullPayableOT = splitA + splitB + splitG + splitS + splitMissed + crossAreaOT
         + serviceBonus + quotaDev + certBonus + referral + mentoring + holidayBonus
-        + bgsOtherSubsidy + acodeOtherSubsidy + other1 + other2;
-      const dependentsCount = emp.dependentsCount ?? 0;
-      const withholdingTax = lookupWithholdingTax(fullPayable, dependentsCount);
-
-      const netSalary = Math.round(baseSalary + crossArea + overtimeFee - withholdingTax - laborFee - healthFee - pensionFee - otherDeduction);
-
-      return {
+        + bgsOtherSubsidy + acodeOtherSubsidy + bgsOther1 + acodeOther2;
+      const withholdingTaxOT = lookupWithholdingTax(fullPayableOT, dependentsCount);
+      const netSalary2 = Math.round(
+        baseSalary + crossAreaOT + overtimeFee - withholdingTaxOT - laborFee - healthFee - pensionFee - otherDeduction1 - otherDeduction2
+      );
+      acc.salary2.push({
         id: emp.id, empId: emp.empId, name: emp.name,
-        baseSalary, crossArea, overtimeFee,
+        baseSalary, crossArea: crossAreaOT, overtimeFee,
         ot134, ot167, ot267, ot1, ot2,
-        withholdingTax, laborFee, healthFee, pensionFee,
-        otherDeduction, netSalary,
-      };
-    });
+        withholdingTax: withholdingTaxOT, laborFee, healthFee, pensionFee,
+        otherDeduction: otherDeduction1 + otherDeduction2, netSalary: netSalary2,
+      });
+
+      return acc;
+    }, { bgs: [], aCode: [], summary: [], salary2: [] });
 
     setBgsItems(bgs);
     setAItems(aCode);
@@ -772,14 +671,23 @@ const SalarySummary = () => {
 
   const tabLabel = (type) => type === 'bgs' ? 'BGS碼薪資' : type === 'acode' ? 'A碼及其他獎金' : type === 'summary2' ? '薪資總表(2)' : '薪資總表';
 
-  const q = search.trim().toLowerCase();
-  const filterItems = items => !q ? items : items.filter(
-    item => item.empId?.toLowerCase().includes(q) || item.name?.toLowerCase().includes(q)
+  const q = debouncedSearch.trim().toLowerCase();
+  const filteredBgs = useMemo(
+    () => !q ? bgsItems : bgsItems.filter(i => i.empId?.toLowerCase().includes(q) || i.name?.toLowerCase().includes(q)),
+    [bgsItems, q]
   );
-  const filteredBgs     = filterItems(bgsItems);
-  const filteredA       = filterItems(aItems);
-  const filteredSummary = filterItems(summaryItems);
-  const filteredSalary2 = filterItems(salary2Items);
+  const filteredA = useMemo(
+    () => !q ? aItems : aItems.filter(i => i.empId?.toLowerCase().includes(q) || i.name?.toLowerCase().includes(q)),
+    [aItems, q]
+  );
+  const filteredSummary = useMemo(
+    () => !q ? summaryItems : summaryItems.filter(i => i.empId?.toLowerCase().includes(q) || i.name?.toLowerCase().includes(q)),
+    [summaryItems, q]
+  );
+  const filteredSalary2 = useMemo(
+    () => !q ? salary2Items : salary2Items.filter(i => i.empId?.toLowerCase().includes(q) || i.name?.toLowerCase().includes(q)),
+    [salary2Items, q]
+  );
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -820,7 +728,11 @@ const SalarySummary = () => {
           type="text"
           placeholder="搜尋員編 / 姓名…"
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={e => {
+            setSearch(e.target.value);
+            clearTimeout(debounceRef.current);
+            debounceRef.current = setTimeout(() => setDebouncedSearch(e.target.value), 200);
+          }}
           className="mb-1.5 px-3 py-1.5 text-sm outline-none rounded-md"
           style={{
             background: 'var(--input-bg)',
