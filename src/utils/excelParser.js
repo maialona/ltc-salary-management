@@ -498,15 +498,17 @@ export const parseSupervisorMap = async (file) => {
     ? parseXlsBufferWithOptions(new Uint8Array(buffer), options)
     : await parseExcelBufferWithOptions(buffer, options);
 
-  const map = {};
+  const supervisorMap = {};
+  const districtMap = {};
   for (const row of jsonData) {
     const caseName = String(getRowVal(row, ['服務個案', '個案', '個案姓名']) || '').trim();
+    if (!caseName) continue;
     const supervisor = String(getRowVal(row, ['居督', '居服督導', '督導']) || '').trim();
-    if (caseName && supervisor && !map[caseName]) {
-      map[caseName] = supervisor;
-    }
+    if (supervisor && !supervisorMap[caseName]) supervisorMap[caseName] = supervisor;
+    const district = String(getRowVal(row, ['居住區', '行政區']) || '').trim();
+    if (district && !districtMap[caseName]) districtMap[caseName] = district;
   }
-  return map;
+  return { supervisorMap, districtMap };
 };
 
 export const parseAcodeRawRows = async (file) => {
