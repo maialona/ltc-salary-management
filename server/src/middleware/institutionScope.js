@@ -13,10 +13,15 @@ export async function institutionScope(request, reply) {
     }
     request.institution = queryInstitution;
   } else {
-    // 機構使用者：強制使用自己的 institution_code
-    if (queryInstitution && queryInstitution !== user.institution_code) {
-      return reply.code(403).send({ error: 'Access denied to this institution' });
+    // 機構使用者：只能存取自己被授權的機構
+    const allowed = user.institution_codes ?? [];
+    if (queryInstitution) {
+      if (!allowed.includes(queryInstitution)) {
+        return reply.code(403).send({ error: 'Access denied to this institution' });
+      }
+      request.institution = queryInstitution;
+    } else {
+      request.institution = allowed[0];
     }
-    request.institution = user.institution_code;
   }
 }

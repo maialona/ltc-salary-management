@@ -26,8 +26,8 @@ export async function verifyToken(request, reply) {
     // Bootstrap: 第一次用 admin email 登入自動建立 admin row
     if (email === INITIAL_ADMIN_EMAIL) {
       const { rows: inserted } = await db.query(
-        `INSERT INTO users (email, role, institution_code, display_name)
-         VALUES ($1, 'admin', NULL, $2)
+        `INSERT INTO users (email, role, institution_codes, display_name)
+         VALUES ($1, 'admin', '{}', $2)
          RETURNING *`,
         [email, displayName || email]
       );
@@ -49,7 +49,7 @@ export async function verifyToken(request, reply) {
     id: user.id,
     email: user.email,
     role: user.role,
-    institution_code: user.institution_code,
+    institution_codes: user.institution_codes ?? [],
     display_name: user.display_name,
   };
 }

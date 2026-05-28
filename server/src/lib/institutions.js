@@ -10,3 +10,7 @@ export const INSTITUTION_CODES = new Set(INSTITUTIONS.map(i => i.code));
 export function isValidInstitutionCode(code) {
   return INSTITUTION_CODES.has(code);
 }
+
+export function isValidInstitutionCodes(codes) {
+  return Array.isArray(codes) && codes.length >= 1 && codes.every(c => INSTITUTION_CODES.has(c));
+}

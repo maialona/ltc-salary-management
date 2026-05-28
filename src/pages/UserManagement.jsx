@@ -6,11 +6,36 @@ import { useAuth } from '../context/AuthContext.jsx';
 
 const ROLE_LABELS = { admin: '管理員', institution_user: '機構使用者' };
 
-const emptyForm = { email: '', role: 'institution_user', institution_code: INSTITUTIONS[0].code, display_name: '' };
+const emptyForm = { email: '', role: 'institution_user', institution_codes: [INSTITUTIONS[0].code], display_name: '' };
+
+function InstitutionCheckboxes({ value, onChange }) {
+  const toggle = (code, checked) => {
+    onChange(checked ? [...value, code] : value.filter(c => c !== code));
+  };
+
+  return (
+    <div className="flex flex-col gap-2 mt-1">
+      {INSTITUTIONS.map(inst => (
+        <label key={inst.code} className="flex items-center gap-2.5 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={value.includes(inst.code)}
+            onChange={e => toggle(inst.code, e.target.checked)}
+            className="w-4 h-4 rounded cursor-pointer"
+            style={{ accentColor: 'var(--nav-active-bg)' }}
+          />
+          <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{inst.name}</span>
+        </label>
+      ))}
+    </div>
+  );
+}
 
 function UserForm({ initial = emptyForm, onSave, onCancel, loading }) {
   const [form, setForm] = useState(initial);
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
+
+  const canSave = form.email && (form.role !== 'institution_user' || form.institution_codes.length > 0);
 
   return (
     <div className="flex flex-col gap-3">
@@ -51,23 +76,22 @@ function UserForm({ initial = emptyForm, onSave, onCancel, loading }) {
       </div>
       {form.role === 'institution_user' && (
         <div>
-          <label className="block text-xs mb-1" style={{ color: 'var(--label-text-color)' }}>所屬機構 *</label>
-          <select
-            value={form.institution_code}
-            onChange={e => set('institution_code', e.target.value)}
-            className="w-full rounded px-3 h-9 text-sm cursor-pointer"
-            style={{ background: 'var(--input-bg)', border: 'var(--input-border)', color: 'var(--text-primary)' }}
-          >
-            {INSTITUTIONS.map(inst => (
-              <option key={inst.code} value={inst.code}>{inst.name}</option>
-            ))}
-          </select>
+          <label className="block text-xs" style={{ color: 'var(--label-text-color)' }}>
+            機構權限 * <span style={{ color: 'var(--text-secondary)' }}>（可複選）</span>
+          </label>
+          {form.institution_codes.length === 0 && (
+            <p className="text-xs mt-1" style={{ color: '#fca5a5' }}>請至少選擇一間機構</p>
+          )}
+          <InstitutionCheckboxes
+            value={form.institution_codes}
+            onChange={v => set('institution_codes', v)}
+          />
         </div>
       )}
       <div className="flex gap-2 pt-1">
         <button
           onClick={() => onSave(form)}
-          disabled={loading || !form.email}
+          disabled={loading || !canSave}
           className="flex-1 h-9 rounded text-sm font-medium disabled:opacity-50 cursor-pointer"
           style={{ background: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)' }}
         >
@@ -87,7 +111,10 @@ function UserForm({ initial = emptyForm, onSave, onCancel, loading }) {
 
 function UserRow({ user, onEdit, onToggleDisabled, isSelf }) {
   const [open, setOpen] = useState(false);
-  const instName = INSTITUTIONS.find(i => i.code === user.institution_code)?.name;
+  const instNames = (user.institution_codes ?? [])
+    .map(code => INSTITUTIONS.find(i => i.code === code)?.name)
+    .filter(Boolean)
+    .join('、');
 
   return (
     <div className="rounded-lg overflow-hidden" style={{ background: 'var(--accordion-bg)' }}>
@@ -106,7 +133,7 @@ function UserRow({ user, onEdit, onToggleDisabled, isSelf }) {
             {user.display_name || user.email}
           </p>
           <p className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
-            {ROLE_LABELS[user.role]}{instName ? ` · ${instName}` : ''}{user.disabled ? ' · 已停用' : ''}
+            {ROLE_LABELS[user.role]}{instNames ? ` · ${instNames}` : ''}{user.disabled ? ' · 已停用' : ''}
           </p>
         </div>
         {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -169,7 +196,7 @@ export default function UserManagement() {
       await apiPost('/api/users', {
         email: form.email,
         role: form.role,
-        institution_code: form.role === 'admin' ? undefined : form.institution_code,
+        institution_codes: form.role === 'admin' ? undefined : form.institution_codes,
         display_name: form.display_name || undefined,
       });
       setShowAdd(false);
@@ -187,7 +214,7 @@ export default function UserManagement() {
     try {
       await apiPut(`/api/users/${form.id}`, {
         role: form.role,
-        institution_code: form.role === 'admin' ? null : form.institution_code,
+        institution_codes: form.role === 'admin' ? [] : form.institution_codes,
         display_name: form.display_name || null,
       });
       setEditing(null);
@@ -268,7 +295,14 @@ export default function UserManagement() {
               key={u.id}
               user={u}
               isSelf={u.id === dbUser?.id}
-              onEdit={u => { setEditing({ ...u, display_name: u.display_name ?? '' }); setShowAdd(false); }}
+              onEdit={u => {
+                setEditing({
+                  ...u,
+                  display_name: u.display_name ?? '',
+                  institution_codes: u.institution_codes ?? [INSTITUTIONS[0].code],
+                });
+                setShowAdd(false);
+              }}
               onToggleDisabled={handleToggleDisabled}
             />
           ))}

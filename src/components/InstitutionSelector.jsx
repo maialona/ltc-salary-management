@@ -1,10 +1,10 @@
 import { Building2 } from 'lucide-react';
-import { INSTITUTIONS, getInstitutionName } from '../constants/institutions.js';
+import { getInstitutionName } from '../constants/institutions.js';
 import { useInstitution } from '../context/InstitutionContext.jsx';
 import { motion } from 'framer-motion';
 
 export default function InstitutionSelector({ isCollapsed }) {
-  const { currentInstitution, setCurrentInstitution, canSwitch } = useInstitution();
+  const { currentInstitution, setCurrentInstitution, canSwitch, availableInstitutions } = useInstitution();
 
   return (
     <div
@@ -30,7 +30,7 @@ export default function InstitutionSelector({ isCollapsed }) {
               minWidth: 0,
             }}
           >
-            {INSTITUTIONS.map(inst => (
+            {availableInstitutions.map(inst => (
               <option key={inst.code} value={inst.code}>{inst.name}</option>
             ))}
           </select>
