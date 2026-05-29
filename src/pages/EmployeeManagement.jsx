@@ -132,6 +132,7 @@ const EmployeeManagement = () => {
         position: 'Full-time',
         organization: currentInstitution,
         paymentMethod: '匯款',
+        isSupport: false,
         splits: { b: 0, g: 0, s: 0, missed: 0, aa09: 0, otherAcode: 0 },
         laborInsuranceBracket: 0,
         laborInsuranceSelfPay: 0,
@@ -505,6 +506,13 @@ const EmployeeManagement = () => {
                             }`}>
                                 {emp.position === 'Full-time' ? '全職' : '兼職'}
                             </span>
+
+                            {/* 支援標籤 */}
+                            {emp.isSupport && (
+                                <span className="text-xs font-medium px-1.5 py-0.5 rounded border shrink-0 bg-amber-500/10 text-amber-400 border-amber-500/20">
+                                    支援
+                                </span>
+                            )}
 
                             {/* 薪資領取方式 */}
                             <span className={`text-xs font-medium px-1.5 py-0.5 rounded border shrink-0 ${
@@ -899,6 +907,19 @@ const EmployeeManagement = () => {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 rounded accent-amber-500 cursor-pointer"
+                    checked={!!formData.isSupport}
+                    onChange={(e) => handleChange('isSupport', e.target.checked)}
+                  />
+                  <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>支援人力</span>
+                  <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>（跨機構支援，非本機構正式人員）</span>
+                </label>
               </div>
 
               <div className="flex gap-3 pt-4 border-t" style={{ borderColor: 'var(--glass-border)' }}>
