@@ -25,6 +25,7 @@ function dbToClient(row) {
     voluntaryPensionRate: parseFloat(row.voluntary_pension_rate) || 0,
     voluntaryPensionDeduction: parseFloat(row.voluntary_pension_deduction) || 0,
     dependentsCount: parseFloat(row.dependents_count) || 0,
+    isSupport: row.is_support ?? false,
   };
 }
 
@@ -48,6 +49,7 @@ function clientToDbParams(emp, institutionCode) {
     emp.voluntaryPensionRate || 0,
     emp.voluntaryPensionDeduction || 0,
     emp.dependentsCount || 0,
+    emp.isSupport ?? false,
   ];
 }
 
@@ -75,8 +77,8 @@ export async function employeesRoutes(fastify) {
             bank_code, bank_account, splits,
             labor_insurance_bracket, labor_insurance_self_pay,
             health_insurance_bracket, health_dependents, health_insurance_self_pay,
-            voluntary_pension_rate, voluntary_pension_deduction, dependents_count)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+            voluntary_pension_rate, voluntary_pension_deduction, dependents_count, is_support)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
          RETURNING *`,
         params
       );
@@ -107,8 +109,8 @@ export async function employeesRoutes(fastify) {
          labor_insurance_bracket=$10, labor_insurance_self_pay=$11,
          health_insurance_bracket=$12, health_dependents=$13, health_insurance_self_pay=$14,
          voluntary_pension_rate=$15, voluntary_pension_deduction=$16, dependents_count=$17,
-         updated_at=now()
-       WHERE id=$18
+         is_support=$18, updated_at=now()
+       WHERE id=$19
        RETURNING *`,
       params
     );
@@ -152,8 +154,8 @@ export async function employeesRoutes(fastify) {
               bank_code, bank_account, splits,
               labor_insurance_bracket, labor_insurance_self_pay,
               health_insurance_bracket, health_dependents, health_insurance_self_pay,
-              voluntary_pension_rate, voluntary_pension_deduction, dependents_count)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+              voluntary_pension_rate, voluntary_pension_deduction, dependents_count, is_support)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
            ON CONFLICT (institution_code, emp_id) DO UPDATE SET
              name=EXCLUDED.name, id_number=EXCLUDED.id_number,
              position=EXCLUDED.position, payment_method=EXCLUDED.payment_method,
@@ -167,6 +169,7 @@ export async function employeesRoutes(fastify) {
              voluntary_pension_rate=EXCLUDED.voluntary_pension_rate,
              voluntary_pension_deduction=EXCLUDED.voluntary_pension_deduction,
              dependents_count=EXCLUDED.dependents_count,
+             is_support=EXCLUDED.is_support,
              updated_at=now()
            RETURNING (xmax = 0) AS is_insert`,
           params

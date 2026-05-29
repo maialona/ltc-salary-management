@@ -573,6 +573,10 @@ const EmployeeManagement = () => {
                                     </h4>
                                     <div className="space-y-2">
                                         <div className="flex justify-between">
+                                            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>身分證字號</span>
+                                            <span className="text-xs font-mono font-medium" style={{ color: 'var(--text-primary)' }}>{emp.idNumber || '-'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
                                             <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>所屬機構</span>
                                             <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{getInstitutionName(emp.organization) || '-'}</span>
                                         </div>
@@ -653,12 +657,13 @@ const EmployeeManagement = () => {
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 transition-opacity duration-200"
              onClick={() => setIsModalOpen(false)}>
-          <div className="w-full max-w-lg p-6 animate-in fade-in zoom-in-95 duration-200"
+          <div className="w-full max-w-lg p-6 animate-in fade-in zoom-in-95 duration-200 overflow-y-auto"
                style={{
                    background: 'var(--modal-bg)',
                    borderRadius: 'var(--modal-radius)',
                    boxShadow: 'var(--modal-shadow)',
-                   border: '1px solid var(--glass-border)'
+                   border: '1px solid var(--glass-border)',
+                   maxHeight: '90vh',
                }}
                onClick={(e) => e.stopPropagation()}>
 
