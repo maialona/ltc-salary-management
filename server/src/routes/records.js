@@ -58,6 +58,39 @@ export async function recordsRoutes(fastify) {
     }
   });
 
+  // GET /api/records/support-bgs?period=YYYY-MM
+  // 查詢當前機構的支援人力在其主機構的 BGS 應領金額
+  fastify.get('/api/records/support-bgs', { preHandler }, async (req, reply) => {
+    const { period } = req.query;
+    if (!period) return reply.code(400).send({ error: 'period required' });
+
+    const { rows } = await db.query(
+      `SELECT DISTINCT ON (e_support.emp_id)
+         e_support.emp_id,
+         COALESCE(sr.b, 0) + COALESCE(sr.g, 0) + COALESCE(sr.s, 0) + COALESCE(sr.missed, 0)
+           + COALESCE(b.bgs_other_subsidy, 0) AS main_bgs
+       FROM employees e_support
+       JOIN employees e_main
+         ON e_main.name = e_support.name
+         AND e_main.institution_code != $1
+         AND e_main.is_support = false
+       LEFT JOIN service_records sr
+         ON sr.institution_code = e_main.institution_code
+         AND sr.emp_id = e_main.emp_id
+         AND sr.period = $2
+       LEFT JOIN bonuses b
+         ON b.institution_code = e_main.institution_code
+         AND b.emp_id = e_main.emp_id
+         AND b.period = $2
+       WHERE e_support.institution_code = $1
+         AND e_support.is_support = true
+       ORDER BY e_support.emp_id`,
+      [req.institution, period]
+    );
+
+    return rows.map(r => ({ empId: r.emp_id, mainBgs: parseFloat(r.main_bgs) || 0 }));
+  });
+
   // DELETE /api/records?period=YYYY-MM — clear all for period
   fastify.delete('/api/records', { preHandler }, async (req, reply) => {
     const { period } = req.query;

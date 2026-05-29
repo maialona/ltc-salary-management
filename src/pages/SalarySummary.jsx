@@ -4,7 +4,7 @@ import FilledBellIcon from '../components/ui/filled-bell-icon';
 import { getEmployees } from '../data/employeeStore';
 import { getBonuses, saveBonus } from '../data/bonusStore';
 import { getDeductions, saveDeduction } from '../data/deductionStore';
-import { getRecords } from '../data/recordsStore';
+import { getRecords, getSupportMainBgs } from '../data/recordsStore';
 import { getAcodeResults } from '../data/acodeStore';
 import { subscribePeriod, getPeriod } from '../data/periodStore';
 import { useInstitution } from '../context/InstitutionContext';
@@ -181,12 +181,15 @@ const SalarySummary = () => {
 
   // ── Data loading ────────────────────────────────────────────────────────────
   const loadData = async () => {
-    const [employees, bonuses, deductions, records, acodeData] = await Promise.all([
-      getEmployees(), getBonuses(), getDeductions(), getRecords(), getAcodeResults(),
+    const [employees, bonuses, deductions, records, acodeData, supportBgsData] = await Promise.all([
+      getEmployees(), getBonuses(), getDeductions(), getRecords(), getAcodeResults(), getSupportMainBgs(),
     ]);
 
     const aCodeResults = acodeData?.finalSummary ?? [];
-    const laborAdj = computeLaborCapAdjustments(employees, bonuses, records, aCodeResults);
+    const supportMainBgsMap = Object.fromEntries(
+      (supportBgsData || []).map(item => [item.empId, item.mainBgs])
+    );
+    const laborAdj = computeLaborCapAdjustments(employees, bonuses, records, aCodeResults, supportMainBgsMap);
 
     const bonusMap      = new Map(bonuses.map(b => [b.empId, b]));
     const deductionMap  = new Map(deductions.map(d => [d.empId, d]));

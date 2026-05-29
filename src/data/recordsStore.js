@@ -9,3 +9,6 @@ export const saveRecords = (records, period = getPeriod()) =>
 
 export const clearRecords = (period = getPeriod()) =>
   apiDelete('/api/records', { period });
+
+export const getSupportMainBgs = (period = getPeriod()) =>
+  apiGet('/api/records/support-bgs', { period });
