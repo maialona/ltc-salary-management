@@ -113,13 +113,15 @@ export const downloadExcel = async (calculationResult, summaryResult, errors, de
 
   const detailSheet = workbook.addWorksheet('詳細拆帳紀錄');
   detailSheet.addRow([
-    '序號', '月份', '服務日期', '個案姓名', '個案主責督導', 'A碼代號',
+    '序號', '月份', '服務日期', '個案姓名', '督導', 'A碼代號',
     '財報用欄位', '細項', '居服員', '身分', '分得數量', '分配營收',
-    '居服員抽成', '公司抽成', '拆帳金額', '目前居住行政區', '比例', '備註',
+    '居服員抽成比', '居服員抽成', '公司抽成比', '公司抽成', '拆帳金額', '目前居住行政區', '比例', '備註',
   ]);
   calculationResult.forEach((r) => {
     const rateNum = r.commissionRateNum || 0;
-    const companyRate = rateNum > 0 ? `${Math.round((1 - rateNum) * 100)}%` : '';
+    const companyRateNum = rateNum > 0 ? 1 - rateNum : 0;
+    const companyRate = companyRateNum > 0 ? `${Math.round(companyRateNum * 100)}%` : '';
+    const companyAmount = rateNum > 0 ? parseFloat((r.revenueAllocated * companyRateNum).toFixed(2)) : '';
     detailSheet.addRow([
       r.serialNum,
       toMinGuoMonth(r.date),
@@ -134,7 +136,9 @@ export const downloadExcel = async (calculationResult, summaryResult, errors, de
       r.qty,
       r.revenueAllocated,
       r.commissionRate,
+      r.amount,
       companyRate,
+      companyAmount,
       r.amount,
       r.district || '',
       buildRatio(r.code, rateNum, r.role),
