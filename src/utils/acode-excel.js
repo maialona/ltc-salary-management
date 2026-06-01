@@ -108,16 +108,24 @@ const buildRatio = (code, rateNum, role) => {
   return `${label}${rateLabel(rateNum)}(${role})`;
 };
 
+const CATEGORY_ORDER = { '居服': 0, '喘息': 1, '短照': 2 };
+const sortByCategory = (rows) =>
+  [...rows].sort((a, b) => {
+    const oa = CATEGORY_ORDER[a.serialNum] ?? 99;
+    const ob = CATEGORY_ORDER[b.serialNum] ?? 99;
+    return oa - ob;
+  });
+
 export const downloadExcel = async (calculationResult, summaryResult, errors, debugInfo) => {
   const workbook = new ExcelJS.Workbook();
 
   const detailSheet = workbook.addWorksheet('詳細拆帳紀錄');
   detailSheet.addRow([
-    '序號', '月份', '服務日期', '個案姓名', '督導', 'A碼代號',
+    '序號', '月份', '服務日期', '個案姓名', '個案主責督導', 'A碼代號',
     '財報用欄位', '細項', '居服員', '身分', '分得數量', '分配營收',
     '居服員抽成比', '居服員抽成', '公司抽成比', '公司抽成', '拆帳金額', '目前居住行政區', '比例', '備註',
   ]);
-  calculationResult.forEach((r) => {
+  sortByCategory(calculationResult).forEach((r) => {
     const rateNum = r.commissionRateNum || 0;
     const companyRateNum = rateNum > 0 ? 1 - rateNum : 0;
     const companyRate = companyRateNum > 0 ? `${Math.round(companyRateNum * 100)}%` : '';
@@ -127,7 +135,7 @@ export const downloadExcel = async (calculationResult, summaryResult, errors, de
       toMinGuoMonth(r.date),
       r.date,
       r.client,
-      r.supervisor,
+      r.supervisor || '',
       r.code,
       r.serialNum ? `${r.serialNum}${r.code}` : '',
       r.serialNum ? `${r.serialNum}A碼` : '',
