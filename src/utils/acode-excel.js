@@ -113,9 +113,9 @@ export const downloadExcel = async (calculationResult, summaryResult, errors, de
 
   const detailSheet = workbook.addWorksheet('詳細拆帳紀錄');
   detailSheet.addRow([
-    '序號', '月份', '服務日期', '個案姓名', '督導', 'A碼代號',
+    '序號', '月份', '服務日期', '個案姓名', '個案主責督導', 'A碼代號',
     '財報用欄位', '細項', '居服員', '身分', '分得數量', '分配營收',
-    '居服員抽成比', '公司抽成比', '拆帳金額', '目前居住行政區', '比例', '備註',
+    '居服員抽成', '公司抽成', '拆帳金額', '目前居住行政區', '比例', '備註',
   ]);
   calculationResult.forEach((r) => {
     const rateNum = r.commissionRateNum || 0;
