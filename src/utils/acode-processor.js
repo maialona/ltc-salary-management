@@ -105,6 +105,7 @@ export const processData = async (files, updateProgress) => {
             const client = cleanName(row['個案姓名'] || row['姓名']);
             const code = (row['服務代碼'] || row['碼別'] || row['項目'] || row['服務項目'] || '').trim().toUpperCase();
             const serialNum = String(row['序號'] || row['No'] || row['流水號'] || '').trim();
+            const district = String(row['目前居住行政區'] || '').trim();
             
             const totalQty = parseFloat(row['數量'] || 0);
             const totalSubtotal = parseFloat(row['小計'] || row['金額'] || 0);
@@ -194,15 +195,17 @@ export const processData = async (files, updateProgress) => {
                     errorLogs.push(`無法媒合: ${date} 個案-${client} (代碼:${code})`);
                     results.push({
                         serialNum: serialNum,
-                        date, client, code, 
-                        price: parseFloat(unitPriceDisplay.toFixed(2)), 
-                        qty: parseFloat(qtyPerDate.toFixed(14)), 
+                        date, client, code,
+                        price: parseFloat(unitPriceDisplay.toFixed(2)),
+                        qty: parseFloat(qtyPerDate.toFixed(14)),
                         worker: '未媒合',
                         role: '未知',
-                        splitRatio: 0,
+                        commissionRate: '',
+                        commissionRateNum: 0,
                         revenueAllocated: 0,
                         amount: 0,
                         supervisor,
+                        district,
                         note: code === 'AA07' ? '該月無服務紀錄' : '該日無服務紀錄'
                     });
                 } else {
@@ -232,14 +235,16 @@ export const processData = async (files, updateProgress) => {
                             serialNum: serialNum,
                             date, client, code, worker,
                             workerId: staffInfo.id,
-                            role: role === 'full' ? '正職' : '兼職',
+                            role: role === 'full' ? '全職' : '兼職',
                             price: parseFloat(unitPriceDisplay.toFixed(2)),
-                            qty: splitQty, 
+                            qty: splitQty,
                             commissionRate: `${(commissionRate * 100).toFixed(0)}%`,
+                            commissionRateNum: commissionRate,
                             revenueAllocated: parseFloat(revenuePerWorker.toFixed(2)),
-                            amount: displayAmount, 
+                            amount: displayAmount,
                             rawCommission: rawCommission,
                             supervisor,
+                            district,
                             note: assignmentNote
                         });
 

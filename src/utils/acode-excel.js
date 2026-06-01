@@ -86,19 +86,59 @@ const triggerDownload = (buffer, filename) => {
   URL.revokeObjectURL(url);
 };
 
+const toMinGuoMonth = (dateStr) => {
+  if (!dateStr) return '';
+  const parts = String(dateStr).split('/');
+  if (parts.length < 2) return '';
+  const year = parseInt(parts[0], 10);
+  if (isNaN(year)) return '';
+  const month = parts[1].padStart(2, '0');
+  return `${year - 1911}${month}`;
+};
+
+const rateLabel = (rateNum) => {
+  const pct = Math.round(rateNum * 100);
+  if (pct >= 70) return '七三';
+  return '六四';
+};
+
+const buildRatio = (code, rateNum, role) => {
+  if (!rateNum) return '';
+  const label = code === 'AA09' ? 'AA09' : '其餘A碼';
+  return `${label}${rateLabel(rateNum)}(${role})`;
+};
+
 export const downloadExcel = async (calculationResult, summaryResult, errors, debugInfo) => {
   const workbook = new ExcelJS.Workbook();
 
   const detailSheet = workbook.addWorksheet('詳細拆帳紀錄');
   detailSheet.addRow([
-    '序號', '服務日期', '個案姓名', '督導', 'A碼代號',
-    '居服員', '身分', '分得數量', '分配營收', '抽成率', '拆帳金額', '備註',
+    '序號', '月份', '服務日期', '個案姓名', '督導', 'A碼代號',
+    '財報用欄位', '細項', '居服員', '身分', '分得數量', '分配營收',
+    '居服員抽成比', '公司抽成比', '拆帳金額', '目前居住行政區', '比例', '備註',
   ]);
   calculationResult.forEach((r) => {
+    const rateNum = r.commissionRateNum || 0;
+    const companyRate = rateNum > 0 ? `${Math.round((1 - rateNum) * 100)}%` : '';
     detailSheet.addRow([
-      r.serialNum, r.date, r.client, r.supervisor, r.code,
+      r.serialNum,
+      toMinGuoMonth(r.date),
+      r.date,
+      r.client,
+      r.supervisor,
+      r.code,
+      r.serialNum ? `${r.serialNum}${r.code}` : '',
+      r.serialNum ? `${r.serialNum}A碼` : '',
       r.workerId ? r.workerId + r.worker : r.worker,
-      r.role, r.qty, r.revenueAllocated, r.commissionRate, r.amount, r.note,
+      r.role,
+      r.qty,
+      r.revenueAllocated,
+      r.commissionRate,
+      companyRate,
+      r.amount,
+      r.district || '',
+      buildRatio(r.code, rateNum, r.role),
+      r.note,
     ]);
   });
 
