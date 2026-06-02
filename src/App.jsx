@@ -15,6 +15,7 @@ const ACodeCalculation      = lazy(() => import('./pages/ACodeCalculation'));
 const UserManagement        = lazy(() => import('./pages/UserManagement.jsx'));
 const SummaryReconciliation = lazy(() => import('./pages/SummaryReconciliation'));
 const RevenueReport         = lazy(() => import('./pages/RevenueReport'));
+const ReceivableReport      = lazy(() => import('./pages/ReceivableReport'));
 
 function App() {
   const [activeTab, setActiveTab] = useState('employees');
@@ -33,6 +34,7 @@ function App() {
                 {activeTab === 'acode' && <ACodeCalculation />}
                 {activeTab === 'reconcile' && <SummaryReconciliation />}
                 {activeTab === 'revenue' && <RevenueReport />}
+                {activeTab === 'receivable' && <ReceivableReport />}
                 {activeTab === 'summary' && <SalarySummary />}
                 {activeTab === 'download' && <SalarySlipDownload />}
                 {activeTab === 'users' && <UserManagement />}

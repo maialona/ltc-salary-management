@@ -523,6 +523,40 @@ export const parseSupervisorMap = async (file) => {
   return { supervisorMap, districtMap, serviceDateMap };
 };
 
+export const parseReceivableRoster = async (file) => {
+  const buffer = await file.arrayBuffer();
+  const isXls = file.name.toLowerCase().endsWith('.xls');
+  const options = { headerRow: 2 };
+
+  const jsonData = isXls
+    ? parseXlsBufferWithOptions(new Uint8Array(buffer), options)
+    : await parseExcelBufferWithOptions(buffer, options);
+
+  const safeNum = (val) => {
+    if (typeof val === 'number') return val;
+    const n = parseFloat(String(val ?? '').replace(/[^\d.-]/g, ''));
+    return isNaN(n) ? 0 : n;
+  };
+
+  return jsonData
+    .map((row) => {
+      const caseName = String(row['個案姓名'] || '').trim();
+      if (!caseName) return null;
+      return {
+        項次: row['項次'] ?? '',
+        單號: String(row['單號'] || '').trim(),
+        身分證號: String(row['身分證號'] || '').trim(),
+        個案姓名: caseName,
+        福利身分別: String(row['福利身分別'] || '').trim(),
+        送單人: String(row['送單人'] || '').trim(),
+        繳款方式: String(row['繳款方式'] || '').trim(),
+        應收金額: safeNum(row['應收金額']),
+        備註: String(row['備註'] || '').trim(),
+      };
+    })
+    .filter(Boolean);
+};
+
 export const parseAcodeRawRows = async (file) => {
   const buffer = await file.arrayBuffer();
   const isXls = file.name.toLowerCase().endsWith('.xls');

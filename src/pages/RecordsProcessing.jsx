@@ -4,7 +4,7 @@ import { parseServiceRecordExcel, parseCaseQuantityExcel, parseSupervisorMap } f
 import { processSalaryCalculation } from '../utils/calculator';
 import { getEmployees } from '../data/employeeStore';
 import { saveRecords } from '../data/recordsStore';
-import { saveRevenueSelfPay, saveRevenueSupervisor } from '../data/revenueDataStore';
+import { saveRevenueSelfPay, saveRevenueSupervisor, saveRevenueDistrict } from '../data/revenueDataStore';
 import { getPeriod, subscribePeriod } from '../data/periodStore';
 import { saveCaseQuantity } from '../data/caseQuantityStore';
 import { useInstitution } from '../context/InstitutionContext';
@@ -79,6 +79,7 @@ const RecordsProcessing = () => {
         // Piggyback: 儲存居督對照表與自費明細，供「營業額」頁使用
         const { supervisorMap, districtMap, serviceDateMap } = await parseSupervisorMap(file).catch(() => ({ supervisorMap: {}, districtMap: {}, serviceDateMap: {} }));
         if (Object.keys(supervisorMap).length > 0) saveRevenueSupervisor(currentInstitution, getPeriod(), supervisorMap);
+        if (Object.keys(districtMap).length > 0) saveRevenueDistrict(currentInstitution, getPeriod(), districtMap);
 
         const employees = await getEmployees();
 

@@ -27,3 +27,7 @@ export const clearRevenueSelfPay = (institution, period) => clear('selfpay', ins
 export const saveRevenueSupervisor = (institution, period, map) => save('supervisor', institution, period, map);
 export const getRevenueSupervisor = (institution, period) => get('supervisor', institution, period);
 export const clearRevenueSupervisor = (institution, period) => clear('supervisor', institution, period);
+
+export const saveRevenueDistrict = (institution, period, map) => save('district', institution, period, map);
+export const getRevenueDistrict = (institution, period) => get('district', institution, period);
+export const clearRevenueDistrict = (institution, period) => clear('district', institution, period);
