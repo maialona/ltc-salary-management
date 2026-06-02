@@ -340,9 +340,7 @@ export default function RevenueReport() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <TrendingUp size={18} style={{ color: 'var(--text-accent)' }} />
-          <h1 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
-            營業額
-          </h1>
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>營業額</h2>
           <span className="text-xs px-2 py-0.5 rounded-full font-mono"
             style={{ background: 'var(--nav-active-bg)', color: 'var(--nav-active-text)' }}>
             {period}

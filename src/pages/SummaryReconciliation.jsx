@@ -162,6 +162,12 @@ export default function SummaryReconciliation() {
   return (
     <div className="space-y-6">
 
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <h2 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>總表核對</h2>
+        <span className="text-xs px-2 py-0.5 rounded-full font-mono" style={{ background: 'var(--nav-active-bg)', color: 'var(--nav-active-text)' }}>{period}</span>
+      </div>
+
       {/* No-cache banner */}
       {isInitialized && !hasCacheData && (
         <div className="p-4 rounded-md border flex gap-3 items-start"

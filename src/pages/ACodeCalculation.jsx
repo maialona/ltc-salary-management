@@ -140,10 +140,9 @@ const ACodeCalculation = () => {
 
             <div className="max-w-7xl mx-auto">
                 <header className="mb-8 flex justify-between items-center">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-                           A碼拆帳系統
-                        </h1>
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>A碼計算</h2>
+                        <span className="text-xs px-2 py-0.5 rounded-full font-mono" style={{ background: 'var(--nav-active-bg)', color: 'var(--nav-active-text)' }}>{getPeriod()}</span>
                     </div>
                 </header>
 

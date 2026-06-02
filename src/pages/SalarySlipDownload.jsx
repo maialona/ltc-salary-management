@@ -913,7 +913,10 @@ const SalarySlipDownload = () => {
       <div className="print:hidden space-y-4">
         <div className="flex flex-col md:flex-row justify-between items-end gap-4">
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>薪資表下載</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>薪資表下載</h2>
+              <span className="text-xs px-2 py-0.5 rounded-full font-mono" style={{ background: 'var(--nav-active-bg)', color: 'var(--nav-active-text)' }}>{getPeriod()}</span>
+            </div>
             <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>選擇薪資類型後預覽並列印</p>
           </div>
 

@@ -365,7 +365,10 @@ const EmployeeManagement = () => {
       {/* Header Block */}
       <div className="flex flex-col md:flex-row justify-between items-end gap-4 mb-8">
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>員工管理</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>員工管理</h2>
+              <span className="text-xs px-2 py-0.5 rounded-full font-mono" style={{ background: 'var(--nav-active-bg)', color: 'var(--nav-active-text)' }}>{getPeriod()}</span>
+            </div>
           </div>
 
           <div className="flex gap-2">

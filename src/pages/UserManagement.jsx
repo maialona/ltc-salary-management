@@ -282,7 +282,7 @@ export default function UserManagement() {
     <div className="max-w-2xl mx-auto flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>使用者管理</h1>
+          <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>使用者管理</h2>
           <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
             新增帳號並指派機構權限
           </p>

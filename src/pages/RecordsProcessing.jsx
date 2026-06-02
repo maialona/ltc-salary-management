@@ -197,6 +197,12 @@ const RecordsProcessing = () => {
   return (
     <div className="space-y-8">
 
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <h2 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>B、G、S碼計算</h2>
+        <span className="text-xs px-2 py-0.5 rounded-full font-mono" style={{ background: 'var(--nav-active-bg)', color: 'var(--nav-active-text)' }}>{getPeriod()}</span>
+      </div>
+
       {/* Hidden file input */}
       <input
         ref={fileInputRef}

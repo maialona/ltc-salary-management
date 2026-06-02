@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Edit2, Upload, Save, X, RefreshCw } from 'lucide-react';
 import { getDeductions, saveDeduction, importDeductions } from '../data/deductionStore';
 import { getEmployees } from '../data/employeeStore';
-import { subscribePeriod } from '../data/periodStore';
+import { subscribePeriod, getPeriod } from '../data/periodStore';
 import { useInstitution } from '../context/InstitutionContext';
 import { generateUUID } from '../utils/uuid';
 import { parseDeductionExcel } from '../utils/excelParser';
@@ -166,7 +166,10 @@ const DeductionManagement = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-12">
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>應扣費用管理</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>應扣費用管理</h2>
+              <span className="text-xs px-2 py-0.5 rounded-full font-mono" style={{ background: 'var(--nav-active-bg)', color: 'var(--nav-active-text)' }}>{getPeriod()}</span>
+            </div>
 
           </div>
 
