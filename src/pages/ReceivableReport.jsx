@@ -70,6 +70,13 @@ export default function ReceivableReport() {
   const [isExporting, setIsExporting] = useState(false);
   const [isExportingPayment, setIsExportingPayment] = useState(false);
   const fileInputRef = useRef(null);
+  const paymentBodyRef = useRef(null);
+  const paymentTotalsRef = useRef(null);
+  const handlePaymentScroll = () => {
+    if (paymentTotalsRef.current && paymentBodyRef.current) {
+      paymentTotalsRef.current.scrollLeft = paymentBodyRef.current.scrollLeft;
+    }
+  };
 
   const loadSources = (inst, p) => {
     const s = {
@@ -167,13 +174,6 @@ export default function ReceivableReport() {
   };
 
   const tableContainerRef = useRef(null);
-  const totalsContainerRef = useRef(null);
-
-  const handleTableScroll = () => {
-    if (totalsContainerRef.current && tableContainerRef.current) {
-      totalsContainerRef.current.scrollLeft = tableContainerRef.current.scrollLeft;
-    }
-  };
 
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
@@ -354,6 +354,7 @@ export default function ReceivableReport() {
               desc7:      `區域：${r.區域 || ''}`,
               desc8:      r.送單人 || '',
             }));
+            const stickyTotals = { position: 'sticky', bottom: 0, zIndex: 5, background: 'var(--glass-bg)' };
             return (
               <div className="rounded-md border overflow-hidden" style={{ borderColor: 'var(--glass-border)' }}>
                 <div className="overflow-auto" style={{ maxHeight: 'calc(70vh - 33px)' }}>
@@ -390,13 +391,16 @@ export default function ReceivableReport() {
                       ))}
                     </tbody>
                     <tfoot>
-                      <tr style={{ background: 'rgba(96,165,250,0.06)' }}>
-                        <td className="px-3 py-2 font-semibold whitespace-nowrap"
-                          style={{ minWidth: 32, color: 'var(--text-accent)' }}>合計</td>
+                      <tr>
+                        <td className="px-3 py-2 font-semibold whitespace-nowrap border-t"
+                          style={{ ...stickyTotals, borderColor: 'var(--glass-border)', color: 'var(--text-accent)' }}>
+                          合計
+                        </td>
                         {PAYMENT_COLS.map((c, i) => (
-                          <td key={c.key} className="px-3 py-2 whitespace-nowrap font-semibold"
+                          <td key={c.key} className="px-3 py-2 whitespace-nowrap font-semibold border-t"
                             style={{
-                              minWidth: c.w,
+                              ...stickyTotals,
+                              borderColor: 'var(--glass-border)',
                               color: c.num ? 'var(--text-accent)' : 'var(--text-secondary)',
                               fontFamily: c.num ? 'monospace' : undefined,
                               textAlign: c.num ? 'right' : undefined,
@@ -467,19 +471,38 @@ export default function ReceivableReport() {
 
       {/* Summary cards */}
       {isBuilt && rows.length > 0 && (
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: '應收金額合計', value: totalReceivable, color: 'var(--text-accent)' },
-            { label: '記帳金額合計', value: totalAccount,    color: '#34d399' },
-            { label: '差異合計',     value: totalDiff,       color: totalDiff === 0 ? '#34d399' : '#f87171' },
-          ].map(({ label, value, color }) => (
-            <div key={label} className="p-3 rounded-md border glass-panel" style={{ borderColor: 'var(--glass-border)' }}>
-              <div className="text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{label}</div>
-              <div className="text-base font-mono font-semibold" style={{ color }}>
-                {Number(value).toLocaleString()}
+        <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: '應收金額合計', value: totalReceivable, color: 'var(--text-accent)' },
+              { label: '記帳金額合計', value: totalAccount,    color: '#34d399' },
+              { label: '差異合計',     value: totalDiff,       color: totalDiff === 0 ? '#34d399' : '#f87171' },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="p-3 rounded-md border glass-panel" style={{ borderColor: 'var(--glass-border)' }}>
+                <div className="text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{label}</div>
+                <div className="text-base font-mono font-semibold" style={{ color }}>
+                  {Number(value).toLocaleString()}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          <div className="grid grid-cols-6 gap-3">
+            {[
+              { label: '居-部負', key: '居-部分負擔' },
+              { label: '喘-部負', key: '喘-部分負擔' },
+              { label: '短-部負', key: '短-部分負擔' },
+              { label: '居-全自', key: '居-全額自' },
+              { label: '喘-全自', key: '喘-全額自' },
+              { label: '短-全自', key: '短-全額自' },
+            ].map(({ label, key }) => (
+              <div key={key} className="p-3 rounded-md border glass-panel" style={{ borderColor: 'var(--glass-border)' }}>
+                <div className="text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{label}</div>
+                <div className="text-sm font-mono font-semibold" style={{ color: 'var(--text-accent)' }}>
+                  {(totals[key] ?? 0).toLocaleString()}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -492,7 +515,7 @@ export default function ReceivableReport() {
         ) : (
           <div className="rounded-md border overflow-hidden" style={{ borderColor: 'var(--glass-border)' }}>
             {/* Data rows */}
-            <div ref={tableContainerRef} onScroll={handleTableScroll} className="overflow-auto" style={{ maxHeight: 'calc(70vh - 33px)' }}>
+            <div ref={tableContainerRef} className="overflow-auto" style={{ maxHeight: 'calc(70vh - 33px)' }}>
               <table className="text-xs border-collapse" style={{ minWidth: '2000px' }}>
                 <thead className="sticky top-0 z-20">
                   <tr style={{ background: 'var(--glass-bg)' }}>
@@ -549,22 +572,18 @@ export default function ReceivableReport() {
                     <tr><td colSpan={TABLE_COLS.length + 1} style={{ height: paddingBottom }} /></tr>
                   )}
                 </tbody>
-              </table>
-            </div>
-            {/* Totals row — always visible, synced horizontal scroll */}
-            <div ref={totalsContainerRef} className="overflow-x-hidden border-t" style={{ borderColor: 'var(--glass-border)' }}>
-              <table className="text-xs border-collapse" style={{ minWidth: '2000px' }}>
-                <tbody>
-                  <tr style={{ background: 'rgba(96,165,250,0.06)' }}>
-                    <td className="sticky left-0 z-10 px-3 py-2 font-semibold border-r whitespace-nowrap"
-                      style={{ background: 'rgba(96,165,250,0.06)', borderColor: 'var(--glass-border)', color: 'var(--text-accent)', minWidth: 32 }}>
+                <tfoot>
+                  <tr>
+                    <td className="sticky left-0 z-10 px-3 py-2 font-semibold border-t border-r whitespace-nowrap"
+                      style={{ position: 'sticky', bottom: 0, zIndex: 10, background: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-accent)', minWidth: 32 }}>
                       合計
                     </td>
                     {TABLE_COLS.map((c, i) => {
+                      const stickyStyle = { position: 'sticky', bottom: 0, zIndex: 5, background: 'var(--glass-bg)', borderColor: 'var(--glass-border)' };
                       if (!c.num) {
                         return (
-                          <td key={c.key} className="px-3 py-2 whitespace-nowrap"
-                            style={{ color: 'var(--text-secondary)', minWidth: c.w }}>
+                          <td key={c.key} className="px-3 py-2 whitespace-nowrap border-t"
+                            style={{ ...stickyStyle, color: 'var(--text-secondary)', minWidth: c.w }}>
                             {i === 0 ? `${rows.length} 筆` : ''}
                           </td>
                         );
@@ -572,8 +591,9 @@ export default function ReceivableReport() {
                       const val = totals[c.key] ?? 0;
                       const isDiffCol = c.key === '差異';
                       return (
-                        <td key={c.key} className="px-3 py-2 whitespace-nowrap text-right font-mono font-semibold"
+                        <td key={c.key} className="px-3 py-2 whitespace-nowrap text-right font-mono font-semibold border-t"
                           style={{
+                            ...stickyStyle,
                             minWidth: c.w,
                             color: isDiffCol
                               ? (val !== 0 ? '#f87171' : '#34d399')
@@ -584,7 +604,7 @@ export default function ReceivableReport() {
                       );
                     })}
                   </tr>
-                </tbody>
+                </tfoot>
               </table>
             </div>
           </div>
