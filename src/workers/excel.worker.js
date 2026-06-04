@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import * as XLSX from 'xlsx';
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 const num = (v) => (v && v !== 0) ? v : 0;
@@ -435,6 +436,71 @@ const buildReceivableBuffer = async ({ rows, institutionFullName, period }) => {
   return { buffer, filename: `收據對照表_${period || ''}.xlsx` };
 };
 
+// ── 繳款名單 ──────────────────────────────────────────────────────────────────
+const maskId = (id) => {
+  const s = String(id || '');
+  if (s.length < 6) return s;
+  return s.slice(0, 2) + '****' + s.slice(6);
+};
+
+const CUSTOMER_PREFIX = { hongkang: 1001, qianyi: 2001, kuanze: 3001 };
+
+const buildPaymentListBuffer = async ({ rows, institutionCode, institutionName, institutionFullName, period }) => {
+  const [yearW, monthW] = period.split('-').map(Number);
+  const minguo = yearW - 1911;
+  const monthStr = String(monthW).padStart(2, '0');
+  const periodCode = `${minguo}${monthStr}`;
+  const nextMonth = monthW === 12 ? 1 : monthW + 1;
+  const nextYear = monthW === 12 ? minguo + 1 : minguo;
+  const deadline = `${nextYear}/${String(nextMonth).padStart(2, '0')}/25`;
+  const prefix = CUSTOMER_PREFIX[institutionCode];
+  const feeLabel = `${minguo}年${monthStr}月份${institutionName}居家個案負擔費`;
+
+  const HEADERS = [
+    '代收費用別', '期別', '客戶編號', '姓名', '郵遞區號', '地址',
+    '繳費期限', '超商代收期限', '郵局代收期限',
+    '居服部分負擔', '喘息部分負擔', '短照部分負擔',
+    '居服全自費', '喘息全自費', '短照全自費',
+    '', '', '', '',  // P Q R S 空欄
+    '繳費說明1', '繳費說明2', '繳費說明3', '繳費說明4',
+    '繳費說明5', '繳費說明6', '繳費說明7', '繳費說明8', '繳費說明9',
+  ];
+
+  const dataRows = rows.map((r, idx) => [
+    feeLabel,
+    periodCode,
+    prefix ? String(prefix + idx) : '',
+    r.個案姓名 || '',
+    '',
+    '',
+    deadline,
+    deadline,
+    deadline,
+    Number(r['居-部分負擔']) || 0,
+    Number(r['喘-部分負擔']) || 0,
+    Number(r['短-部分負擔']) || 0,
+    Number(r['居-全額自']) || 0,
+    Number(r['喘-全額自']) || 0,
+    Number(r['短-全額自']) || 0,
+    '', '', '', '',  // P Q R S 空欄
+    '請於繳費期限前至超商(7-11、全家、OK、萊爾富)、合庫臨櫃、或全國ATM轉帳，完成繳費。',
+    feeLabel,
+    maskId(r.身分證號),
+    `機構名稱：${institutionFullName}`,
+    `福利身分別：${r.福利身分別 || ''}`,
+    `個案主責督導：${r.個案者主責督導 || ''}`,
+    `區域：${r.區域 || ''}`,
+    r.送單人 || '',
+    '',
+  ]);
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([HEADERS, ...dataRows]);
+  XLSX.utils.book_append_sheet(wb, ws, '繳款名單');
+  const raw = XLSX.write(wb, { bookType: 'xls', type: 'array' });
+  return { buffer: raw, filename: `繳款名單_${period}.xls`, mimeType: 'application/vnd.ms-excel' };
+};
+
 // ── Message dispatcher ────────────────────────────────────────────────────────
 self.onmessage = async ({ data: { type, payload } }) => {
   try {
@@ -446,16 +512,17 @@ self.onmessage = async ({ data: { type, payload } }) => {
       acodeDownload: buildAcodeDownloadBuffer,
       revenue:       buildRevenueBuffer,
       receivable:    buildReceivableBuffer,
+      paymentList:   buildPaymentListBuffer,
     };
     const builder = builders[type];
     if (!builder) throw new Error(`Unknown export type: ${type}`);
-    const { buffer: raw, filename } = await builder(payload);
+    const { buffer: raw, filename, mimeType } = await builder(payload);
     // ExcelJS writeBuffer() returns Buffer (Uint8Array) in browser, not ArrayBuffer.
     // Extract the underlying ArrayBuffer for zero-copy postMessage transfer.
     const ab = raw instanceof ArrayBuffer
       ? raw
       : raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength);
-    self.postMessage({ buffer: ab, filename }, [ab]);
+    self.postMessage({ buffer: ab, filename, mimeType }, [ab]);
   } catch (err) {
     self.postMessage({ error: err.message });
   }

@@ -4,11 +4,12 @@ import { Wallet, Upload, Download, RefreshCw, CheckCircle2, XCircle, RotateCcw }
 import { parseReceivableRoster } from '../utils/excelParser';
 import { buildReceivableRows } from '../utils/receivableProcessor';
 import { exportReceivableExcel } from '../utils/receivable-excel';
+import { exportPaymentListExcel } from '../utils/payment-list-excel';
 import { saveReceivable, getReceivable, clearReceivable } from '../data/receivableStore';
 import { getRevenueWelfare, getRevenueSelfPay, getRevenueSupervisor, getRevenueDistrict } from '../data/revenueDataStore';
 import { getPeriod, subscribePeriod } from '../data/periodStore';
 import { useInstitution } from '../context/InstitutionContext';
-import { getInstitutionFullName } from '../constants/institutions';
+import { getInstitutionFullName, getInstitutionName } from '../constants/institutions';
 
 const fmt = (n) => {
   if (n === '' || n === null || n === undefined) return '';
@@ -51,6 +52,7 @@ const TABLE_COLS = [
 
 export default function ReceivableReport() {
   const { currentInstitution } = useInstitution();
+  const [subTab, setSubTab] = useState('report');
   const [period, setPeriod] = useState(getPeriod);
   const [roster, setRoster] = useState(() => getReceivable(currentInstitution, getPeriod()));
   const [sources, setSources] = useState(() => {
@@ -66,6 +68,7 @@ export default function ReceivableReport() {
   const [isBuilt, setIsBuilt] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isExportingPayment, setIsExportingPayment] = useState(false);
   const fileInputRef = useRef(null);
 
   const loadSources = (inst, p) => {
@@ -145,6 +148,24 @@ export default function ReceivableReport() {
     }
   };
 
+  const handleExportPaymentList = async () => {
+    if (!rows.length) return;
+    setIsExportingPayment(true);
+    try {
+      await exportPaymentListExcel(
+        rows,
+        currentInstitution,
+        getInstitutionName(currentInstitution),
+        getInstitutionFullName(currentInstitution),
+        period,
+      );
+    } catch (err) {
+      alert(`匯出失敗：${err.message}`);
+    } finally {
+      setIsExportingPayment(false);
+    }
+  };
+
   const tableContainerRef = useRef(null);
   const totalsContainerRef = useRef(null);
 
@@ -173,6 +194,13 @@ export default function ReceivableReport() {
   const totalReceivable = totals['應收金額'] ?? 0;
   const totalAccount    = totals['記帳金額'] ?? 0;
   const totalDiff       = totals['差異']     ?? 0;
+
+  const [yearW, monthW] = period.split('-').map(Number);
+  const minguo = yearW - 1911;
+  const monthStr = String(monthW).padStart(2, '0');
+  const nextMonth = monthW === 12 ? 1 : monthW + 1;
+  const nextYear = monthW === 12 ? minguo + 1 : minguo;
+  const deadline = `${nextYear}/${String(nextMonth).padStart(2, '0')}/25`;
 
   return (
     <div className="space-y-6">
@@ -243,6 +271,62 @@ export default function ReceivableReport() {
         </div>
       </div>
 
+      {/* Sub-tabs */}
+      <div className="flex gap-0 border-b" style={{ borderColor: 'var(--glass-border)' }}>
+        {[
+          { id: 'report',  label: '應收清冊' },
+          { id: 'payment', label: '繳款名單' },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setSubTab(tab.id)}
+            className="px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors cursor-pointer"
+            style={{
+              borderColor: subTab === tab.id ? 'var(--text-accent)' : 'transparent',
+              color: subTab === tab.id ? 'var(--text-accent)' : 'var(--text-secondary)',
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {subTab === 'payment' && (
+        <div className="space-y-4">
+          {/* Payment list info */}
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: '費用期別', value: `${minguo}${monthStr}` },
+              { label: '繳費期限', value: deadline },
+              { label: '筆數', value: rows.length ? `${rows.length} 筆` : '尚無資料' },
+            ].map(({ label, value }) => (
+              <div key={label} className="p-3 rounded-md border glass-panel" style={{ borderColor: 'var(--glass-border)' }}>
+                <div className="text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{label}</div>
+                <div className="text-sm font-mono font-semibold" style={{ color: 'var(--text-primary)' }}>{value}</div>
+              </div>
+            ))}
+          </div>
+          {/* Export button */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleExportPaymentList}
+              disabled={!rows.length || isExportingPayment}
+              className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: 'var(--btn-primary-bg)', color: 'var(--glass-bg)' }}
+            >
+              <Download size={14} />
+              {isExportingPayment ? '匯出中…' : '匯出繳款名單 (.xls)'}
+            </button>
+            {!rows.length && (
+              <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                請先至「應收清冊」頁上傳並計算資料
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {subTab === 'report' && <>
       {/* Source status */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {SOURCE_DEFS.map(({ key, label, hint }) => {
@@ -416,6 +500,7 @@ export default function ReceivableReport() {
           請上傳應收清冊以開始計算
         </div>
       )}
+      </>}
     </div>
   );
 }

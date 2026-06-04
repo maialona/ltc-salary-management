@@ -1,6 +1,6 @@
-const triggerDownload = (buffer, filename) => {
+const triggerDownload = (buffer, filename, mimeType) => {
   const blob = new Blob([buffer], {
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    type: mimeType || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -25,7 +25,7 @@ export const runExcelExport = (type, payload) =>
       if (data.error) {
         reject(new Error(data.error));
       } else {
-        triggerDownload(data.buffer, data.filename);
+        triggerDownload(data.buffer, data.filename, data.mimeType);
         resolve();
       }
     };
