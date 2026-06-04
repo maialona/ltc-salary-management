@@ -4,6 +4,31 @@ import { db } from '../db.js';
 
 const preHandler = [verifyToken, institutionScope];
 
+const empBody = {
+  type: 'object',
+  required: ['empId', 'name'],
+  properties: {
+    empId:           { type: 'string', minLength: 1 },
+    name:            { type: 'string', minLength: 1 },
+    idNumber:        { type: 'string' },
+    position:        { type: 'string' },
+    paymentMethod:   { type: 'string' },
+    bankCode:        { type: 'string' },
+    bankAccount:     { type: 'string' },
+    splits:          { type: 'object' },
+    laborInsuranceBracket:    { type: 'number' },
+    laborInsuranceSelfPay:    { type: 'number' },
+    healthInsuranceBracket:   { type: 'number' },
+    healthDependents:         { type: 'number' },
+    healthInsuranceSelfPay:   { type: 'number' },
+    voluntaryPensionRate:     { type: 'number' },
+    voluntaryPensionDeduction:{ type: 'number' },
+    dependentsCount:          { type: 'number' },
+    isSupport:                { type: 'boolean' },
+  },
+  additionalProperties: true,
+};
+
 // DB 列 → 前端物件
 function dbToClient(row) {
   return {
@@ -64,7 +89,7 @@ export async function employeesRoutes(fastify) {
   });
 
   // 新增員工
-  fastify.post('/api/employees', { preHandler }, async (request, reply) => {
+  fastify.post('/api/employees', { preHandler, schema: { body: empBody } }, async (request, reply) => {
     const emp = request.body ?? {};
     if (!emp.empId || !emp.name) {
       return reply.code(400).send({ error: 'empId and name are required' });
@@ -90,7 +115,7 @@ export async function employeesRoutes(fastify) {
   });
 
   // 更新員工
-  fastify.put('/api/employees/:id', { preHandler }, async (request, reply) => {
+  fastify.put('/api/employees/:id', { preHandler, schema: { body: empBody } }, async (request, reply) => {
     const { id } = request.params;
     const emp = request.body ?? {};
 

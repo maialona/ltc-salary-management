@@ -4,6 +4,21 @@ import { db } from '../db.js';
 
 const preHandler = [verifyToken, institutionScope];
 
+const periodQS = {
+  type: 'object',
+  required: ['period'],
+  properties: { period: { type: 'string', pattern: '^\\d{4}-\\d{2}$' } },
+};
+
+const recordsBody = {
+  type: 'object',
+  required: ['period', 'records'],
+  properties: {
+    period:  { type: 'string', pattern: '^\\d{4}-\\d{2}$' },
+    records: { type: 'array', items: { type: 'object' } },
+  },
+};
+
 function dbToClient(row) {
   return {
     id: row.id,
@@ -19,7 +34,7 @@ function dbToClient(row) {
 
 export async function recordsRoutes(fastify) {
   // GET /api/records?period=YYYY-MM
-  fastify.get('/api/records', { preHandler }, async (req, reply) => {
+  fastify.get('/api/records', { preHandler, schema: { querystring: periodQS } }, async (req, reply) => {
     const { period } = req.query;
     if (!period) return reply.code(400).send({ error: 'period required' });
     const { rows } = await db.query(
@@ -30,7 +45,7 @@ export async function recordsRoutes(fastify) {
   });
 
   // POST /api/records — bulk upsert { period, records: [...] }
-  fastify.post('/api/records', { preHandler }, async (req, reply) => {
+  fastify.post('/api/records', { preHandler, schema: { body: recordsBody } }, async (req, reply) => {
     const { period, records } = req.body;
     if (!period || !Array.isArray(records)) return reply.code(400).send({ error: 'period and records required' });
 
@@ -59,8 +74,7 @@ export async function recordsRoutes(fastify) {
   });
 
   // GET /api/records/support-bgs?period=YYYY-MM
-  // 查詢當前機構的支援人力在其主機構的 BGS 應領金額
-  fastify.get('/api/records/support-bgs', { preHandler }, async (req, reply) => {
+  fastify.get('/api/records/support-bgs', { preHandler, schema: { querystring: periodQS } }, async (req, reply) => {
     const { period } = req.query;
     if (!period) return reply.code(400).send({ error: 'period required' });
 
@@ -92,7 +106,7 @@ export async function recordsRoutes(fastify) {
   });
 
   // DELETE /api/records?period=YYYY-MM — clear all for period
-  fastify.delete('/api/records', { preHandler }, async (req, reply) => {
+  fastify.delete('/api/records', { preHandler, schema: { querystring: periodQS } }, async (req, reply) => {
     const { period } = req.query;
     if (!period) return reply.code(400).send({ error: 'period required' });
     await db.query(

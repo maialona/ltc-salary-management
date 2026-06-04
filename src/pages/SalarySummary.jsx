@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { Edit2, X, Calculator, Download } from 'lucide-react';
 import FilledBellIcon from '../components/ui/filled-bell-icon';
 import { getEmployees } from '../data/employeeStore';
@@ -160,7 +161,11 @@ const SalarySummary = () => {
   const [subTab, setSubTab]             = useState('bgs');
   const [search, setSearch]             = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const debounceRef = useRef(null);
+  const debounceRef    = useRef(null);
+  const bgsScrollRef   = useRef(null);
+  const acodeScrollRef = useRef(null);
+  const summaryScrollRef = useRef(null);
+  const salary2ScrollRef = useRef(null);
   const [bgsItems, setBgsItems]         = useState([]);
   const [aItems, setAItems]             = useState([]);
   const [summaryItems, setSummaryItems] = useState([]);
@@ -173,14 +178,8 @@ const SalarySummary = () => {
   const [rawRecords, setRawRecords]     = useState([]);
   const [rawACodeResults, setRawACodeResults] = useState([]);
 
-  useEffect(() => {
-    loadData();
-    const unsub = subscribePeriod(() => loadData());
-    return unsub;
-  }, [currentInstitution]);
-
   // ── Data loading ────────────────────────────────────────────────────────────
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     const [employees, bonuses, deductions, records, acodeData, supportBgsData] = await Promise.all([
       getEmployees(), getBonuses(), getDeductions(), getRecords(), getAcodeResults(), getSupportMainBgs(),
     ]);
@@ -386,7 +385,13 @@ const SalarySummary = () => {
     setSalary2Items(salary2);
     setRawRecords(records);
     setRawACodeResults(aCodeResults);
-  };
+  }, [currentInstitution]);
+
+  useEffect(() => {
+    loadData();
+    const unsub = subscribePeriod(loadData);
+    return unsub;
+  }, [loadData]);
 
   // ── Detail modal ────────────────────────────────────────────────────────────
   const openDetail = (item) => setDetailModal({ open: true, empId: item.empId, name: item.name });
@@ -579,6 +584,8 @@ const SalarySummary = () => {
       if (subTab === 'acode')    await exportAcodeExcel(aItems, period);
       if (subTab === 'summary')  await exportSummaryExcel(summaryItems, period);
       if (subTab === 'summary2') await exportSummary2Excel(salary2Items, period);
+    } catch (err) {
+      alert(`匯出失敗：${err.message}`);
     } finally {
       setExporting(false);
     }
@@ -625,15 +632,12 @@ const SalarySummary = () => {
   const thCls = (right = false) =>
     `px-4 py-3 text-xs font-medium${right ? ' text-right' : ''}`;
 
-  const SumCell = ({ items, field, bold = false, accent = false }) => {
-    const total = items.reduce((s, i) => s + (Number(i[field]) || 0), 0);
-    return (
-      <td className="px-4 py-2.5 font-mono text-xs text-right font-semibold"
-        style={{ color: accent ? 'var(--text-accent)' : bold ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-        {total !== 0 ? money(total) : '–'}
-      </td>
-    );
-  };
+  const SumCell = ({ value = 0, bold = false, accent = false }) => (
+    <td className="px-4 py-2.5 font-mono text-xs text-right font-semibold"
+      style={{ color: accent ? 'var(--text-accent)' : bold ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+      {value !== 0 ? money(value) : '–'}
+    </td>
+  );
   const EC = () => <td className="px-4 py-2.5" />;
 
   const NoteBtn = ({ item, type }) => {
@@ -691,6 +695,76 @@ const SalarySummary = () => {
     () => !q ? salary2Items : salary2Items.filter(i => i.empId?.toLowerCase().includes(q) || i.name?.toLowerCase().includes(q)),
     [salary2Items, q]
   );
+
+  // ── Footer column totals（預算，避免每次 render 重算 80 次 reduce）──────────
+  const sumFields = (arr, fields) =>
+    Object.fromEntries(fields.map(f => [f, arr.reduce((s, i) => s + (Number(i[f]) || 0), 0)]));
+
+  const bgsTotals = useMemo(() => sumFields(bgsItems, [
+    'rawB','rawG','rawS','rawMissed','splitB','splitG','splitS','splitMissed',
+    'serviceIncome','otherSubsidy','other1','payable','laborFee','healthFee',
+    'pensionFee','otherDeduction1','total','netSalary',
+  ]), [bgsItems]);
+
+  const aTotals = useMemo(() => sumFields(aItems, [
+    'rawA','splitA','serviceIncome','crossArea','serviceBonus','quotaDev','certBonus',
+    'referral','mentoring','holidayBonus','otherSubsidy','other2','payable',
+    'withholdingTax','fuel','otherDeduction2','total','netSalary',
+  ]), [aItems]);
+
+  const summaryTotals = useMemo(() => sumFields(summaryItems, [
+    'rawA','rawB','rawG','rawS','rawMissed','splitA','splitB','splitG','splitS','splitMissed',
+    'serviceIncome','crossArea','serviceBonus','quotaDev','certBonus','referral','mentoring',
+    'holidayBonus','otherSubsidy','other1','other2','payable','autoTax','fuel',
+    'laborFee','healthFee','pensionFee','otherDeduction1','otherDeduction2','total','netSalary',
+  ]), [summaryItems]);
+
+  const salary2Totals = useMemo(() => sumFields(salary2Items, [
+    'baseSalary','crossArea','ot134','ot167','ot267','ot1','ot2',
+    'withholdingTax','laborFee','healthFee','pensionFee','otherDeduction','netSalary',
+  ]), [salary2Items]);
+  // ────────────────────────────────────────────────────────────────────────────
+
+  // ── 虛擬捲動（四張表各自獨立 virtualizer）────────────────────────────────────
+  const ROW_H = 44; // px — py-3(12) × 2 + text-sm line-height(20)
+  const bgsVirtualizer = useVirtualizer({
+    count: filteredBgs.length,
+    getScrollElement: () => bgsScrollRef.current,
+    estimateSize: () => ROW_H, overscan: 10,
+  });
+  const acodeVirtualizer = useVirtualizer({
+    count: filteredA.length,
+    getScrollElement: () => acodeScrollRef.current,
+    estimateSize: () => ROW_H, overscan: 10,
+  });
+  const summaryVirtualizer = useVirtualizer({
+    count: filteredSummary.length,
+    getScrollElement: () => summaryScrollRef.current,
+    estimateSize: () => ROW_H, overscan: 10,
+  });
+  const salary2Virtualizer = useVirtualizer({
+    count: filteredSalary2.length,
+    getScrollElement: () => salary2ScrollRef.current,
+    estimateSize: () => ROW_H, overscan: 10,
+  });
+
+  // pre-render virtual item slices & padding
+  const bgsVItems = bgsVirtualizer.getVirtualItems();
+  const bgsPadTop = bgsVItems.length > 0 ? bgsVItems[0].start : 0;
+  const bgsPadBot = bgsVItems.length > 0 ? bgsVirtualizer.getTotalSize() - bgsVItems[bgsVItems.length - 1].end : 0;
+
+  const acodeVItems = acodeVirtualizer.getVirtualItems();
+  const acodePadTop = acodeVItems.length > 0 ? acodeVItems[0].start : 0;
+  const acodePadBot = acodeVItems.length > 0 ? acodeVirtualizer.getTotalSize() - acodeVItems[acodeVItems.length - 1].end : 0;
+
+  const summaryVItems = summaryVirtualizer.getVirtualItems();
+  const summaryPadTop = summaryVItems.length > 0 ? summaryVItems[0].start : 0;
+  const summaryPadBot = summaryVItems.length > 0 ? summaryVirtualizer.getTotalSize() - summaryVItems[summaryVItems.length - 1].end : 0;
+
+  const salary2VItems = salary2Virtualizer.getVirtualItems();
+  const salary2PadTop = salary2VItems.length > 0 ? salary2VItems[0].start : 0;
+  const salary2PadBot = salary2VItems.length > 0 ? salary2Virtualizer.getTotalSize() - salary2VItems[salary2VItems.length - 1].end : 0;
+  // ────────────────────────────────────────────────────────────────────────────
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -754,7 +828,7 @@ const SalarySummary = () => {
       {/* ── BGS碼薪資 ─────────────────────────────────────────────────────── */}
       {subTab === 'bgs' && (
         <div className="overflow-hidden rounded-md border glass-panel" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
-          <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
+          <div ref={bgsScrollRef} className="overflow-x-auto overflow-y-auto max-h-[70vh]">
             <table className="w-full text-left border-collapse whitespace-nowrap">
               <thead className="sticky top-0 z-10" style={{ background: 'var(--table-header-bg)' }}>
                 <tr className="border-b" style={{ borderColor: 'var(--glass-border)' }}>
@@ -777,7 +851,11 @@ const SalarySummary = () => {
                   <tr><td colSpan="27" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>尚無數據，請先建立員工名單並上傳計算</td></tr>
                 ) : filteredBgs.length === 0 ? (
                   <tr><td colSpan="27" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>無符合「{search}」的結果</td></tr>
-                ) : filteredBgs.map(item => (
+                ) : <>
+                  {bgsPadTop > 0 && <tr><td colSpan="27" style={{ height: bgsPadTop }} /></tr>}
+                  {bgsVItems.map(vRow => {
+                    const item = filteredBgs[vRow.index];
+                    return (
                   <tr key={item.id} className="group transition-colors border-b hover:bg-white/[0.05]" style={{ borderColor: 'var(--glass-border)' }}>
                     <td className="px-4 py-3 font-mono text-sm font-medium sticky left-0 z-[5] min-w-[80px]" style={{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }}>{item.empId}</td>
                     <td className="px-4 py-3 text-sm font-medium cursor-pointer hover:underline sticky left-[80px] z-[5]" style={{ color: 'var(--text-accent)', background: 'var(--glass-bg)', boxShadow: '2px 0 6px -2px rgba(0,0,0,0.2)' }} onClick={() => openDetail(item)}>{item.name}</td>
@@ -831,34 +909,37 @@ const SalarySummary = () => {
                     <NoteBtn item={item} type="bgs" />
                     <EditBtn item={item} type="bgs" />
                   </tr>
-                ))}
+                    );
+                  })}
+                  {bgsPadBot > 0 && <tr><td colSpan="27" style={{ height: bgsPadBot }} /></tr>}
+                </>}
               </tbody>
               {bgsItems.length > 0 && (
                 <tfoot className="sticky bottom-0 z-10" style={{ background: 'var(--table-header-bg)' }}>
                   <tr className="border-t" style={{ borderColor: 'var(--glass-border)' }}>
                     <td className="px-4 py-2.5 text-xs font-bold sticky left-0 z-[5] min-w-[80px]" style={{ color: 'var(--text-primary)', background: 'var(--table-header-bg)' }}>小計</td>
                     <EC /><EC />
-                    <SumCell items={bgsItems} field="rawB" />
-                    <SumCell items={bgsItems} field="rawG" />
-                    <SumCell items={bgsItems} field="rawS" />
-                    <SumCell items={bgsItems} field="rawMissed" />
-                    <SumCell items={bgsItems} field="splitB" />
-                    <SumCell items={bgsItems} field="splitG" />
-                    <SumCell items={bgsItems} field="splitS" />
-                    <SumCell items={bgsItems} field="splitMissed" />
-                    <SumCell items={bgsItems} field="serviceIncome" bold />
-                    <SumCell items={bgsItems} field="otherSubsidy" />
-                    <SumCell items={bgsItems} field="other1" />
-                    <SumCell items={bgsItems} field="payable" bold />
+                    <SumCell value={bgsTotals.rawB} />
+                    <SumCell value={bgsTotals.rawG} />
+                    <SumCell value={bgsTotals.rawS} />
+                    <SumCell value={bgsTotals.rawMissed} />
+                    <SumCell value={bgsTotals.splitB} />
+                    <SumCell value={bgsTotals.splitG} />
+                    <SumCell value={bgsTotals.splitS} />
+                    <SumCell value={bgsTotals.splitMissed} />
+                    <SumCell value={bgsTotals.serviceIncome} bold />
+                    <SumCell value={bgsTotals.otherSubsidy} />
+                    <SumCell value={bgsTotals.other1} />
+                    <SumCell value={bgsTotals.payable} bold />
                     <EC />
-                    <SumCell items={bgsItems} field="laborFee" />
+                    <SumCell value={bgsTotals.laborFee} />
                     <EC /><EC />
-                    <SumCell items={bgsItems} field="healthFee" />
+                    <SumCell value={bgsTotals.healthFee} />
                     <EC />
-                    <SumCell items={bgsItems} field="pensionFee" />
-                    <SumCell items={bgsItems} field="otherDeduction1" />
-                    <SumCell items={bgsItems} field="total" bold />
-                    <SumCell items={bgsItems} field="netSalary" accent />
+                    <SumCell value={bgsTotals.pensionFee} />
+                    <SumCell value={bgsTotals.otherDeduction1} />
+                    <SumCell value={bgsTotals.total} bold />
+                    <SumCell value={bgsTotals.netSalary} accent />
                     <EC /><EC />
                   </tr>
                 </tfoot>
@@ -871,7 +952,7 @@ const SalarySummary = () => {
       {/* ── A碼及其他獎金 ──────────────────────────────────────────────────── */}
       {subTab === 'acode' && (
         <div className="overflow-hidden rounded-md border glass-panel" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
-          <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
+          <div ref={acodeScrollRef} className="overflow-x-auto overflow-y-auto max-h-[70vh]">
             <table className="w-full text-left border-collapse whitespace-nowrap">
               <thead className="sticky top-0 z-10" style={{ background: 'var(--table-header-bg)' }}>
                 <tr className="border-b" style={{ borderColor: 'var(--glass-border)' }}>
@@ -893,7 +974,11 @@ const SalarySummary = () => {
                   <tr><td colSpan="23" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>尚無數據，請先建立員工名單並上傳計算</td></tr>
                 ) : filteredA.length === 0 ? (
                   <tr><td colSpan="23" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>無符合「{search}」的結果</td></tr>
-                ) : filteredA.map(item => (
+                ) : <>
+                  {acodePadTop > 0 && <tr><td colSpan="23" style={{ height: acodePadTop }} /></tr>}
+                  {acodeVItems.map(vRow => {
+                    const item = filteredA[vRow.index];
+                    return (
                   <tr key={item.id} className="group transition-colors border-b hover:bg-white/[0.05]" style={{ borderColor: 'var(--glass-border)' }}>
                     <td className="px-4 py-3 font-mono text-sm font-medium sticky left-0 z-[5] min-w-[80px]" style={{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }}>{item.empId}</td>
                     <td className="px-4 py-3 text-sm font-medium cursor-pointer hover:underline sticky left-[80px] z-[5]" style={{ color: 'var(--text-accent)', background: 'var(--glass-bg)', boxShadow: '2px 0 6px -2px rgba(0,0,0,0.2)' }} onClick={() => openDetail(item)}>{item.name}</td>
@@ -967,31 +1052,34 @@ const SalarySummary = () => {
                     <NoteBtn item={item} type="acode" />
                     <EditBtn item={item} type="acode" />
                   </tr>
-                ))}
+                    );
+                  })}
+                  {acodePadBot > 0 && <tr><td colSpan="23" style={{ height: acodePadBot }} /></tr>}
+                </>}
               </tbody>
               {aItems.length > 0 && (
                 <tfoot className="sticky bottom-0 z-10" style={{ background: 'var(--table-header-bg)' }}>
                   <tr className="border-t" style={{ borderColor: 'var(--glass-border)' }}>
                     <td className="px-4 py-2.5 text-xs font-bold sticky left-0 z-[5] min-w-[80px]" style={{ color: 'var(--text-primary)', background: 'var(--table-header-bg)' }}>小計</td>
                     <EC /><EC />
-                    <SumCell items={aItems} field="rawA" />
-                    <SumCell items={aItems} field="splitA" />
-                    <SumCell items={aItems} field="serviceIncome" bold />
-                    <SumCell items={aItems} field="crossArea" />
-                    <SumCell items={aItems} field="serviceBonus" />
-                    <SumCell items={aItems} field="quotaDev" />
-                    <SumCell items={aItems} field="certBonus" />
-                    <SumCell items={aItems} field="referral" />
-                    <SumCell items={aItems} field="mentoring" />
-                    <SumCell items={aItems} field="holidayBonus" />
-                    <SumCell items={aItems} field="otherSubsidy" />
-                    <SumCell items={aItems} field="other2" />
-                    <SumCell items={aItems} field="payable" bold />
-                    <SumCell items={aItems} field="withholdingTax" />
-                    <SumCell items={aItems} field="fuel" />
-                    <SumCell items={aItems} field="otherDeduction2" />
-                    <SumCell items={aItems} field="total" bold />
-                    <SumCell items={aItems} field="netSalary" accent />
+                    <SumCell value={aTotals.rawA} />
+                    <SumCell value={aTotals.splitA} />
+                    <SumCell value={aTotals.serviceIncome} bold />
+                    <SumCell value={aTotals.crossArea} />
+                    <SumCell value={aTotals.serviceBonus} />
+                    <SumCell value={aTotals.quotaDev} />
+                    <SumCell value={aTotals.certBonus} />
+                    <SumCell value={aTotals.referral} />
+                    <SumCell value={aTotals.mentoring} />
+                    <SumCell value={aTotals.holidayBonus} />
+                    <SumCell value={aTotals.otherSubsidy} />
+                    <SumCell value={aTotals.other2} />
+                    <SumCell value={aTotals.payable} bold />
+                    <SumCell value={aTotals.withholdingTax} />
+                    <SumCell value={aTotals.fuel} />
+                    <SumCell value={aTotals.otherDeduction2} />
+                    <SumCell value={aTotals.total} bold />
+                    <SumCell value={aTotals.netSalary} accent />
                     <EC /><EC />
                   </tr>
                 </tfoot>
@@ -1019,7 +1107,7 @@ const SalarySummary = () => {
           </button>
         </div>
         <div className="overflow-hidden rounded-md border glass-panel" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
-          <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
+          <div ref={summaryScrollRef} className="overflow-x-auto overflow-y-auto max-h-[70vh]">
             <table className="w-full text-left border-collapse whitespace-nowrap">
               <thead className="sticky top-0 z-10" style={{ background: 'var(--table-header-bg)' }}>
                 <tr className="border-b" style={{ borderColor: 'var(--glass-border)' }}>
@@ -1044,7 +1132,11 @@ const SalarySummary = () => {
                   <tr><td colSpan="40" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>尚無數據，請先建立員工名單並上傳計算</td></tr>
                 ) : filteredSummary.length === 0 ? (
                   <tr><td colSpan="40" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>無符合「{search}」的結果</td></tr>
-                ) : filteredSummary.map(item => (
+                ) : <>
+                  {summaryPadTop > 0 && <tr><td colSpan="40" style={{ height: summaryPadTop }} /></tr>}
+                  {summaryVItems.map(vRow => {
+                    const item = filteredSummary[vRow.index];
+                    return (
                   <tr key={item.id} className="group transition-colors border-b hover:bg-white/[0.05]" style={{ borderColor: 'var(--glass-border)' }}>
                     <td className="px-4 py-3 font-mono text-sm font-medium sticky left-0 z-[5] min-w-[80px]" style={{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }}>{item.empId}</td>
                     <td className="px-4 py-3 text-sm font-medium cursor-pointer hover:underline sticky left-[80px] z-[5]" style={{ color: 'var(--text-accent)', background: 'var(--glass-bg)', boxShadow: '2px 0 6px -2px rgba(0,0,0,0.2)' }} onClick={() => openDetail(item)}>{item.name}</td>
@@ -1128,48 +1220,51 @@ const SalarySummary = () => {
                     <NoteBtn item={item} type="summary" />
                     <EditBtn item={item} type="summary" />
                   </tr>
-                ))}
+                    );
+                  })}
+                  {summaryPadBot > 0 && <tr><td colSpan="40" style={{ height: summaryPadBot }} /></tr>}
+                </>}
               </tbody>
               {summaryItems.length > 0 && (
                 <tfoot className="sticky bottom-0 z-10" style={{ background: 'var(--table-header-bg)' }}>
                   <tr className="border-t" style={{ borderColor: 'var(--glass-border)' }}>
                     <td className="px-4 py-2.5 text-xs font-bold sticky left-0 z-[5] min-w-[80px]" style={{ color: 'var(--text-primary)', background: 'var(--table-header-bg)' }}>小計</td>
                     <EC />
-                    <SumCell items={summaryItems} field="rawA" />
-                    <SumCell items={summaryItems} field="rawB" />
-                    <SumCell items={summaryItems} field="rawG" />
-                    <SumCell items={summaryItems} field="rawS" />
-                    <SumCell items={summaryItems} field="rawMissed" />
-                    <SumCell items={summaryItems} field="splitA" />
-                    <SumCell items={summaryItems} field="splitB" />
-                    <SumCell items={summaryItems} field="splitG" />
-                    <SumCell items={summaryItems} field="splitS" />
-                    <SumCell items={summaryItems} field="splitMissed" />
-                    <SumCell items={summaryItems} field="serviceIncome" bold />
-                    <SumCell items={summaryItems} field="crossArea" />
-                    <SumCell items={summaryItems} field="serviceBonus" />
-                    <SumCell items={summaryItems} field="quotaDev" />
-                    <SumCell items={summaryItems} field="certBonus" />
-                    <SumCell items={summaryItems} field="referral" />
-                    <SumCell items={summaryItems} field="mentoring" />
-                    <SumCell items={summaryItems} field="holidayBonus" />
-                    <SumCell items={summaryItems} field="otherSubsidy" />
-                    <SumCell items={summaryItems} field="other1" />
-                    <SumCell items={summaryItems} field="other2" />
-                    <SumCell items={summaryItems} field="payable" bold />
-                    <SumCell items={summaryItems} field="autoTax" />
+                    <SumCell value={summaryTotals.rawA} />
+                    <SumCell value={summaryTotals.rawB} />
+                    <SumCell value={summaryTotals.rawG} />
+                    <SumCell value={summaryTotals.rawS} />
+                    <SumCell value={summaryTotals.rawMissed} />
+                    <SumCell value={summaryTotals.splitA} />
+                    <SumCell value={summaryTotals.splitB} />
+                    <SumCell value={summaryTotals.splitG} />
+                    <SumCell value={summaryTotals.splitS} />
+                    <SumCell value={summaryTotals.splitMissed} />
+                    <SumCell value={summaryTotals.serviceIncome} bold />
+                    <SumCell value={summaryTotals.crossArea} />
+                    <SumCell value={summaryTotals.serviceBonus} />
+                    <SumCell value={summaryTotals.quotaDev} />
+                    <SumCell value={summaryTotals.certBonus} />
+                    <SumCell value={summaryTotals.referral} />
+                    <SumCell value={summaryTotals.mentoring} />
+                    <SumCell value={summaryTotals.holidayBonus} />
+                    <SumCell value={summaryTotals.otherSubsidy} />
+                    <SumCell value={summaryTotals.other1} />
+                    <SumCell value={summaryTotals.other2} />
+                    <SumCell value={summaryTotals.payable} bold />
+                    <SumCell value={summaryTotals.autoTax} />
                     <EC />
-                    <SumCell items={summaryItems} field="fuel" />
+                    <SumCell value={summaryTotals.fuel} />
                     <EC />
-                    <SumCell items={summaryItems} field="laborFee" />
+                    <SumCell value={summaryTotals.laborFee} />
                     <EC /><EC />
-                    <SumCell items={summaryItems} field="healthFee" />
+                    <SumCell value={summaryTotals.healthFee} />
                     <EC />
-                    <SumCell items={summaryItems} field="pensionFee" />
-                    <SumCell items={summaryItems} field="otherDeduction1" />
-                    <SumCell items={summaryItems} field="otherDeduction2" />
-                    <SumCell items={summaryItems} field="total" bold />
-                    <SumCell items={summaryItems} field="netSalary" accent />
+                    <SumCell value={summaryTotals.pensionFee} />
+                    <SumCell value={summaryTotals.otherDeduction1} />
+                    <SumCell value={summaryTotals.otherDeduction2} />
+                    <SumCell value={summaryTotals.total} bold />
+                    <SumCell value={summaryTotals.netSalary} accent />
                     <EC /><EC />
                   </tr>
                 </tfoot>
@@ -1183,7 +1278,7 @@ const SalarySummary = () => {
       {/* ── 薪資總表(2) 外帳 ──────────────────────────────────────────────── */}
       {subTab === 'summary2' && (
         <div className="overflow-hidden rounded-md border glass-panel" style={{ borderColor: 'var(--glass-border)', background: 'var(--glass-bg)' }}>
-          <div className="overflow-x-auto overflow-y-auto max-h-[70vh]">
+          <div ref={salary2ScrollRef} className="overflow-x-auto overflow-y-auto max-h-[70vh]">
             <table className="w-full text-left border-collapse whitespace-nowrap">
               <thead className="sticky top-0 z-10" style={{ background: 'var(--table-header-bg)' }}>
                 <tr className="border-b" style={{ borderColor: 'var(--glass-border)' }}>
@@ -1206,7 +1301,11 @@ const SalarySummary = () => {
                   <tr><td colSpan="15" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>尚無數據，請先建立員工名單並上傳計算</td></tr>
                 ) : filteredSalary2.length === 0 ? (
                   <tr><td colSpan="15" className="p-12 text-center" style={{ color: 'var(--text-secondary)' }}>無符合「{search}」的結果</td></tr>
-                ) : filteredSalary2.map(item => (
+                ) : <>
+                  {salary2PadTop > 0 && <tr><td colSpan="15" style={{ height: salary2PadTop }} /></tr>}
+                  {salary2VItems.map(vRow => {
+                    const item = filteredSalary2[vRow.index];
+                    return (
                   <tr key={item.id} className="group transition-colors border-b hover:bg-white/[0.05]" style={{ borderColor: 'var(--glass-border)' }}>
                     <td className="px-4 py-3 font-mono text-sm font-medium sticky left-0 z-[5] min-w-[80px]" style={{ color: 'var(--text-primary)', background: 'var(--glass-bg)' }}>{item.empId}</td>
                     <td className="px-4 py-3 text-sm font-medium sticky left-[80px] z-[5]" style={{ color: 'var(--text-primary)', background: 'var(--glass-bg)', boxShadow: '2px 0 6px -2px rgba(0,0,0,0.2)' }}>{item.name}</td>
@@ -1226,26 +1325,29 @@ const SalarySummary = () => {
                     <td className="px-4 py-3 font-mono text-sm text-right text-red-400">{money(item.otherDeduction)}</td>
                     <td className="px-4 py-3 font-mono text-sm text-right font-bold text-emerald-400">${item.netSalary.toLocaleString()}</td>
                   </tr>
-                ))}
+                    );
+                  })}
+                  {salary2PadBot > 0 && <tr><td colSpan="15" style={{ height: salary2PadBot }} /></tr>}
+                </>}
               </tbody>
               {salary2Items.length > 0 && (
                 <tfoot className="sticky bottom-0 z-10" style={{ background: 'var(--table-header-bg)' }}>
                   <tr className="border-t" style={{ borderColor: 'var(--glass-border)' }}>
                     <td className="px-4 py-2.5 text-xs font-bold sticky left-0 z-[5] min-w-[80px]" style={{ color: 'var(--text-primary)', background: 'var(--table-header-bg)' }}>小計</td>
                     <EC />
-                    <SumCell items={salary2Items} field="baseSalary" bold />
-                    <SumCell items={salary2Items} field="crossArea" />
-                    <SumCell items={salary2Items} field="ot134" />
-                    <SumCell items={salary2Items} field="ot167" />
-                    <SumCell items={salary2Items} field="ot267" />
-                    <SumCell items={salary2Items} field="ot1" />
-                    <SumCell items={salary2Items} field="ot2" />
-                    <SumCell items={salary2Items} field="withholdingTax" />
-                    <SumCell items={salary2Items} field="laborFee" />
-                    <SumCell items={salary2Items} field="healthFee" />
-                    <SumCell items={salary2Items} field="pensionFee" />
-                    <SumCell items={salary2Items} field="otherDeduction" />
-                    <SumCell items={salary2Items} field="netSalary" accent />
+                    <SumCell value={salary2Totals.baseSalary} bold />
+                    <SumCell value={salary2Totals.crossArea} />
+                    <SumCell value={salary2Totals.ot134} />
+                    <SumCell value={salary2Totals.ot167} />
+                    <SumCell value={salary2Totals.ot267} />
+                    <SumCell value={salary2Totals.ot1} />
+                    <SumCell value={salary2Totals.ot2} />
+                    <SumCell value={salary2Totals.withholdingTax} />
+                    <SumCell value={salary2Totals.laborFee} />
+                    <SumCell value={salary2Totals.healthFee} />
+                    <SumCell value={salary2Totals.pensionFee} />
+                    <SumCell value={salary2Totals.otherDeduction} />
+                    <SumCell value={salary2Totals.netSalary} accent />
                   </tr>
                 </tfoot>
               )}

@@ -2,10 +2,23 @@ import { auth } from './firebase.js';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
+// ── 快取層：GET 去重 + 寫入後全清 ──────────────────────────────────────────
+// cache: key → resolved data（命中直接回傳，不再打 API）
+// inflight: key → Promise（同一請求進行中時，第二個呼叫共用同一 Promise）
+const cache = new Map();
+const inflight = new Map();
+
+export function invalidateCache() {
+  cache.clear();
+  inflight.clear();
+}
+// ────────────────────────────────────────────────────────────────────────────
+
 // InstitutionContext 在 institution 改變時呼叫此函式，讓 apiClient 持有最新值
 let _currentInstitution = null;
 export function setApiInstitution(code) {
   _currentInstitution = code;
+  invalidateCache(); // 切機構時清快取，避免看到其他機構的資料
 }
 
 async function getToken() {
@@ -25,7 +38,7 @@ function buildUrl(path, params = {}) {
   return url.toString();
 }
 
-async function request(method, path, { params, body } = {}) {
+async function fetchOnce(method, path, params, body) {
   const token = await getToken();
   const headers = { Authorization: `Bearer ${token}` };
   if (body != null) headers['Content-Type'] = 'application/json';
@@ -43,9 +56,34 @@ async function request(method, path, { params, body } = {}) {
     throw err;
   }
 
-  // 204 No Content
   if (res.status === 204) return null;
   return res.json();
+}
+
+async function request(method, path, { params, body } = {}) {
+  if (method !== 'GET') {
+    const result = await fetchOnce(method, path, params, body);
+    invalidateCache(); // 任何寫入後清快取，保證下次讀到最新
+    return result;
+  }
+
+  const key = buildUrl(path, params);
+
+  if (cache.has(key)) return cache.get(key);
+
+  if (inflight.has(key)) return inflight.get(key);
+
+  const promise = fetchOnce(method, path, params, body).then((data) => {
+    cache.set(key, data);
+    inflight.delete(key);
+    return data;
+  }).catch((err) => {
+    inflight.delete(key);
+    throw err;
+  });
+
+  inflight.set(key, promise);
+  return promise;
 }
 
 export const apiGet = (path, params) => request('GET', path, { params });

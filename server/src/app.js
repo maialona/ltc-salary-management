@@ -13,6 +13,15 @@ export async function buildApp() {
     logger: process.env.NODE_ENV !== 'test',
   });
 
+  // 將 AJV schema 驗證錯誤統一轉為 { error: message }，與現有 API 錯誤格式一致
+  fastify.setErrorHandler((err, _req, reply) => {
+    if (err.validation) {
+      const msg = err.validation[0]?.message ?? 'Validation error';
+      return reply.code(400).send({ error: msg });
+    }
+    reply.send(err);
+  });
+
   await fastify.register(cors, {
     origin: (process.env.CORS_ORIGIN ?? 'http://localhost:5173').split(','),
     credentials: false,

@@ -300,6 +300,8 @@ export default function RevenueReport() {
     try {
       const fullName = getInstitutionFullName(currentInstitution);
       await exportRevenueExcel(rows, fullName, period);
+    } catch (err) {
+      alert(`匯出失敗：${err.message}`);
     } finally {
       setIsExporting(false);
     }

@@ -4,6 +4,22 @@ import { db } from '../db.js';
 
 const preHandler = [verifyToken, institutionScope];
 
+const periodQS = {
+  type: 'object',
+  required: ['period'],
+  properties: { period: { type: 'string', pattern: '^\\d{4}-\\d{2}$' } },
+};
+
+const bonusBody = {
+  type: 'object',
+  required: ['empId'],
+  properties: {
+    empId: { type: 'string', minLength: 1 },
+    name:  { type: 'string' },
+  },
+  additionalProperties: true,
+};
+
 function dbToClient(row) {
   return {
     id: row.id,
@@ -92,7 +108,7 @@ async function upsertBonus(client, institutionCode, period, bonus) {
 
 export async function bonusesRoutes(fastify) {
   // GET /api/bonuses?period=YYYY-MM
-  fastify.get('/api/bonuses', { preHandler }, async (req, reply) => {
+  fastify.get('/api/bonuses', { preHandler, schema: { querystring: periodQS } }, async (req, reply) => {
     const { period } = req.query;
     if (!period) return reply.code(400).send({ error: 'period required' });
     const { rows } = await db.query(
@@ -103,7 +119,7 @@ export async function bonusesRoutes(fastify) {
   });
 
   // POST /api/bonuses?period=YYYY-MM — upsert single
-  fastify.post('/api/bonuses', { preHandler }, async (req, reply) => {
+  fastify.post('/api/bonuses', { preHandler, schema: { querystring: periodQS, body: bonusBody } }, async (req, reply) => {
     const { period } = req.query;
     if (!period) return reply.code(400).send({ error: 'period required' });
     if (!req.body.empId) return reply.code(400).send({ error: 'empId required' });
@@ -117,7 +133,7 @@ export async function bonusesRoutes(fastify) {
   });
 
   // POST /api/bonuses/import?period=YYYY-MM — bulk upsert
-  fastify.post('/api/bonuses/import', { preHandler }, async (req, reply) => {
+  fastify.post('/api/bonuses/import', { preHandler, schema: { querystring: periodQS } }, async (req, reply) => {
     const { period } = req.query;
     const { bonuses } = req.body;
     if (!period || !Array.isArray(bonuses)) return reply.code(400).send({ error: 'period and bonuses required' });
@@ -139,7 +155,7 @@ export async function bonusesRoutes(fastify) {
   });
 
   // DELETE /api/bonuses?period=YYYY-MM — clear all for period
-  fastify.delete('/api/bonuses', { preHandler }, async (req, reply) => {
+  fastify.delete('/api/bonuses', { preHandler, schema: { querystring: periodQS } }, async (req, reply) => {
     const { period } = req.query;
     if (!period) return reply.code(400).send({ error: 'period required' });
     await db.query(

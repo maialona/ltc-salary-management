@@ -4,6 +4,22 @@ import { db } from '../db.js';
 
 const preHandler = [verifyToken, institutionScope];
 
+const periodQS = {
+  type: 'object',
+  required: ['period'],
+  properties: { period: { type: 'string', pattern: '^\\d{4}-\\d{2}$' } },
+};
+
+const deductionBody = {
+  type: 'object',
+  required: ['empId'],
+  properties: {
+    empId: { type: 'string', minLength: 1 },
+    name:  { type: 'string' },
+  },
+  additionalProperties: true,
+};
+
 function dbToClient(row) {
   return {
     id: row.id,
@@ -70,7 +86,7 @@ async function upsertDeduction(client, institutionCode, period, ded) {
 
 export async function deductionsRoutes(fastify) {
   // GET /api/deductions?period=YYYY-MM
-  fastify.get('/api/deductions', { preHandler }, async (req, reply) => {
+  fastify.get('/api/deductions', { preHandler, schema: { querystring: periodQS } }, async (req, reply) => {
     const { period } = req.query;
     if (!period) return reply.code(400).send({ error: 'period required' });
     const { rows } = await db.query(
@@ -81,7 +97,7 @@ export async function deductionsRoutes(fastify) {
   });
 
   // POST /api/deductions?period=YYYY-MM — upsert single
-  fastify.post('/api/deductions', { preHandler }, async (req, reply) => {
+  fastify.post('/api/deductions', { preHandler, schema: { querystring: periodQS, body: deductionBody } }, async (req, reply) => {
     const { period } = req.query;
     if (!period) return reply.code(400).send({ error: 'period required' });
     if (!req.body.empId) return reply.code(400).send({ error: 'empId required' });
@@ -95,7 +111,7 @@ export async function deductionsRoutes(fastify) {
   });
 
   // POST /api/deductions/import?period=YYYY-MM — bulk upsert
-  fastify.post('/api/deductions/import', { preHandler }, async (req, reply) => {
+  fastify.post('/api/deductions/import', { preHandler, schema: { querystring: periodQS } }, async (req, reply) => {
     const { period } = req.query;
     const { deductions } = req.body;
     if (!period || !Array.isArray(deductions)) return reply.code(400).send({ error: 'period and deductions required' });
@@ -117,7 +133,7 @@ export async function deductionsRoutes(fastify) {
   });
 
   // DELETE /api/deductions?period=YYYY-MM — clear all for period
-  fastify.delete('/api/deductions', { preHandler }, async (req, reply) => {
+  fastify.delete('/api/deductions', { preHandler, schema: { querystring: periodQS } }, async (req, reply) => {
     const { period } = req.query;
     if (!period) return reply.code(400).send({ error: 'period required' });
     await db.query(

@@ -13,6 +13,9 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  worker: {
+    format: 'es', // 支援 exceljs 的 ESM import
+  },
   server: {
     proxy: {
       '/api': {

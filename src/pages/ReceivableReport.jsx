@@ -138,6 +138,8 @@ export default function ReceivableReport() {
     try {
       const fullName = getInstitutionFullName(currentInstitution);
       await exportReceivableExcel(rows, fullName, period);
+    } catch (err) {
+      alert(`匯出失敗：${err.message}`);
     } finally {
       setIsExporting(false);
     }
