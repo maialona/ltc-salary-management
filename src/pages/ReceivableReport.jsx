@@ -293,19 +293,6 @@ export default function ReceivableReport() {
 
       {subTab === 'payment' && (
         <div className="space-y-4">
-          {/* Payment list info */}
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: '費用期別', value: `${minguo}${monthStr}` },
-              { label: '繳費期限', value: deadline },
-              { label: '筆數', value: rows.length ? `${rows.length} 筆` : '尚無資料' },
-            ].map(({ label, value }) => (
-              <div key={label} className="p-3 rounded-md border glass-panel" style={{ borderColor: 'var(--glass-border)' }}>
-                <div className="text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{label}</div>
-                <div className="text-sm font-mono font-semibold" style={{ color: 'var(--text-primary)' }}>{value}</div>
-              </div>
-            ))}
-          </div>
           {/* Export button */}
           <div className="flex items-center gap-3">
             <button
@@ -323,6 +310,115 @@ export default function ReceivableReport() {
               </span>
             )}
           </div>
+
+          {/* Data table */}
+          {rows.length > 0 && (() => {
+            const instCode = currentInstitution;
+            const prefix = { hongkang: 1001, qianyi: 2001, kuanze: 3001 }[instCode];
+            const feeLabel = `${minguo}年${monthStr}月份${getInstitutionName(instCode)}居家個案負擔費`;
+            const maskId = (id) => {
+              const s = String(id || '');
+              return s.length < 6 ? s : s.slice(0, 2) + '****' + s.slice(6);
+            };
+            const PAYMENT_COLS = [
+              { key: 'customerNo',  label: '客戶編號',     w: 72  },
+              { key: 'name',        label: '姓名',         w: 64  },
+              { key: 'deadline',    label: '繳費期限',     w: 88  },
+              { key: 'copayB',      label: '居服部分負擔', w: 80, num: true },
+              { key: 'copayG',      label: '喘息部分負擔', w: 80, num: true },
+              { key: 'copayS',      label: '短照部分負擔', w: 80, num: true },
+              { key: 'selfB',       label: '居服全自費',   w: 72, num: true },
+              { key: 'selfG',       label: '喘息全自費',   w: 72, num: true },
+              { key: 'selfS',       label: '短照全自費',   w: 72, num: true },
+              { key: 'desc2',       label: '繳費說明2',    w: 200 },
+              { key: 'desc3',       label: '繳費說明3',    w: 120 },
+              { key: 'desc5',       label: '繳費說明5',    w: 120 },
+              { key: 'desc6',       label: '繳費說明6',    w: 100 },
+              { key: 'desc7',       label: '繳費說明7',    w: 80  },
+              { key: 'desc8',       label: '繳費說明8',    w: 72  },
+            ];
+            const paymentRows = rows.map((r, idx) => ({
+              customerNo: prefix ? String(prefix + idx) : '',
+              name:       r.個案姓名 || '',
+              deadline,
+              copayB:     Number(r['居-部分負擔']) || 0,
+              copayG:     Number(r['喘-部分負擔']) || 0,
+              copayS:     Number(r['短-部分負擔']) || 0,
+              selfB:      Number(r['居-全額自']) || 0,
+              selfG:      Number(r['喘-全額自']) || 0,
+              selfS:      Number(r['短-全額自']) || 0,
+              desc2:      feeLabel,
+              desc3:      maskId(r.身分證號),
+              desc5:      `福利身分別：${r.福利身分別 || ''}`,
+              desc6:      `個案主責督導：${r.個案者主責督導 || ''}`,
+              desc7:      `區域：${r.區域 || ''}`,
+              desc8:      r.送單人 || '',
+            }));
+            return (
+              <div className="rounded-md border overflow-hidden" style={{ borderColor: 'var(--glass-border)' }}>
+                <div className="overflow-auto" style={{ maxHeight: 'calc(70vh - 33px)' }}>
+                  <table className="text-xs border-collapse" style={{ width: '100%', minWidth: '1400px' }}>
+                    <thead className="sticky top-0 z-10">
+                      <tr style={{ background: 'var(--glass-bg)' }}>
+                        <th className="px-3 py-2 text-left font-semibold border-b whitespace-nowrap"
+                          style={{ borderColor: 'var(--glass-border)', color: 'var(--text-secondary)', minWidth: 32 }}>#</th>
+                        {PAYMENT_COLS.map(c => (
+                          <th key={c.key} className="px-3 py-2 text-left font-semibold border-b whitespace-nowrap"
+                            style={{ borderColor: 'var(--glass-border)', color: 'var(--text-secondary)', minWidth: c.w }}>
+                            {c.label}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paymentRows.map((pr, idx) => (
+                        <tr key={idx} className="border-b transition-colors hover:bg-white/5"
+                          style={{ borderColor: 'var(--glass-border)' }}>
+                          <td className="px-3 py-2 text-right font-mono"
+                            style={{ color: 'var(--text-secondary)' }}>{idx + 1}</td>
+                          {PAYMENT_COLS.map(c => (
+                            <td key={c.key} className="px-3 py-2 whitespace-nowrap"
+                              style={{
+                                color: 'var(--text-primary)',
+                                fontFamily: c.num ? 'monospace' : undefined,
+                                textAlign: c.num ? 'right' : undefined,
+                              }}>
+                              {c.num ? fmt(pr[c.key]) : (pr[c.key] ?? '')}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr style={{ background: 'rgba(96,165,250,0.06)' }}>
+                        <td className="px-3 py-2 font-semibold whitespace-nowrap"
+                          style={{ minWidth: 32, color: 'var(--text-accent)' }}>合計</td>
+                        {PAYMENT_COLS.map((c, i) => (
+                          <td key={c.key} className="px-3 py-2 whitespace-nowrap font-semibold"
+                            style={{
+                              minWidth: c.w,
+                              color: c.num ? 'var(--text-accent)' : 'var(--text-secondary)',
+                              fontFamily: c.num ? 'monospace' : undefined,
+                              textAlign: c.num ? 'right' : undefined,
+                            }}>
+                            {c.num
+                              ? fmt(paymentRows.reduce((s, pr) => s + (pr[c.key] || 0), 0))
+                              : (i === 0 ? `${paymentRows.length} 筆` : '')}
+                          </td>
+                        ))}
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            );
+          })()}
+
+          {!rows.length && (
+            <div className="p-8 text-center rounded-md border" style={{ borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>
+              請上傳應收清冊以開始計算
+            </div>
+          )}
         </div>
       )}
 
