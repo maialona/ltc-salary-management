@@ -45,7 +45,7 @@ export const processData = async (files, updateProgress) => {
 
     updateProgress("正在分析排班紀錄...");
     await new Promise(r => setTimeout(r, 50));
-    const { json: serviceRaw } = await readExcel(files.serviceRecord);
+    const { json: serviceRaw } = await readExcel(files.serviceRecord, { headerRow: 3 });
     const serviceData = {}; 
     const monthlyServiceMap = {}; 
     const debugServiceKeys = [];
@@ -83,7 +83,7 @@ export const processData = async (files, updateProgress) => {
     updateProgress("正在比對衛福部清冊...");
     await new Promise(r => setTimeout(r, 50));
     
-    const { json: govRaw } = await readExcel(files.govRecord);
+    const { json: govRaw } = await readExcel(files.govRecord, { headerRow: 4 });
     const results = [];
     const errorLogs = [];
     const debugGovKeys = [];

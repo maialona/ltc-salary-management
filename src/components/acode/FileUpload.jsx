@@ -4,11 +4,13 @@ import { readExcel } from '../../utils/acode-excel';
 
 const FileUpload = ({ files, setFiles, fileStatus, setFileStatus, setFileHeaders, onProcess, isProcessing, progressText, showAlert }) => {
 
+    const HEADER_ROWS = { serviceRecord: 3, govRecord: 4 };
+
     const handleFileChange = async (e, type) => {
         const file = e.target.files[0];
         if (file) {
             try {
-                const { headers } = await readExcel(file);
+                const { headers } = await readExcel(file, { headerRow: HEADER_ROWS[type] ?? 1 });
                 setFiles(prev => ({ ...prev, [type]: file }));
                 setFileStatus(prev => ({ ...prev, [type]: true }));
                 setFileHeaders(prev => ({ ...prev, [type]: headers }));
