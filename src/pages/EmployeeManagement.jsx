@@ -367,6 +367,7 @@ const EmployeeManagement = () => {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>員工管理</h2>
+              <span className="text-xs px-2 py-0.5 rounded-full border" style={{ borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>{getInstitutionName(currentInstitution)}</span>
               <span className="text-xs px-2 py-0.5 rounded-full font-mono" style={{ background: 'var(--nav-active-bg)', color: 'var(--nav-active-text)' }}>{getPeriod()}</span>
             </div>
           </div>

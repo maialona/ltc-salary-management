@@ -7,7 +7,7 @@ import { getRecords } from '../data/recordsStore';
 import { getAcodeResults } from '../data/acodeStore';
 import { subscribePeriod, getPeriod } from '../data/periodStore';
 import { useInstitution } from '../context/InstitutionContext';
-import { getInstitutionFullName, INSTITUTIONS } from '../constants/institutions';
+import { getInstitutionFullName, getInstitutionName, INSTITUTIONS } from '../constants/institutions';
 import { computeLaborCapAdjustments } from '../utils/laborCap';
 import { lookupWithholdingTax } from '../data/withholdingTaxTable';
 import { FileText, Printer, FileDown } from 'lucide-react';
@@ -939,6 +939,7 @@ const SalarySlipDownload = () => {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>薪資表下載</h2>
+              <span className="text-xs px-2 py-0.5 rounded-full border" style={{ borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>{getInstitutionName(currentInstitution)}</span>
               <span className="text-xs px-2 py-0.5 rounded-full font-mono" style={{ background: 'var(--nav-active-bg)', color: 'var(--nav-active-text)' }}>{getPeriod()}</span>
             </div>
             <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>選擇薪資類型後預覽並列印</p>

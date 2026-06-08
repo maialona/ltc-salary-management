@@ -8,6 +8,7 @@ import { saveRevenueSelfPay, saveRevenueSupervisor, saveRevenueDistrict } from '
 import { getPeriod, subscribePeriod } from '../data/periodStore';
 import { saveCaseQuantity } from '../data/caseQuantityStore';
 import { useInstitution } from '../context/InstitutionContext';
+import { getInstitutionName } from '../constants/institutions';
 
 const fmt = (val, decimals = 1) =>
   val.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
@@ -200,6 +201,7 @@ const RecordsProcessing = () => {
       {/* Header */}
       <div className="flex items-center gap-2">
         <h2 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>B、G、S碼計算</h2>
+        <span className="text-xs px-2 py-0.5 rounded-full border" style={{ borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>{getInstitutionName(currentInstitution)}</span>
         <span className="text-xs px-2 py-0.5 rounded-full font-mono" style={{ background: 'var(--nav-active-bg)', color: 'var(--nav-active-text)' }}>{getPeriod()}</span>
       </div>
 

@@ -372,6 +372,7 @@ export default function ReceivableReport() {
         <div className="flex items-center gap-2">
           <Wallet size={18} style={{ color: 'var(--text-accent)' }} />
           <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>應收管理</h2>
+          <span className="text-xs px-2 py-0.5 rounded-full border" style={{ borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>{getInstitutionName(currentInstitution)}</span>
           <span className="text-xs px-2 py-0.5 rounded-full font-mono"
             style={{ background: 'var(--nav-active-bg)', color: 'var(--nav-active-text)' }}>
             {period}

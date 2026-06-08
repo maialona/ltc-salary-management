@@ -6,6 +6,7 @@ import { getEmployees } from '../data/employeeStore';
 import { getAcodeResults } from '../data/acodeStore';
 import { subscribePeriod, getPeriod } from '../data/periodStore';
 import { useInstitution } from '../context/InstitutionContext';
+import { getInstitutionName } from '../constants/institutions';
 import { generateUUID } from '../utils/uuid';
 import { parseBonusExcel } from '../utils/excelParser';
 import ConfirmModal from '../components/ConfirmModal';
@@ -176,6 +177,7 @@ const BonusManagement = () => {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>額外獎金管理</h2>
+              <span className="text-xs px-2 py-0.5 rounded-full border" style={{ borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>{getInstitutionName(currentInstitution)}</span>
               <span className="text-xs px-2 py-0.5 rounded-full font-mono" style={{ background: 'var(--nav-active-bg)', color: 'var(--nav-active-text)' }}>{getPeriod()}</span>
             </div>
             <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>名單連動員工管理，請於該處新增/刪除人員</p>

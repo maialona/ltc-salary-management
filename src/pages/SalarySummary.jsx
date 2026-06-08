@@ -9,6 +9,7 @@ import { getRecords, getSupportMainBgs } from '../data/recordsStore';
 import { getAcodeResults } from '../data/acodeStore';
 import { subscribePeriod, getPeriod } from '../data/periodStore';
 import { useInstitution } from '../context/InstitutionContext';
+import { getInstitutionName } from '../constants/institutions';
 import { lookupWithholdingTax } from '../data/withholdingTaxTable';
 import { exportBgsExcel, exportAcodeExcel, exportSummaryExcel, exportSummary2Excel } from '../utils/salary-excel';
 import { computeLaborCapAdjustments } from '../utils/laborCap';
@@ -772,6 +773,7 @@ const SalarySummary = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h2 className="text-2xl font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>薪資報表</h2>
+          <span className="text-xs px-2 py-0.5 rounded-full border" style={{ borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>{getInstitutionName(currentInstitution)}</span>
           <span className="text-xs px-2 py-0.5 rounded-full font-mono" style={{ background: 'var(--nav-active-bg)', color: 'var(--nav-active-text)' }}>{getPeriod()}</span>
         </div>
         <button
