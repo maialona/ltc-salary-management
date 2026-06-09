@@ -155,10 +155,7 @@ function SalaryTrendChart({ trendData }) {
           value={selectedEmpId ?? ''}
           onChange={e => setSelectedEmpId(e.target.value)}
           className="text-xs rounded-md border px-2 py-1 outline-none"
-          style={{
-            background: 'var(--glass-bg)', color: 'var(--text-primary)',
-            borderColor: 'var(--glass-border)',
-          }}
+          style={selectStyle}
         >
           {employees.map(e => (
             <option key={e.empId} value={e.empId}>{e.name}</option>
@@ -180,6 +177,110 @@ function SalaryTrendChart({ trendData }) {
           </LineChart>
         </ResponsiveContainer>
       </div>
+    </div>
+  );
+}
+
+const selectStyle = {
+  background: 'var(--glass-bg)', color: 'var(--text-primary)',
+  borderColor: 'var(--glass-border)',
+};
+
+// ── Section 4: Salary distribution (horizontal bar, one period) ───────────────
+function SalaryDistributionChart({ trendData }) {
+  const { periods, employees } = trendData ?? { periods: [], employees: [] };
+  const [selectedPeriod, setSelectedPeriod] = useState(null);
+
+  useEffect(() => {
+    if (periods.length && !selectedPeriod) setSelectedPeriod(periods[periods.length - 1]);
+  }, [periods]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const chartData = useMemo(() => {
+    if (!selectedPeriod || !employees.length) return [];
+    return employees
+      .map(e => ({
+        name: e.name,
+        bgs:   e.periods[selectedPeriod]?.bgs   ?? 0,
+        acode: e.periods[selectedPeriod]?.acode ?? 0,
+      }))
+      .filter(e => e.bgs + e.acode > 0)
+      .sort((a, b) => (b.bgs + b.acode) - (a.bgs + a.acode));
+  }, [selectedPeriod, employees]);
+
+  if (!employees.length) {
+    return <EmptyState msg="尚無資料。請先至「B、G、S碼計算」頁上傳服務紀錄表並計算。" />;
+  }
+
+  const barHeight = Math.max(200, chartData.length * 36 + 40);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>選擇期間：</span>
+        <select
+          value={selectedPeriod ?? ''}
+          onChange={e => setSelectedPeriod(e.target.value)}
+          className="text-xs rounded-md border px-2 py-1 outline-none"
+          style={selectStyle}
+        >
+          {periods.map(p => <option key={p} value={p}>{periodToLabel(p)}</option>)}
+        </select>
+      </div>
+      <div className="rounded-md border p-4" style={{ borderColor: 'var(--glass-border)' }}>
+        <ResponsiveContainer width="100%" height={barHeight}>
+          <BarChart data={chartData} layout="vertical" margin={{ top: 4, right: 48, bottom: 0, left: 4 }}>
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--glass-border)" />
+            <XAxis type="number" tickFormatter={yTickFmt} tick={axisStyle} />
+            <YAxis type="category" dataKey="name" tick={axisStyle} width={68} />
+            <Tooltip content={<CustomTooltip />} />
+            <Legend wrapperStyle={{ fontSize: 12, color: 'var(--text-secondary)' }} />
+            <Bar dataKey="bgs"   name="BGS薪資" stackId="a" fill={SALARY_COLORS.bgs} />
+            <Bar dataKey="acode" name="A碼獎金" stackId="a" fill={SALARY_COLORS.acode} radius={[0, 3, 3, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+// ── Section 5: Salary band (avg / max / min trend) ────────────────────────────
+function SalaryBandChart({ trendData }) {
+  const { periods, employees } = trendData ?? { periods: [], employees: [] };
+
+  const chartData = useMemo(() => {
+    return periods.map(p => {
+      const totals = employees
+        .map(e => (e.periods[p]?.bgs ?? 0) + (e.periods[p]?.acode ?? 0))
+        .filter(v => v > 0);
+      if (!totals.length) return null;
+      const sum = totals.reduce((a, b) => a + b, 0);
+      return {
+        label: periodToLabel(p),
+        avg: Math.round(sum / totals.length),
+        max: Math.max(...totals),
+        min: Math.min(...totals),
+      };
+    }).filter(Boolean);
+  }, [periods, employees]);
+
+  if (!employees.length) {
+    return <EmptyState msg="尚無資料。請先至「B、G、S碼計算」頁上傳服務紀錄表並計算。" />;
+  }
+
+  return (
+    <div className="rounded-md border p-4" style={{ borderColor: 'var(--glass-border)' }}>
+      <ResponsiveContainer width="100%" height={260}>
+        <LineChart data={chartData} margin={{ top: 4, right: 16, bottom: 0, left: 8 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-border)" />
+          <XAxis dataKey="label" tick={axisStyle} />
+          <YAxis tickFormatter={yTickFmt} tick={axisStyle} width={52} />
+          <Tooltip content={<CustomTooltip />} />
+          <Legend wrapperStyle={{ fontSize: 12, color: 'var(--text-secondary)' }} />
+          <Line type="monotone" dataKey="max" name="最高薪資" stroke="#f87171" strokeWidth={1.5} strokeDasharray="4 2" dot={{ r: 2 }} />
+          <Line type="monotone" dataKey="avg" name="平均薪資" stroke="var(--text-accent)" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+          <Line type="monotone" dataKey="min" name="最低薪資" stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="4 2" dot={{ r: 2 }} />
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   );
 }
@@ -224,7 +325,37 @@ export default function AnalyticsPage() {
         <CodeProportionChart data={revenueData} />
       </section>
 
-      {/* 3. Employee salary trend */}
+      {/* 3. Salary band */}
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>薪資帶狀圖（平均／最高／最低）</h3>
+        {trendError ? (
+          <EmptyState msg="載入失敗，請確認伺服器連線正常。" />
+        ) : !trendData ? (
+          <div className="flex items-center justify-center h-48 rounded-md border text-xs"
+            style={{ borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>
+            載入中…
+          </div>
+        ) : (
+          <SalaryBandChart trendData={trendData} />
+        )}
+      </section>
+
+      {/* 4. Salary distribution */}
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>薪資分佈</h3>
+        {trendError ? (
+          <EmptyState msg="載入失敗，請確認伺服器連線正常。" />
+        ) : !trendData ? (
+          <div className="flex items-center justify-center h-48 rounded-md border text-xs"
+            style={{ borderColor: 'var(--glass-border)', color: 'var(--text-secondary)' }}>
+            載入中…
+          </div>
+        ) : (
+          <SalaryDistributionChart trendData={trendData} />
+        )}
+      </section>
+
+      {/* 5. Employee salary trend */}
       <section className="space-y-3">
         <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>員工薪資趨勢</h3>
         {trendError ? (
