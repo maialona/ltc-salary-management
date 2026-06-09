@@ -7,6 +7,7 @@ import { recordsRoutes } from './routes/records.js';
 import { bonusesRoutes } from './routes/bonuses.js';
 import { deductionsRoutes } from './routes/deductions.js';
 import { acodeRoutes } from './routes/acode.js';
+import { analyticsRoutes } from './routes/analytics.js';
 
 export async function buildApp() {
   const fastify = Fastify({
@@ -37,6 +38,7 @@ export async function buildApp() {
   await fastify.register(bonusesRoutes);
   await fastify.register(deductionsRoutes);
   await fastify.register(acodeRoutes);
+  await fastify.register(analyticsRoutes);
 
   return fastify;
 }

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import {
   Users, FileSpreadsheet, Coins, Banknote, Download,
   Calculator, Calendar, ChevronLeft, ChevronRight,
-  Sun, Moon, ShieldCheck, ClipboardCheck, Pin, PinOff, TrendingUp, Wallet,
+  Sun, Moon, ShieldCheck, ClipboardCheck, Pin, PinOff, TrendingUp, Wallet, BarChart2,
 } from 'lucide-react';
 import { getPeriod, offsetPeriod, subscribePeriod } from '../data/periodStore';
 import { useTheme } from '../context/ThemeContext';
@@ -28,6 +28,7 @@ const ALL_NAV_ITEMS = [
   { id: 'reconcile', icon: ClipboardCheck, label: '總表核對', adminOnly: false },
   { id: 'revenue',     icon: TrendingUp,    label: '營業額',   adminOnly: false },
   { id: 'receivable',  icon: Wallet,        label: '應收管理', adminOnly: false },
+  { id: 'analytics',  icon: BarChart2,     label: '分析',     adminOnly: false },
   { id: 'bonuses', icon: Coins, label: '額外獎金', adminOnly: false },
   { id: 'deductions', icon: FileSpreadsheet, label: '應扣費用', adminOnly: false },
   { id: 'summary', icon: Banknote, label: '薪資報表', adminOnly: false },
