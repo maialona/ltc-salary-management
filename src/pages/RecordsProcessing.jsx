@@ -4,7 +4,7 @@ import { parseServiceRecordExcel, parseCaseQuantityExcel, parseSupervisorMap } f
 import { processSalaryCalculation } from '../utils/calculator';
 import { getEmployees } from '../data/employeeStore';
 import { saveRecords } from '../data/recordsStore';
-import { saveRevenueSelfPay, saveRevenueSupervisor, saveRevenueDistrict } from '../data/revenueDataStore';
+import { saveRevenueSelfPay, saveRevenueSupervisor, saveRevenueDistrict, getRevenueSelfPay, getRevenueSupervisor } from '../data/revenueDataStore';
 import { getPeriod, subscribePeriod } from '../data/periodStore';
 import { saveCaseQuantity } from '../data/caseQuantityStore';
 import { useInstitution } from '../context/InstitutionContext';
@@ -22,6 +22,7 @@ const RecordsProcessing = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const fileInputRef = useRef(null);
+  const revenueSnapshotRef = useRef({ supervisorMap: null, selfPayRows: null, districtMap: null });
 
   const loadFromStorage = (institution, period) => {
     try {
@@ -31,6 +32,12 @@ const RecordsProcessing = () => {
         if (parsed.results && parsed.results.length > 0) {
           setResults(parsed.results);
           setWarnings(parsed.warnings ?? []);
+          // 補回 revenue 資料（若 localStorage 被清除）
+          if (parsed.supervisorMap && !getRevenueSupervisor(institution, period))
+            saveRevenueSupervisor(institution, period, parsed.supervisorMap);
+          if (parsed.selfPayRows && !getRevenueSelfPay(institution, period))
+            saveRevenueSelfPay(institution, period, parsed.selfPayRows);
+          if (parsed.districtMap) saveRevenueDistrict(institution, period, parsed.districtMap);
           return;
         }
       }
@@ -49,7 +56,14 @@ const RecordsProcessing = () => {
   React.useEffect(() => {
     if (results.length > 0) {
       try {
-        localStorage.setItem(bgsKey(currentInstitution, getPeriod()), JSON.stringify({ results, warnings }));
+        const snap = revenueSnapshotRef.current;
+        localStorage.setItem(bgsKey(currentInstitution, getPeriod()), JSON.stringify({
+          results,
+          warnings,
+          supervisorMap: snap.supervisorMap,
+          selfPayRows: snap.selfPayRows,
+          districtMap: snap.districtMap,
+        }));
       } catch (e) {
         if (e.name === 'QuotaExceededError' || e.message.includes('quota')) {
           setWarnings(prev => [...prev, '系統警告：資料量過大超出瀏覽器限制 (5MB)，本次計算結果將無法於關閉後自動還原。']);
@@ -78,7 +92,10 @@ const RecordsProcessing = () => {
         }
 
         // Piggyback: 儲存居督對照表與自費明細，供「營業額」頁使用
-        const { supervisorMap, districtMap, serviceDateMap } = await parseSupervisorMap(file).catch(() => ({ supervisorMap: {}, districtMap: {}, serviceDateMap: {} }));
+        const { supervisorMap, districtMap, serviceDateMap } = await parseSupervisorMap(file).catch(e => {
+          console.error('parseSupervisorMap failed:', e);
+          return { supervisorMap: {}, districtMap: {}, serviceDateMap: {} };
+        });
         if (Object.keys(supervisorMap).length > 0) saveRevenueSupervisor(currentInstitution, getPeriod(), supervisorMap);
         if (Object.keys(districtMap).length > 0) saveRevenueDistrict(currentInstitution, getPeriod(), districtMap);
 
@@ -104,6 +121,12 @@ const RecordsProcessing = () => {
         if (selfPayRows.length > 0) {
           saveRevenueSelfPay(currentInstitution, getPeriod(), selfPayRows);
         }
+        // 快照供 BGS 狀態持久化，reload 後可補回 revenue 資料
+        revenueSnapshotRef.current = {
+          supervisorMap: Object.keys(supervisorMap).length > 0 ? supervisorMap : null,
+          selfPayRows: selfPayRows.length > 0 ? selfPayRows : null,
+          districtMap: Object.keys(districtMap).length > 0 ? districtMap : null,
+        };
 
         const { results: calcResults, warnings: calcWarnings } = processSalaryCalculation(rawData, employees);
 
