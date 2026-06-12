@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { TrendingUp, Download, RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
+import { TrendingUp, Download, RefreshCw, CheckCircle2, XCircle, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { getRevenueWelfare, getRevenueAcode, getRevenueSelfPay, getRevenueSupervisor } from '../data/revenueDataStore';
 import { buildRevenueRows } from '../utils/revenueProcessor';
 import { exportRevenueExcel } from '../utils/revenue-excel';
@@ -253,6 +253,7 @@ export default function RevenueReport() {
   const [isBuilt, setIsBuilt] = useState(() => getRevenueWelfare(currentInstitution, getPeriod()) !== null);
   const [isExporting, setIsExporting] = useState(false);
   const [view, setView] = useState('detail');
+  const [sort, setSort] = useState({ col: null, dir: 'asc' });
 
   const loadAndBuild = (inst, p) => {
     const welfare    = getRevenueWelfare(inst, p);
@@ -321,9 +322,31 @@ export default function RevenueReport() {
     return { totalRevenue, selfPayTotal, byCode };
   }, [rows]);
 
+  const NUM_COLS = new Set(['給付價格', '次數', '申報費用', '部分負擔比率', '部分負擔費用', '補助比率', '申請補助費用', '實際補助金額']);
+
+  const sortedRows = useMemo(() => {
+    if (!sort.col) return rows;
+    const isNum = NUM_COLS.has(sort.col);
+    return [...rows].sort((a, b) => {
+      const av = isNum ? (Number(a[sort.col]) || 0) : String(a[sort.col] ?? '');
+      const bv = isNum ? (Number(b[sort.col]) || 0) : String(b[sort.col] ?? '');
+      if (av < bv) return sort.dir === 'asc' ? -1 : 1;
+      if (av > bv) return sort.dir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [rows, sort]);
+
+  const handleSort = useCallback((colKey) => {
+    setSort(prev =>
+      prev.col === colKey
+        ? { col: colKey, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+        : { col: colKey, dir: 'asc' }
+    );
+  }, []);
+
   const tableContainerRef = useRef(null);
   const rowVirtualizer = useVirtualizer({
-    count: rows.length,
+    count: sortedRows.length,
     getScrollElement: () => tableContainerRef.current,
     estimateSize: () => 33,
     overscan: 10,
@@ -469,13 +492,21 @@ export default function RevenueReport() {
                       style={{ background: 'var(--glass-bg)', borderColor: 'var(--glass-border)', color: 'var(--text-secondary)', minWidth: 32 }}>
                       #
                     </th>
-                    {TABLE_COLS.map(c => (
-                      <th key={c.key}
-                        className="px-3 py-2 text-left font-semibold border-b whitespace-nowrap"
-                        style={{ borderColor: 'var(--glass-border)', color: 'var(--text-secondary)', minWidth: c.w }}>
-                        {c.label}
-                      </th>
-                    ))}
+                    {TABLE_COLS.map(c => {
+                      const isActive = sort.col === c.key;
+                      const SortIcon = isActive ? (sort.dir === 'asc' ? ChevronUp : ChevronDown) : ChevronsUpDown;
+                      return (
+                        <th key={c.key}
+                          onClick={() => handleSort(c.key)}
+                          className="px-3 py-2 text-left font-semibold border-b whitespace-nowrap cursor-pointer select-none"
+                          style={{ borderColor: 'var(--glass-border)', color: isActive ? 'var(--text-accent)' : 'var(--text-secondary)', minWidth: c.w }}>
+                          <span className="inline-flex items-center gap-1">
+                            {c.label}
+                            <SortIcon size={11} opacity={isActive ? 1 : 0.4} />
+                          </span>
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
                 <tbody>
@@ -483,7 +514,7 @@ export default function RevenueReport() {
                     <tr><td colSpan={TABLE_COLS.length + 1} style={{ height: paddingTop }} /></tr>
                   )}
                   {virtualItems.map(virtualRow => {
-                    const row = rows[virtualRow.index];
+                    const row = sortedRows[virtualRow.index];
                     const idx = virtualRow.index;
                     const codeColor = CODE_COLORS[row.碼別] ?? CODE_COLORS[''];
                     return (

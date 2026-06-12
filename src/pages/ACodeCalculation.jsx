@@ -6,7 +6,7 @@ import { subscribePeriod, getPeriod } from '../data/periodStore';
 import { useInstitution } from '../context/InstitutionContext';
 import { getInstitutionName } from '../constants/institutions';
 import { parseAcodeRawRows } from '../utils/excelParser';
-import { saveRevenueAcode } from '../data/revenueDataStore';
+import { saveRevenueAcode, getRevenueAcode } from '../data/revenueDataStore';
 import FileUpload from '../components/acode/FileUpload';
 import ResultsDashboard from '../components/acode/ResultsDashboard';
 import Modal from '../components/acode/Modal';
@@ -67,6 +67,10 @@ const ACodeCalculation = () => {
                     setResults(savedResults);
                     setStep(3);
                     setSelectedWorker(savedResults.finalSummary[0].name);
+                    // Restore revenue acode to localStorage if it was cleared
+                    if (savedResults.acodeRawRows?.length > 0 && !getRevenueAcode(currentInstitution, getPeriod())) {
+                        saveRevenueAcode(currentInstitution, getPeriod(), savedResults.acodeRawRows);
+                    }
                 }
             } catch (e) {
                 console.error("Failed to sync/restore", e);
@@ -97,11 +101,17 @@ const ACodeCalculation = () => {
 
             const resultData = await processData(files, setProgressText);
 
-            // Piggyback: 儲存 A碼原始列，供「營業額」頁使用
+            // 儲存 A碼原始列，供「營業額」頁使用；也存入 resultData 以便重啟後恢復
             if (files.govRecord instanceof File) {
-              parseAcodeRawRows(files.govRecord).then(raw => {
-                if (raw.length > 0) saveRevenueAcode(currentInstitution, getPeriod(), raw);
-              }).catch(() => {});
+              try {
+                const raw = await parseAcodeRawRows(files.govRecord);
+                if (raw.length > 0) {
+                  resultData.acodeRawRows = raw;
+                  saveRevenueAcode(currentInstitution, getPeriod(), raw);
+                }
+              } catch (e) {
+                console.warn('parseAcodeRawRows failed', e);
+              }
             }
 
             setResults(resultData);
