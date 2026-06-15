@@ -490,13 +490,20 @@ export const parseWelfareRawRows = async (file) => {
 export const parseSupervisorMap = async (file) => {
   const buffer = await file.arrayBuffer();
   const isXls = file.name.toLowerCase().endsWith('.xls');
-  const options = {
-    sheetMatcher: (name) => name.includes('服務明細'),
-    headerRow: 1,
-  };
-  const jsonData = isXls
-    ? parseXlsBufferWithOptions(new Uint8Array(buffer), options)
-    : await parseExcelBufferWithOptions(buffer, options);
+  const detailOpts = { sheetMatcher: (name) => name.includes('服務明細'), headerRow: 1 };
+  const mainOpts = { sheetMatcher: (name) => name.includes('服務員服務個案計算'), headerRow: 3 };
+
+  let jsonData;
+  if (isXls) {
+    const uint8 = new Uint8Array(buffer);
+    jsonData = parseXlsBufferWithOptions(uint8, detailOpts);
+    if (!jsonData.some(row => getRowVal(row, ['居督', '居服督導', '督導'])))
+      jsonData = parseXlsBufferWithOptions(uint8, mainOpts);
+  } else {
+    jsonData = await parseExcelBufferWithOptions(buffer, detailOpts);
+    if (!jsonData.some(row => getRowVal(row, ['居督', '居服督導', '督導'])))
+      jsonData = await parseExcelBufferWithOptions(buffer, mainOpts);
+  }
 
   const supervisorMap = {};
   const districtMap = {};
@@ -562,7 +569,7 @@ export const parseAcodeRawRows = async (file) => {
   const isXls = file.name.toLowerCase().endsWith('.xls');
   const options = {
     sheetMatcher: (name) => name.includes('A碼項目清冊'),
-    headerRow: 1,
+    headerRow: 4,
   };
   const jsonData = isXls
     ? parseXlsBufferWithOptions(new Uint8Array(buffer), options)
