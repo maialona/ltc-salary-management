@@ -480,6 +480,7 @@ export const parseWelfareRawRows = async (file) => {
         服務當下居住縣市: String(getRowVal(row, ['服務當下\r\n居住縣市', '服務當下居住縣市', '服務當下\n居住縣市']) || '').trim(),
         目前居住縣市: String(getRowVal(row, ['目前居住縣市']) || '').trim(),
         目前居住行政區: String(getRowVal(row, ['目前居住行政區']) || '').trim(),
+        個案主責督導: String(getRowVal(row, ['個案主責督導', '主責督導']) || '').trim(),
         照管專員: String(getRowVal(row, ['照管專員']) || '').trim(),
         服務人員: String(getRowVal(row, ['服務人員']) || '').trim(),
       };

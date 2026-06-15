@@ -47,6 +47,14 @@ export const buildRevenueRows = (welfareRows, acodeRows, selfPayRows, supervisor
   const applyMonth = periodToApplyMonth(period);
   const rows = [];
 
+  // Build supervisor fallback from welfare rows (衛福部清冊 has 個案主責督導)
+  const welfareSupMap = {};
+  for (const r of (welfareRows || [])) {
+    if (r.個案姓名 && r.個案主責督導 && !welfareSupMap[r.個案姓名])
+      welfareSupMap[r.個案姓名] = r.個案主責督導;
+  }
+  const getSup = (name) => supervisorMap?.[name] || welfareSupMap[name] || '';
+
   for (const r of (welfareRows || [])) {
     const serviceItemName = String(r.服務項目類別 || '');
     const isMissed = serviceItemName.includes('服務未遇');
@@ -78,7 +86,7 @@ export const buildRevenueRows = (welfareRows, acodeRows, selfPayRows, supervisor
       實際補助金額: r.實際補助金額,
       服務當下居住縣市: r.服務當下居住縣市,
       目前居住縣市: r.目前居住縣市,
-      個案主責督導: supervisorMap?.[r.個案姓名] || '',
+      個案主責督導: r.個案主責督導 || getSup(r.個案姓名),
       目前居住行政區: r.目前居住行政區,
       照管專員: r.照管專員,
       服務人員: r.服務人員,
@@ -113,7 +121,7 @@ export const buildRevenueRows = (welfareRows, acodeRows, selfPayRows, supervisor
       實際補助金額: '',
       服務當下居住縣市: '',
       目前居住縣市: r.目前居住縣市,
-      個案主責督導: supervisorMap?.[r.個案姓名] || '',
+      個案主責督導: getSup(r.個案姓名),
       目前居住行政區: r.目前居住行政區,
       照管專員: r.照管專員,
       服務人員: r.服務人員,
@@ -150,7 +158,7 @@ export const buildRevenueRows = (welfareRows, acodeRows, selfPayRows, supervisor
       實際補助金額: '',
       服務當下居住縣市: '',
       目前居住縣市: '',
-      個案主責督導: supervisorMap?.[r.個案] || '',
+      個案主責督導: getSup(r.個案),
       目前居住行政區: r.目前居住行政區 || '',
       照管專員: '',
       服務人員: r.服務員 ?? '',

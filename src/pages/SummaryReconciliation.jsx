@@ -4,7 +4,7 @@ import { parseWelfareSummaryExcel, parseWelfareRawRows } from '../utils/excelPar
 import { reconcileSummaries } from '../utils/summaryReconcile';
 import { getCaseQuantity } from '../data/caseQuantityStore';
 import { getWelfare, saveWelfare } from '../data/welfareStore';
-import { saveRevenueWelfare } from '../data/revenueDataStore';
+import { saveRevenueWelfare, saveRevenueSupervisor } from '../data/revenueDataStore';
 import { getPeriod, subscribePeriod } from '../data/periodStore';
 import { useInstitution } from '../context/InstitutionContext';
 import { getInstitutionName } from '../constants/institutions';
@@ -99,7 +99,16 @@ export default function SummaryReconciliation() {
         }
         saveWelfare(currentInstitution, period, welfareData);
         parseWelfareRawRows(file).then(raw => {
-          if (raw.length > 0) saveRevenueWelfare(currentInstitution, period, raw);
+          if (raw.length > 0) {
+            saveRevenueWelfare(currentInstitution, period, raw);
+            const supMap = {};
+            for (const r of raw) {
+              if (r.個案姓名 && r.個案主責督導 && !supMap[r.個案姓名])
+                supMap[r.個案姓名] = r.個案主責督導;
+            }
+            if (Object.keys(supMap).length > 0)
+              saveRevenueSupervisor(currentInstitution, period, supMap);
+          }
         }).catch(() => {});
         const reconciledRows = reconcileSummaries(caseQuantity, welfareData, period);
         setRows(reconciledRows);
