@@ -5,8 +5,8 @@ import { getAcodeResults, saveAcodeResults, deleteAcodeResults } from '../data/a
 import { subscribePeriod, getPeriod } from '../data/periodStore';
 import { useInstitution } from '../context/InstitutionContext';
 import { getInstitutionName } from '../constants/institutions';
-import { parseAcodeRawRows } from '../utils/excelParser';
-import { saveRevenueAcode, getRevenueAcode } from '../data/revenueDataStore';
+import { parseAcodeRawRows, parseSupervisorMap } from '../utils/excelParser';
+import { saveRevenueAcode, getRevenueAcode, saveRevenueSupervisor } from '../data/revenueDataStore';
 import FileUpload from '../components/acode/FileUpload';
 import ResultsDashboard from '../components/acode/ResultsDashboard';
 import Modal from '../components/acode/Modal';
@@ -111,6 +111,16 @@ const ACodeCalculation = () => {
                 }
               } catch (e) {
                 console.warn('parseAcodeRawRows failed', e);
+              }
+            }
+            // A碼服務紀錄表有「居督」欄，用來建立居督對照表供「營業額」頁使用
+            if (files.serviceRecord instanceof File) {
+              try {
+                const { supervisorMap } = await parseSupervisorMap(files.serviceRecord);
+                if (Object.keys(supervisorMap).length > 0)
+                  saveRevenueSupervisor(currentInstitution, getPeriod(), supervisorMap);
+              } catch (e) {
+                console.warn('parseSupervisorMap from serviceRecord failed', e);
               }
             }
 
