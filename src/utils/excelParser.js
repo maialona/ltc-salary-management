@@ -491,26 +491,32 @@ export const parseWelfareRawRows = async (file) => {
 export const parseSupervisorMap = async (file) => {
   const buffer = await file.arrayBuffer();
   const isXls = file.name.toLowerCase().endsWith('.xls');
-  const detailOpts = { sheetMatcher: (name) => name.includes('服務明細'), headerRow: 1 };
-  const mainOpts = { sheetMatcher: (name) => name.includes('服務員服務個案計算'), headerRow: 3 };
+  const SUP_KEYS = ['居督', '居服督導', '督導'];
+  const hasSup = (data) => data.some(row => getRowVal(row, SUP_KEYS));
 
-  let jsonData;
-  if (isXls) {
-    const uint8 = new Uint8Array(buffer);
-    jsonData = parseXlsBufferWithOptions(uint8, detailOpts);
-    if (!jsonData.some(row => getRowVal(row, ['居督', '居服督導', '督導'])))
-      jsonData = parseXlsBufferWithOptions(uint8, mainOpts);
-  } else {
-    jsonData = await parseExcelBufferWithOptions(buffer, detailOpts);
-    if (!jsonData.some(row => getRowVal(row, ['居督', '居服督導', '督導'])))
-      jsonData = await parseExcelBufferWithOptions(buffer, mainOpts);
+  // Try 服務明細 sheet first with headerRow 1, 2, 3; then fall back to main sheet
+  const candidates = [
+    { sheetMatcher: (n) => n.includes('服務明細'), headerRow: 1 },
+    { sheetMatcher: (n) => n.includes('服務明細'), headerRow: 2 },
+    { sheetMatcher: (n) => n.includes('服務明細'), headerRow: 3 },
+    { sheetMatcher: (n) => n.includes('服務員服務個案計算'), headerRow: 3 },
+  ];
+
+  let jsonData = [];
+  for (const opts of candidates) {
+    const data = isXls
+      ? parseXlsBufferWithOptions(new Uint8Array(buffer), opts)
+      : await parseExcelBufferWithOptions(buffer, opts);
+    if (hasSup(data)) { jsonData = data; break; }
   }
 
   const supervisorMap = {};
   const districtMap = {};
   const serviceDateSetMap = {};
   for (const row of jsonData) {
-    const caseName = String(getRowVal(row, ['服務個案', '個案', '個案姓名']) || '').trim();
+    const caseName = String(
+      getRowVal(row, ['服務個案', '個案', '個案姓名', '案主姓名', '受照顧者', '姓名']) || ''
+    ).trim();
     if (!caseName) continue;
     const supervisor = String(getRowVal(row, ['居督', '居服督導', '督導']) || '').trim();
     if (supervisor && !supervisorMap[caseName]) supervisorMap[caseName] = supervisor;
