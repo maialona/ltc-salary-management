@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Upload, AlertTriangle, ChevronDown, CloudUpload, FileText, RotateCcw } from 'lucide-react';
+import { Upload, AlertTriangle, ChevronDown, CloudUpload, FileText, RotateCcw, Trash2 } from 'lucide-react';
 import { parseServiceRecordExcel, parseCaseQuantityExcel, parseSupervisorMap } from '../utils/excelParser';
 import { processSalaryCalculation } from '../utils/calculator';
 import { getEmployees } from '../data/employeeStore';
 import { saveRecords } from '../data/recordsStore';
-import { saveRevenueSelfPay, saveRevenueSupervisor, saveRevenueDistrict, getRevenueSelfPay, getRevenueSupervisor } from '../data/revenueDataStore';
+import { saveRevenueSelfPay, saveRevenueSupervisor, saveRevenueDistrict, getRevenueSelfPay, getRevenueSupervisor, clearRevenueSelfPay, clearRevenueSupervisor, clearRevenueDistrict } from '../data/revenueDataStore';
 import { getPeriod, subscribePeriod } from '../data/periodStore';
 import { saveCaseQuantity } from '../data/caseQuantityStore';
 import { useInstitution } from '../context/InstitutionContext';
@@ -156,6 +156,18 @@ const RecordsProcessing = () => {
     }
   };
 
+  const handleClear = () => {
+    const period = getPeriod();
+    setResults([]);
+    setWarnings([]);
+    setExpandedId(null);
+    revenueSnapshotRef.current = { supervisorMap: null, selfPayRows: null, districtMap: null };
+    localStorage.removeItem(bgsKey(currentInstitution, period));
+    clearRevenueSelfPay(currentInstitution, period);
+    clearRevenueSupervisor(currentInstitution, period);
+    clearRevenueDistrict(currentInstitution, period);
+  };
+
   const toggleExpand = (id) => setExpandedId(expandedId === id ? null : id);
 
   // --- Global summary values (memoized) ---
@@ -271,9 +283,9 @@ const RecordsProcessing = () => {
         </div>
       )}
 
-      {/* Re-upload button — shown after successful parse */}
+      {/* Re-upload / clear buttons — shown after successful parse */}
       {results.length > 0 && !isProcessing && (
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
           <button
             onClick={() => fileInputRef.current?.click()}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs transition-opacity hover:opacity-70"
@@ -281,6 +293,14 @@ const RecordsProcessing = () => {
           >
             <RotateCcw size={12} />
             重新上傳
+          </button>
+          <button
+            onClick={handleClear}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs transition-opacity hover:opacity-70"
+            style={{ borderColor: 'rgba(239,68,68,0.3)', color: '#f87171', background: 'rgba(239,68,68,0.05)' }}
+          >
+            <Trash2 size={12} />
+            清除
           </button>
         </div>
       )}

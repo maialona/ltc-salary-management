@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { CloudUpload, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import { CloudUpload, AlertTriangle, CheckCircle2, XCircle, Trash2 } from 'lucide-react';
 import { parseWelfareSummaryExcel, parseWelfareRawRows } from '../utils/excelParser';
 import { reconcileSummaries } from '../utils/summaryReconcile';
 import { getCaseQuantity } from '../data/caseQuantityStore';
-import { getWelfare, saveWelfare } from '../data/welfareStore';
-import { saveRevenueWelfare, saveRevenueSupervisor } from '../data/revenueDataStore';
+import { getWelfare, saveWelfare, clearWelfare } from '../data/welfareStore';
+import { saveRevenueWelfare, saveRevenueSupervisor, clearRevenueWelfare } from '../data/revenueDataStore';
 import { getPeriod, subscribePeriod } from '../data/periodStore';
 import { useInstitution } from '../context/InstitutionContext';
 import { getInstitutionName } from '../constants/institutions';
@@ -119,6 +119,13 @@ export default function SummaryReconciliation() {
         setIsProcessing(false);
       }
     }, 300);
+  };
+
+  const handleClear = () => {
+    setRows([]);
+    setWarnings([]);
+    clearWelfare(currentInstitution, period);
+    clearRevenueWelfare(currentInstitution, period);
   };
 
   const hasCacheData = caseQuantity !== null && caseQuantity.length > 0;
@@ -240,13 +247,21 @@ export default function SummaryReconciliation() {
           )}
 
           {rows.length > 0 && !isProcessing && (
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs transition-opacity hover:opacity-70"
                 style={{ borderColor: 'var(--glass-border)', color: 'var(--text-secondary)', background: 'var(--accordion-bg)' }}
               >
                 重新上傳衛福部清冊
+              </button>
+              <button
+                onClick={handleClear}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs transition-opacity hover:opacity-70"
+                style={{ borderColor: 'rgba(239,68,68,0.3)', color: '#f87171', background: 'rgba(239,68,68,0.05)' }}
+              >
+                <Trash2 size={12} />
+                清除
               </button>
             </div>
           )}

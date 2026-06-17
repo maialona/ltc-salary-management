@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { TrendingUp, Download, RefreshCw, CheckCircle2, XCircle, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
-import { getRevenueWelfare, getRevenueAcode, getRevenueSelfPay, getRevenueSupervisor } from '../data/revenueDataStore';
+import { TrendingUp, Download, RefreshCw, CheckCircle2, XCircle, ChevronUp, ChevronDown, ChevronsUpDown, Trash2 } from 'lucide-react';
+import { getRevenueWelfare, getRevenueAcode, getRevenueSelfPay, getRevenueSupervisor, clearRevenueWelfare, clearRevenueAcode, clearRevenueSelfPay, clearRevenueSupervisor, clearRevenueDistrict } from '../data/revenueDataStore';
 import { buildRevenueRows } from '../utils/revenueProcessor';
 import { exportRevenueExcel } from '../utils/revenue-excel';
 import { getPeriod, subscribePeriod } from '../data/periodStore';
@@ -281,6 +281,17 @@ export default function RevenueReport() {
     });
   }, [currentInstitution]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const handleClear = () => {
+    clearRevenueWelfare(currentInstitution, period);
+    clearRevenueAcode(currentInstitution, period);
+    clearRevenueSelfPay(currentInstitution, period);
+    clearRevenueSupervisor(currentInstitution, period);
+    clearRevenueDistrict(currentInstitution, period);
+    setSources({ welfare: null, acode: null, selfpay: null, supervisor: null });
+    setRows([]);
+    setIsBuilt(false);
+  };
+
   const handleBuild = () => {
     const institutionName = getInstitutionName(currentInstitution);
     const built = buildRevenueRows(
@@ -392,6 +403,15 @@ export default function RevenueReport() {
           >
             <Download size={14} />
             {isExporting ? '匯出中…' : '匯出 Excel'}
+          </button>
+          <button
+            onClick={handleClear}
+            disabled={!canBuild && !isBuilt}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ color: '#f87171', borderColor: 'rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.05)' }}
+          >
+            <Trash2 size={12} />
+            清除
           </button>
         </div>
       </div>
