@@ -271,7 +271,11 @@ const EmployeeManagement = () => {
 
     try {
       const { parseEmployeeExcel } = await import('../utils/excelParser');
-      const newEmployees = await parseEmployeeExcel(file);
+      const parsed = await parseEmployeeExcel(file);
+      const newEmployees = parsed.map(emp => ({
+        ...emp,
+        isSupport: emp.organization !== currentInstitution,
+      }));
       const { count } = await importEmployees(newEmployees);
       showAlert('匯入成功', `成功匯入/更新 ${count} 筆員工資料。`, 'success');
       await loadEmployees();
