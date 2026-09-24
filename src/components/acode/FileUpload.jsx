@@ -38,10 +38,10 @@ const FileUpload = ({ files, setFiles, fileStatus, setFileStatus, setFileHeaders
                     <h3 className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>1. 服務紀錄表</h3>
                     <p className="text-xs mb-4 h-8" style={{ color: 'var(--text-secondary)' }}>必要欄位：服務日期、服務個案、服務代碼、服務時間</p>
 
-                    <label className={`cursor-pointer inline-block px-3 py-1.5 rounded-md text-xs font-medium transition ${fileStatus.serviceRecord ? 'bg-emerald-500/20 text-emerald-500' : ''}`}
+                    <label className={`inline-block px-3 py-1.5 rounded-md text-xs font-medium transition ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${fileStatus.serviceRecord ? 'bg-emerald-500/20 text-emerald-500' : ''}`}
                            style={!fileStatus.serviceRecord ? { background: 'var(--btn-primary-bg)', color: 'var(--glass-bg)' } : {}}>
                         {fileStatus.serviceRecord ? '重新上傳' : '選擇檔案'}
-                        <input type="file" accept=".xlsx, .xls" onChange={(e) => handleFileChange(e, 'serviceRecord')} className="hidden" />
+                        <input type="file" accept=".xlsx, .xls" onChange={(e) => handleFileChange(e, 'serviceRecord')} className="hidden" disabled={isProcessing} />
                     </label>
                     <div className="mt-2 text-xs truncate px-2 h-4" style={{ color: 'var(--text-secondary)' }}>
                         {files.serviceRecord ? files.serviceRecord.name : "尚未選擇檔案"}
@@ -59,10 +59,10 @@ const FileUpload = ({ files, setFiles, fileStatus, setFileStatus, setFileHeaders
                     <h3 className="text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>2. A碼核定清冊</h3>
                     <p className="text-xs mb-4 h-8" style={{ color: 'var(--text-secondary)' }}>必要欄位：序號、日期、個案、代碼、小計</p>
 
-                    <label className={`cursor-pointer inline-block px-3 py-1.5 rounded-md text-xs font-medium transition ${fileStatus.govRecord ? 'bg-emerald-500/20 text-emerald-500' : ''}`}
+                    <label className={`inline-block px-3 py-1.5 rounded-md text-xs font-medium transition ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${fileStatus.govRecord ? 'bg-emerald-500/20 text-emerald-500' : ''}`}
                            style={!fileStatus.govRecord ? { background: 'var(--btn-primary-bg)', color: 'var(--glass-bg)' } : {}}>
                         {fileStatus.govRecord ? '重新上傳' : '選擇檔案'}
-                        <input type="file" accept=".xlsx, .xls" onChange={(e) => handleFileChange(e, 'govRecord')} className="hidden" />
+                        <input type="file" accept=".xlsx, .xls" onChange={(e) => handleFileChange(e, 'govRecord')} className="hidden" disabled={isProcessing} />
                     </label>
                     <div className="mt-2 text-xs truncate px-2 h-4" style={{ color: 'var(--text-secondary)' }}>
                         {files.govRecord ? files.govRecord.name : "尚未選擇檔案"}

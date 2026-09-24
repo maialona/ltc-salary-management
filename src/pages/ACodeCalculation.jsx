@@ -168,7 +168,7 @@ const ACodeCalculation = () => {
                     </div>
                 </header>
 
-                {step === 1 && (
+                {(step === 1 || step === 2) && (
                     <FileUpload
                         files={files}
                         setFiles={setFiles}
