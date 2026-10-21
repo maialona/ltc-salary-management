@@ -1,3 +1,5 @@
+import { stripOrgSuffix } from './acode-formatters';
+
 export const SERVICE_TYPES = {
   B: 'B',
   G: 'G',
@@ -33,7 +35,7 @@ export const processSalaryCalculation = (records, employees) => {
 
   if (!records || records.length === 0) return { results: [], warnings: ['No records to process'] };
 
-  const findEmployee = (name) => employees.find(e => e.name.trim() === name.trim());
+  const findEmployee = (name) => employees.find(e => stripOrgSuffix(e.name) === stripOrgSuffix(name));
 
   records.forEach(row => {
     const empName = String(row['服務員'] || row['服務人員'] || '').trim();

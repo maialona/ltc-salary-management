@@ -1,4 +1,4 @@
-import { normalizeDate, cleanName, parseTimeRange } from './acode-formatters';
+import { normalizeDate, cleanName, stripOrgSuffix, parseTimeRange } from './acode-formatters';
 import { readExcel } from './acode-excel';
 import { CODE_RULES } from '../constants/acode-rules';
 
@@ -35,7 +35,7 @@ export const processData = async (files, updateProgress) => {
 
     const staffMap = {}; 
     staffRaw.forEach(row => {
-        const name = cleanName(row['姓名'] || row['服務人員'] || row['員工姓名']);
+        const name = cleanName(stripOrgSuffix(row['姓名'] || row['服務人員'] || row['員工姓名']));
         const id = String(row['員編'] || row['員工編號'] || '').trim();
         const role = String(row['職級'] || row['身分'] || row['職務']).includes('正職') ? 'full' : 'part';
         const aa09Rate = parseFloat(row['aa09抽成'] || 0) / 100;
@@ -53,7 +53,7 @@ export const processData = async (files, updateProgress) => {
     serviceRaw.forEach((row, idx) => {
         const date = normalizeDate(row['服務日期'] || row['日期']);
         const client = cleanName(row['服務個案'] || row['個案姓名'] || row['個案']);
-        const worker = cleanName(row['服務人員'] || row['居服員'] || row['員工']);
+        const worker = cleanName(stripOrgSuffix(row['服務人員'] || row['居服員'] || row['員工']));
         const supervisor = String(row['居督'] || row['督導'] || '').trim();
         const serviceCode = String(row['服務代碼'] || '').toUpperCase();
         const timeObj = parseTimeRange(row['服務時間'] || row['時間'] || row['開始時間']);

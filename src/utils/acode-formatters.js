@@ -26,6 +26,10 @@ export const cleanName = (name) => {
     return String(name).replace(/\s+/g, '').trim();
 };
 
+// 支援人力在服務紀錄表中會加上所屬機構後綴（如「林秀燕(主謙)」），比對員工姓名前需先移除
+export const stripOrgSuffix = (name) =>
+    String(name ?? '').replace(/\s*[(（][^()（）]*[)）]\s*$/, '').trim();
+
 export const parseTimeRange = (rawTime) => {
     const result = { start: 0, end: 0 };
     if (rawTime === undefined || rawTime === null || rawTime === '') return result;
